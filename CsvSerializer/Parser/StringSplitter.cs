@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace Csv.Parser {
 	internal static class StringSplitter {
@@ -21,32 +20,38 @@ namespace Csv.Parser {
 				case '"':
 					goto IN_STRING_LITERAL;
 				case char c:
-					if (char.IsLetterOrDigit(c) || c == '.' || c == '-' || c == '+') {
+					if (c == separator) {
+						columns.Add(string.Empty);
+						i++;
+						goto EXPECTING_TOKEN;
+					} else if (char.IsLetterOrDigit(c) || c == '.' || c == '-' || c == '+') {
 						goto IN_VALUE_LITERAL;
 					} else {
-						throw new FormatException($"Invalid token: {c}");
+						throw new CsvFormatException(line, $"Invalid character at position {i}: {c}");
 					}
 			}
 
 		IN_STRING_LITERAL:
 			{
 				startOfLiteral = i++;
-				bool inEscapeCharacter = false;
+				bool maybeInEscapeCharacter = false;
 			IN_STRING_LITERAL_LOOP:
 				if (i == line.Length) {
-					throw new FormatException("Newline in string literal.");
-				}
-				if (inEscapeCharacter) {
-					inEscapeCharacter = false;
-				} else {
-					switch (line[i]) {
-						case '\\':
-							inEscapeCharacter = true;
-							break;
-						case '"':
-							endOfLiteral = ++i;
-							goto HAS_LITERAL_LOOP;
+					if (maybeInEscapeCharacter) {
+						columns.Add(line[startOfLiteral..i]);
+						return columns;
+					} else {
+						throw new CsvFormatException(line, "Newline in string literal.");
 					}
+				}
+				if (maybeInEscapeCharacter) {
+					maybeInEscapeCharacter = false;
+					if (line[i] != '"') {
+						endOfLiteral = i;
+						goto HAS_LITERAL_LOOP;
+					}
+				} else if (line[i] == '"') {
+					maybeInEscapeCharacter = true;
 				}
 				i++;
 				goto IN_STRING_LITERAL_LOOP;
@@ -73,7 +78,7 @@ namespace Csv.Parser {
 							i++;
 							goto IN_VALUE_LITERAL_LOOP;
 						} else {
-							throw new FormatException("Invalid value literal.");
+							throw new CsvFormatException(line, $"Invalid character at position {i}: {c}");
 						}
 				}
 			}
@@ -93,7 +98,7 @@ namespace Csv.Parser {
 						i++;
 						goto EXPECTING_TOKEN;
 					} else {
-						throw new FormatException("A column can't have multiple literals.");
+						throw new CsvFormatException(line, $"Invalid character at position {i}: {c}");
 					}
 			}
 		}

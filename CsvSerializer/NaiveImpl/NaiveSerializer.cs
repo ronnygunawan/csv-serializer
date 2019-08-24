@@ -1,18 +1,62 @@
 ﻿using System;
-using System.Globalization;
 using System.Reflection;
 using System.Text;
 
 namespace Csv.NaiveImpl {
 	internal class NaiveSerializer<T> : ISerializer where T : notnull {
+		private enum SerializeAs {
+			Number,
+			String,
+			DateTime
+		}
+
 		private readonly PropertyInfo[] _properties;
 		private readonly CsvColumnAttribute?[] _columnAttributes;
+		private readonly SerializeAs[] _serializeAs;
 
 		public NaiveSerializer() {
 			_properties = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance);
 			_columnAttributes = new CsvColumnAttribute?[_properties.Length];
+			_serializeAs = new SerializeAs[_properties.Length];
 			for (int i = 0; i < _properties.Length; i++) {
 				_columnAttributes[i] = _properties[i].GetCustomAttribute<CsvColumnAttribute>();
+				switch (_properties[i].PropertyType) {
+					case Type tSByte when tSByte == typeof(sbyte):
+					case Type tNullableSByte when Nullable.GetUnderlyingType(tNullableSByte) == typeof(sbyte):
+					case Type tByte when tByte == typeof(byte):
+					case Type tNullableByte when Nullable.GetUnderlyingType(tNullableByte) == typeof(byte):
+					case Type tInt16 when tInt16 == typeof(short):
+					case Type tNullableInt16 when Nullable.GetUnderlyingType(tNullableInt16) == typeof(short):
+					case Type tUInt16 when tUInt16 == typeof(ushort):
+					case Type tNullableUInt16 when Nullable.GetUnderlyingType(tNullableUInt16) == typeof(ushort):
+					case Type tInt32 when tInt32 == typeof(int):
+					case Type tNullableInt32 when Nullable.GetUnderlyingType(tNullableInt32) == typeof(int):
+					case Type tUint32 when tUint32 == typeof(uint):
+					case Type tNullableUint32 when Nullable.GetUnderlyingType(tNullableUint32) == typeof(uint):
+					case Type tInt64 when tInt64 == typeof(long):
+					case Type tNullableInt64 when Nullable.GetUnderlyingType(tNullableInt64) == typeof(long):
+					case Type tUInt64 when tUInt64 == typeof(ulong):
+					case Type tNullableUInt64 when Nullable.GetUnderlyingType(tNullableUInt64) == typeof(ulong):
+					case Type tSingle when tSingle == typeof(float):
+					case Type tNullableSingle when Nullable.GetUnderlyingType(tNullableSingle) == typeof(float):
+					case Type tDouble when tDouble == typeof(double):
+					case Type tNullableDouble when Nullable.GetUnderlyingType(tNullableDouble) == typeof(double):
+					case Type tDecimal when tDecimal == typeof(decimal):
+					case Type tNullableDecimal when Nullable.GetUnderlyingType(tNullableDecimal) == typeof(decimal):
+					case Type tBoolean when tBoolean == typeof(bool):
+					case Type tNullableBoolean when Nullable.GetUnderlyingType(tNullableBoolean) == typeof(bool):
+						_serializeAs[i] = SerializeAs.Number;
+						break;
+					case Type tString when tString == typeof(string):
+						_serializeAs[i] = SerializeAs.String;
+						break;
+					case Type tDateTime when tDateTime == typeof(DateTime):
+					case Type tNullableDateTime when Nullable.GetUnderlyingType(tNullableDateTime) == typeof(DateTime):
+						_serializeAs[i] = SerializeAs.DateTime;
+						break;
+					default:
+						throw new CsvTypeException(_properties[i].PropertyType);
+				}
 			}
 		}
 
@@ -23,7 +67,7 @@ namespace Csv.NaiveImpl {
 					stringBuilder.Append(separator);
 				}
 				stringBuilder.Append('"');
-				stringBuilder.Append((_columnAttributes[i]?.Name ?? _properties[i].Name).Replace(@"\", @"\\").Replace("\"", "\\\""));
+				stringBuilder.Append((_columnAttributes[i]?.Name ?? _properties[i].Name).Replace("\"", "\"\""));
 				stringBuilder.Append('"');
 				firstProperty = false;
 			}
@@ -36,39 +80,30 @@ namespace Csv.NaiveImpl {
 				if (!firstProperty) {
 					stringBuilder.Append(separator);
 				}
-				switch (_properties[i].PropertyType) {
-					case Type tSByte when tSByte == typeof(sbyte):
-					case Type tByte when tByte == typeof(byte):
-					case Type tShort when tShort == typeof(short):
-					case Type tUshort when tUshort == typeof(ushort):
-					case Type tInt when tInt == typeof(int):
-					case Type tUint when tUint == typeof(uint):
-					case Type tLong when tLong == typeof(long):
-					case Type tUlong when tUlong == typeof(ulong):
-					case Type tFloat when tFloat == typeof(float):
-					case Type tDouble when tDouble == typeof(double):
-					case Type tDecimal when tDecimal == typeof(decimal):
-						stringBuilder.AppendFormat(CultureInfo.InvariantCulture, "{0}", _properties[i].GetValue(item));
+				switch (_serializeAs[i]) {
+					case SerializeAs.Number:
+						stringBuilder.AppendFormat("{0}", _properties[i].GetValue(item));
 						break;
-					case Type tBool when tBool == typeof(bool):
-						stringBuilder.Append(_properties[i].GetValue(item) is true ? "True" : "False");
-						break;
-					case Type tString when tString == typeof(string):
-						stringBuilder.Append('"');
-						stringBuilder.Append(((string?)_properties[i].GetValue(item))?.Replace(@"\", @"\\").Replace("\"", "\\\""));
-						stringBuilder.Append('"');
-						break;
-					case Type tDateTime when tDateTime == typeof(DateTime):
-						stringBuilder.Append('"');
-						if (_columnAttributes[i]?.DateFormat is string dateFormat) {
-							stringBuilder.Append(((DateTime?)_properties[i].GetValue(item))?.ToString(dateFormat, CultureInfo.InvariantCulture));
-						} else {
-							stringBuilder.Append(((DateTime?)_properties[i].GetValue(item))?.ToString(CultureInfo.InvariantCulture));
+					case SerializeAs.String:
+						if (((string?)_properties[i].GetValue(item))?.Replace("\"", "\"\"") is string stringValue) {
+							stringBuilder.Append('"');
+							stringBuilder.Append(stringValue);
+							stringBuilder.Append('"');
 						}
-						stringBuilder.Append('"');
+						break;
+					case SerializeAs.DateTime:
+						if (((DateTime?)_properties[i].GetValue(item)) is DateTime dateTimeValue) {
+							stringBuilder.Append('"');
+							if (_columnAttributes[i]?.DateFormat is string dateFormat) {
+								stringBuilder.Append(dateTimeValue.ToString(dateFormat));
+							} else {
+								stringBuilder.Append(dateTimeValue.ToString());
+							}
+							stringBuilder.Append('"');
+						}
 						break;
 					default:
-						throw new InvalidOperationException($"{_properties[i].PropertyType.FullName} is not supported.");
+						throw new NotImplementedException();
 				}
 				firstProperty = false;
 			}
