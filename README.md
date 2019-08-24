@@ -16,3 +16,51 @@ string csv = CsvSerializer.Serialize(items, withHeaders: true);
 // Deserialize CSV string to array
 Item[] items = CsvSerializer.Deserialize<Item>(csv, hasHeaders: true);
 ```
+
+# Supported Property Types
+```csharp
+bool
+bool?
+byte
+byte?
+sbyte
+sbyte?
+short
+short?
+ushort
+ushort?
+int
+int?
+uint
+uint?
+long
+long?
+ulong
+ulong?
+float
+float?
+double
+double?
+decimal
+decimal?
+string
+DateTime
+DateTime?
+```
+
+## Not yet supported:
+```csharp
+char
+char?
+DateTimeOffset
+DateTimeOffset?
+TimeSpan
+TimeSpan?
+Uri
+Guid
+Guid?
+any Enum types
+any Class with ToString() method
+any Struct with ToString() method
+any Nullable Struct with ToString() method
+```
