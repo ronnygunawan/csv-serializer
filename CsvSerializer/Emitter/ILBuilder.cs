@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 
@@ -10,9 +12,41 @@ namespace Csv.Emitter {
 			_ilGenerator = ilGenerator;
 		}
 
+		public Label DefineLabel() { return _ilGenerator.DefineLabel(); }
 		public ILBuilder DeclareLocal(Type type) { _ilGenerator.DeclareLocal(type); return this; }
 		public ILBuilder DeclareLocal(Type type, out LocalBuilder localBuilder) { localBuilder = _ilGenerator.DeclareLocal(type); return this; }
+		public ILBuilder DeclareLocalIf(bool condition, Type type, out LocalBuilder? localBuilder) {
+			if (condition) {
+				localBuilder = _ilGenerator.DeclareLocal(type);
+			} else {
+				localBuilder = null;
+			}
+			return this;
+		}
+		public ILBuilder DeclareLocalIfRequired(PropertyInfo[] properties, Type type, out LocalBuilder? localBuilder, out LocalBuilder? nullableLocalBuilder) {
+			if (properties.Any(prop => prop.PropertyType == type || Nullable.GetUnderlyingType(prop.PropertyType) == type)) {
+				localBuilder = _ilGenerator.DeclareLocal(type);
+				if (properties.FirstOrDefault(prop => Nullable.GetUnderlyingType(prop.PropertyType) == type) is PropertyInfo nullableProperty) {
+					nullableLocalBuilder = _ilGenerator.DeclareLocal(nullableProperty.PropertyType);
+				} else {
+					nullableLocalBuilder = null;
+				}
+			} else {
+				localBuilder = null;
+				nullableLocalBuilder = null;
+			}
+			return this;
+		}
+		public ILBuilder DeclareLocalIfRequired(PropertyInfo[] properties, Type type, out LocalBuilder? localBuilder) {
+			if (properties.Any(prop => prop.PropertyType == type || Nullable.GetUnderlyingType(prop.PropertyType) == type)) {
+				localBuilder = _ilGenerator.DeclareLocal(type);
+			} else {
+				localBuilder = null;
+			}
+			return this;
+		}
 		public ILBuilder Nop { get { _ilGenerator.Emit(OpCodes.Nop); return this; } }
+		public ILBuilder Ldnull { get { _ilGenerator.Emit(OpCodes.Ldnull); return this; } }
 		public ILBuilder Ldarg(LocalBuilder localBuilder) { _ilGenerator.Emit(OpCodes.Ldarg, localBuilder); return this; }
 		public ILBuilder Ldarg(int i) {
 			switch (i) {
@@ -29,6 +63,7 @@ namespace Csv.Emitter {
 		public ILBuilder Ldarg_2 { get { _ilGenerator.Emit(OpCodes.Ldarg_2); return this; } }
 		public ILBuilder Ldarg_3 { get { _ilGenerator.Emit(OpCodes.Ldarg_3); return this; } }
 		public ILBuilder Ldstr(string s) { _ilGenerator.Emit(OpCodes.Ldstr, s); return this; }
+		public ILBuilder Ldtoken(Type t) { _ilGenerator.Emit(OpCodes.Ldtoken, t); return this; }
 		public ILBuilder Box(Type type) { _ilGenerator.Emit(OpCodes.Box, type); return this; }
 		public ILBuilder Call(MethodInfo methodInfo) { _ilGenerator.Emit(OpCodes.Call, methodInfo); return this; }
 		public ILBuilder Callvirt(MethodInfo methodInfo) { _ilGenerator.Emit(OpCodes.Callvirt, methodInfo); return this; }
@@ -41,6 +76,11 @@ namespace Csv.Emitter {
 			return this;
 		}
 		public ILBuilder Newobj(ConstructorInfo constructorInfo) { _ilGenerator.Emit(OpCodes.Newobj, constructorInfo); return this; }
+		public ILBuilder Initobj(Type t) { _ilGenerator.Emit(OpCodes.Initobj, t); return this; }
+		public ILBuilder Stloc(LocalBuilder? local) {
+			_ilGenerator.Emit(OpCodes.Stloc, local ?? throw new InvalidOperationException("local is not declared"));
+			return this;
+		}
 		public ILBuilder Stloc(int i) {
 			switch (i) {
 				case 0: _ilGenerator.Emit(OpCodes.Stloc_0); break;
@@ -55,8 +95,14 @@ namespace Csv.Emitter {
 		public ILBuilder Stloc_1 { get { _ilGenerator.Emit(OpCodes.Stloc_1); return this; } }
 		public ILBuilder Stloc_2 { get { _ilGenerator.Emit(OpCodes.Stloc_2); return this; } }
 		public ILBuilder Stloc_3 { get { _ilGenerator.Emit(OpCodes.Stloc_3); return this; } }
-		public ILBuilder Stloc_S(short i) {
-			_ilGenerator.Emit(OpCodes.Stloc_S, i);
+		public ILBuilder Stloc_S(int i) {
+			switch (i) {
+				case 0: _ilGenerator.Emit(OpCodes.Stloc_0); break;
+				case 1: _ilGenerator.Emit(OpCodes.Stloc_1); break;
+				case 2: _ilGenerator.Emit(OpCodes.Stloc_2); break;
+				case 3: _ilGenerator.Emit(OpCodes.Stloc_3); break;
+				default: _ilGenerator.Emit(OpCodes.Stloc_S, i); break;
+			}
 			return this;
 		}
 		public ILBuilder Ldloc(int i) {
@@ -73,6 +119,10 @@ namespace Csv.Emitter {
 		public ILBuilder Ldloc_1 { get { _ilGenerator.Emit(OpCodes.Ldloc_1); return this; } }
 		public ILBuilder Ldloc_2 { get { _ilGenerator.Emit(OpCodes.Ldloc_2); return this; } }
 		public ILBuilder Ldloc_3 { get { _ilGenerator.Emit(OpCodes.Ldloc_3); return this; } }
+		public ILBuilder Ldloc(LocalBuilder? local) {
+			_ilGenerator.Emit(OpCodes.Ldloc, local ?? throw new InvalidOperationException("local is not declared"));
+			return this;
+		}
 		public ILBuilder Ldc_I4(int i) {
 			switch (i) {
 				case -1: _ilGenerator.Emit(OpCodes.Ldc_I4_M1); break;
@@ -89,12 +139,20 @@ namespace Csv.Emitter {
 			}
 			return this;
 		}
-		public ILBuilder Ldloca_S(short s) {
+		public ILBuilder Ldloca(int s) {
+			_ilGenerator.Emit(OpCodes.Ldloca, s);
+			return this;
+		}
+		public ILBuilder Ldloca_S(int s) {
 			_ilGenerator.Emit(OpCodes.Ldloca_S, s);
 			return this;
 		}
-		public ILBuilder Ldloc_S(short s) {
+		public ILBuilder Ldloc_S(int s) {
 			_ilGenerator.Emit(OpCodes.Ldloc_S, s);
+			return this;
+		}
+		public ILBuilder Ldloc_S(LocalBuilder? localBuilder) {
+			_ilGenerator.Emit(OpCodes.Ldloc_S, localBuilder!);
 			return this;
 		}
 		public ILBuilder Ldc_I4_S(char c) {
@@ -119,6 +177,24 @@ namespace Csv.Emitter {
 		}
 		public ILBuilder Br_S(Label label) {
 			_ilGenerator.Emit(OpCodes.Br_S, label);
+			return this;
+		}
+		public ILBuilder Brtrue(out Label label) {
+			label = _ilGenerator.DefineLabel();
+			_ilGenerator.Emit(OpCodes.Brtrue, label);
+			return this;
+		}
+		public ILBuilder Brtrue(Label label) {
+			_ilGenerator.Emit(OpCodes.Brtrue, label);
+			return this;
+		}
+		public ILBuilder Brtrue_S(out Label label) {
+			label = _ilGenerator.DefineLabel();
+			_ilGenerator.Emit(OpCodes.Brtrue_S, label);
+			return this;
+		}
+		public ILBuilder Brtrue_S(Label label) {
+			_ilGenerator.Emit(OpCodes.Brtrue_S, label);
 			return this;
 		}
 		public ILBuilder Brfalse(out Label label) {

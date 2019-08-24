@@ -13,30 +13,32 @@ namespace Csv.Emitter {
 		public static MethodInfo List_String_get_Count = typeof(List<string>).GetProperty(nameof(List<string>.Count), BindingFlags.Public | BindingFlags.Instance)!.GetGetMethod()!;
 		public static MethodInfo List_String_get_Item = typeof(List<string>).GetProperties(BindingFlags.Public | BindingFlags.Instance).Single(prop => prop.GetIndexParameters().Length > 0).GetGetMethod()!;
 
-		public static MethodInfo CultureInfo_get_InvariantCulture = typeof(CultureInfo).GetProperty(nameof(CultureInfo.InvariantCulture), BindingFlags.Public | BindingFlags.Static)!.GetGetMethod()!;
+		public static MethodInfo Boolean_TryParse = typeof(bool).GetMethod(nameof(bool.TryParse), new Type[] { typeof(string), typeof(bool).MakeByRefType() })!;
+		public static MethodInfo Byte_TryParse = typeof(byte).GetMethod(nameof(byte.TryParse), new Type[] { typeof(string), typeof(byte).MakeByRefType() })!;
+		public static MethodInfo SByte_TryParse = typeof(sbyte).GetMethod(nameof(sbyte.TryParse), new Type[] { typeof(string), typeof(sbyte).MakeByRefType() })!;
+		public static MethodInfo Int16_TryParse = typeof(short).GetMethod(nameof(short.TryParse), new Type[] { typeof(string), typeof(short).MakeByRefType() })!;
+		public static MethodInfo UInt16_TryParse = typeof(ushort).GetMethod(nameof(ushort.TryParse), new Type[] { typeof(string), typeof(ushort).MakeByRefType() })!;
+		public static MethodInfo Int32_TryParse = typeof(int).GetMethod(nameof(int.TryParse), new Type[] { typeof(string), typeof(int).MakeByRefType() })!;
+		public static MethodInfo UInt32_TryParse = typeof(uint).GetMethod(nameof(uint.TryParse), new Type[] { typeof(string), typeof(uint).MakeByRefType() })!;
+		public static MethodInfo Int64_TryParse = typeof(long).GetMethod(nameof(long.TryParse), new Type[] { typeof(string), typeof(long).MakeByRefType() })!;
+		public static MethodInfo UInt64_TryParse = typeof(ulong).GetMethod(nameof(ulong.TryParse), new Type[] { typeof(string), typeof(ulong).MakeByRefType() })!;
+		public static MethodInfo Single_TryParse = typeof(float).GetMethod(nameof(float.TryParse), new Type[] { typeof(string), typeof(float).MakeByRefType() })!;
+		public static MethodInfo Double_TryParse = typeof(double).GetMethod(nameof(double.TryParse), new Type[] { typeof(string), typeof(double).MakeByRefType() })!;
+		public static MethodInfo Decimal_TryParse = typeof(decimal).GetMethod(nameof(decimal.TryParse), new Type[] { typeof(string), typeof(decimal).MakeByRefType() })!;
+		public static MethodInfo DateTime_TryParse = typeof(DateTime).GetMethod(nameof(DateTime.TryParse), new Type[] { typeof(string), typeof(DateTime).MakeByRefType() })!;
+		public static MethodInfo DateTime_TryParseExact = typeof(DateTime).GetMethod(nameof(DateTime.TryParseExact), new Type[] { typeof(string), typeof(string), typeof(IFormatProvider), typeof(DateTimeStyles), typeof(DateTime).MakeByRefType() })!;
 
-		public static MethodInfo Boolean_Parse = typeof(bool).GetMethod(nameof(bool.Parse), new Type[] { typeof(string) })!;
-		public static MethodInfo Byte_Parse = typeof(byte).GetMethod(nameof(byte.Parse), new Type[] { typeof(string), typeof(IFormatProvider) })!;
-		public static MethodInfo SByte_Parse = typeof(sbyte).GetMethod(nameof(sbyte.Parse), new Type[] { typeof(string), typeof(IFormatProvider) })!;
-		public static MethodInfo Int16_Parse = typeof(short).GetMethod(nameof(short.Parse), new Type[] { typeof(string), typeof(IFormatProvider) })!;
-		public static MethodInfo UInt16_Parse = typeof(ushort).GetMethod(nameof(ushort.Parse), new Type[] { typeof(string), typeof(IFormatProvider) })!;
-		public static MethodInfo Int32_Parse = typeof(int).GetMethod(nameof(int.Parse), new Type[] { typeof(string), typeof(IFormatProvider) })!;
-		public static MethodInfo UInt32_Parse = typeof(uint).GetMethod(nameof(uint.Parse), new Type[] { typeof(string), typeof(IFormatProvider) })!;
-		public static MethodInfo Int64_Parse = typeof(long).GetMethod(nameof(long.Parse), new Type[] { typeof(string), typeof(IFormatProvider) })!;
-		public static MethodInfo UInt64_Parse = typeof(ulong).GetMethod(nameof(ulong.Parse), new Type[] { typeof(string), typeof(IFormatProvider) })!;
-		public static MethodInfo Single_Parse = typeof(float).GetMethod(nameof(float.Parse), new Type[] { typeof(string), typeof(IFormatProvider) })!;
-		public static MethodInfo Double_Parse = typeof(double).GetMethod(nameof(double.Parse), new Type[] { typeof(string), typeof(IFormatProvider) })!;
-		public static MethodInfo Decimal_Parse = typeof(decimal).GetMethod(nameof(decimal.Parse), new Type[] { typeof(string), typeof(IFormatProvider) })!;
-		public static MethodInfo DateTime_Parse = typeof(DateTime).GetMethod(nameof(DateTime.Parse), new Type[] { typeof(string), typeof(IFormatProvider) })!;
-		public static MethodInfo DateTime_ParseExact = typeof(DateTime).GetMethod(nameof(DateTime.ParseExact), new Type[] { typeof(string), typeof(string), typeof(IFormatProvider) })!;
-
-		public static MethodInfo String_ToLowerInvariant = typeof(string).GetMethod(nameof(string.ToLowerInvariant), Type.EmptyTypes)!;
 		public static MethodInfo String_Trim = typeof(string).GetMethod(nameof(string.Trim), Type.EmptyTypes)!;
 		public static MethodInfo String_get_Length = typeof(string).GetProperty(nameof(string.Length), BindingFlags.Public | BindingFlags.Instance)!.GetGetMethod()!;
 		public static MethodInfo String_Substring = typeof(string).GetMethod(nameof(string.Substring), new Type[] { typeof(int), typeof(int) })!;
 		public static MethodInfo String_Replace = typeof(string).GetMethod(nameof(string.Replace), new Type[] { typeof(string), typeof(string) })!;
+		public static MethodInfo String_IsNullOrWhiteSpace = typeof(string).GetMethod(nameof(string.IsNullOrWhiteSpace), new Type[] { typeof(string) })!;
+		public static MethodInfo String_StartsWith = typeof(string).GetMethod(nameof(string.StartsWith), new Type[] { typeof(char) })!;
+		public static MethodInfo String_EndsWith = typeof(string).GetMethod(nameof(string.EndsWith), new Type[] { typeof(char) })!;
 
-		public static ConstructorInfo FormatException_ctor = typeof(FormatException).GetConstructor(new Type[] { typeof(string) })!;
+		public static ConstructorInfo CsvFormatException_ctor2 = typeof(CsvFormatException).GetConstructor(new Type[] { typeof(string), typeof(string) })!;
+		public static ConstructorInfo CsvFormatException_ctor3 = typeof(CsvFormatException).GetConstructor(new Type[] { typeof(Type), typeof(string), typeof(string) })!;
+		public static ConstructorInfo CsvFormatException_ctor4 = typeof(CsvFormatException).GetConstructor(new Type[] { typeof(Type), typeof(string), typeof(string), typeof(string) })!;
 
 		public static MethodInfo StringBuilder_Append_Char = typeof(StringBuilder).GetMethod(nameof(StringBuilder.Append), new Type[] { typeof(char) })!;
 		public static MethodInfo StringBuilder_Append_String = typeof(StringBuilder).GetMethod(nameof(StringBuilder.Append), new Type[] { typeof(string) })!;
@@ -52,20 +54,24 @@ namespace Csv.Emitter {
 		public static MethodInfo StringBuilder_Append_Single = typeof(StringBuilder).GetMethod(nameof(StringBuilder.Append), new Type[] { typeof(float) })!;
 		public static MethodInfo StringBuilder_Append_Double = typeof(StringBuilder).GetMethod(nameof(StringBuilder.Append), new Type[] { typeof(double) })!;
 		public static MethodInfo StringBuilder_Append_Decimal = typeof(StringBuilder).GetMethod(nameof(StringBuilder.Append), new Type[] { typeof(decimal) })!;
+		public static MethodInfo StringBuilder_Append_Object = typeof(StringBuilder).GetMethod(nameof(StringBuilder.Append), new Type[] { typeof(object) })!;
 
-		public static MethodInfo Boolean_ToString = typeof(bool).GetMethod(nameof(bool.ToString), new Type[] { typeof(IFormatProvider) })!;
-		public static MethodInfo Byte_ToString = typeof(byte).GetMethod(nameof(byte.ToString), new Type[] { typeof(IFormatProvider) })!;
-		public static MethodInfo SByte_ToString = typeof(sbyte).GetMethod(nameof(sbyte.ToString), new Type[] { typeof(IFormatProvider) })!;
-		public static MethodInfo Int16_ToString = typeof(short).GetMethod(nameof(short.ToString), new Type[] { typeof(IFormatProvider) })!;
-		public static MethodInfo UInt16_ToString = typeof(ushort).GetMethod(nameof(ushort.ToString), new Type[] { typeof(IFormatProvider) })!;
-		public static MethodInfo Int32_ToString = typeof(int).GetMethod(nameof(int.ToString), new Type[] { typeof(IFormatProvider) })!;
-		public static MethodInfo UInt32_ToString = typeof(uint).GetMethod(nameof(uint.ToString), new Type[] { typeof(IFormatProvider) })!;
-		public static MethodInfo Int64_ToString = typeof(long).GetMethod(nameof(long.ToString), new Type[] { typeof(IFormatProvider) })!;
-		public static MethodInfo UInt64_ToString = typeof(ulong).GetMethod(nameof(ulong.ToString), new Type[] { typeof(IFormatProvider) })!;
-		public static MethodInfo Single_ToString = typeof(float).GetMethod(nameof(float.ToString), new Type[] { typeof(IFormatProvider) })!;
-		public static MethodInfo Double_ToString = typeof(double).GetMethod(nameof(double.ToString), new Type[] { typeof(IFormatProvider) })!;
-		public static MethodInfo Decimal_ToString = typeof(decimal).GetMethod(nameof(decimal.ToString), new Type[] { typeof(IFormatProvider) })!;
-		public static MethodInfo DateTime_ToString = typeof(DateTime).GetMethod(nameof(DateTime.ToString), new Type[] { typeof(IFormatProvider) })!;
-		public static MethodInfo DateTime_ToString_Format = typeof(DateTime).GetMethod(nameof(DateTime.ToString), new Type[] { typeof(string), typeof(IFormatProvider) })!;
+		public static MethodInfo Boolean_ToString = typeof(bool).GetMethod(nameof(bool.ToString), Type.EmptyTypes)!;
+		public static MethodInfo Byte_ToString = typeof(byte).GetMethod(nameof(byte.ToString), Type.EmptyTypes)!;
+		public static MethodInfo SByte_ToString = typeof(sbyte).GetMethod(nameof(sbyte.ToString), Type.EmptyTypes)!;
+		public static MethodInfo Int16_ToString = typeof(short).GetMethod(nameof(short.ToString), Type.EmptyTypes)!;
+		public static MethodInfo UInt16_ToString = typeof(ushort).GetMethod(nameof(ushort.ToString), Type.EmptyTypes)!;
+		public static MethodInfo Int32_ToString = typeof(int).GetMethod(nameof(int.ToString), Type.EmptyTypes)!;
+		public static MethodInfo UInt32_ToString = typeof(uint).GetMethod(nameof(uint.ToString), Type.EmptyTypes)!;
+		public static MethodInfo Int64_ToString = typeof(long).GetMethod(nameof(long.ToString), Type.EmptyTypes)!;
+		public static MethodInfo UInt64_ToString = typeof(ulong).GetMethod(nameof(ulong.ToString), Type.EmptyTypes)!;
+		public static MethodInfo Single_ToString = typeof(float).GetMethod(nameof(float.ToString), Type.EmptyTypes)!;
+		public static MethodInfo Double_ToString = typeof(double).GetMethod(nameof(double.ToString), Type.EmptyTypes)!;
+		public static MethodInfo Decimal_ToString = typeof(decimal).GetMethod(nameof(decimal.ToString), Type.EmptyTypes)!;
+		public static MethodInfo DateTime_ToString = typeof(DateTime).GetMethod(nameof(DateTime.ToString), Type.EmptyTypes)!;
+		public static MethodInfo DateTime_ToString_Format = typeof(DateTime).GetMethod(nameof(DateTime.ToString), new Type[] { typeof(string) })!;
+
+		public static MethodInfo NullableDateTime_get_HasValue = typeof(DateTime?).GetProperty(nameof(Nullable<DateTime>.HasValue), BindingFlags.Public | BindingFlags.Instance)!.GetGetMethod()!;
+		public static MethodInfo NullableDateTime_get_Value = typeof(DateTime?).GetProperty(nameof(Nullable<DateTime>.Value), BindingFlags.Public | BindingFlags.Instance)!.GetGetMethod()!;
 	}
 }

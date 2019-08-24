@@ -13,6 +13,10 @@
     <PackageProjectUrl>https://github.com/ronnygunawan/csv-serializer</PackageProjectUrl>
     <RepositoryUrl>https://github.com/ronnygunawan/csv-serializer</RepositoryUrl>
     <PackageTags>csv serializer deserializer parser core</PackageTags>
+    <Description>Fast CSV to object serializer and deserializer.</Description>
+    <Version>1.0.2</Version>
+    <PackageReleaseNotes>Version 1.0.2
+- Support nullable value types</PackageReleaseNotes>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
