@@ -59,8 +59,9 @@ TimeSpan?
 Uri
 Guid
 Guid?
-any Enum types
-any Class with ToString() method
-any Struct with ToString() method
-any Nullable Struct with ToString() method
+any Enum values
+any Object to string (serialize only)
+any Object to JSON
+any Object to MessagePack Base64
+any Object to MessagePack Hex string
 ```
