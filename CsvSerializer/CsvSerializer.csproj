@@ -1,8 +1,9 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp3.0</TargetFramework>
+    <TargetFrameworks>netcoreapp3.0</TargetFrameworks>
     <RootNamespace>Csv</RootNamespace>
+    <LangVersion>8.0</LangVersion>
     <Nullable>enable</Nullable>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
@@ -14,9 +15,8 @@
     <RepositoryUrl>https://github.com/ronnygunawan/csv-serializer</RepositoryUrl>
     <PackageTags>csv serializer deserializer parser core</PackageTags>
     <Description>Fast CSV to object serializer and deserializer.</Description>
-    <Version>1.0.2</Version>
-    <PackageReleaseNotes>Version 1.0.2
-- Support nullable value types</PackageReleaseNotes>
+    <Version>1.0.3</Version>
+    <PackageReleaseNotes></PackageReleaseNotes>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
@@ -33,8 +33,21 @@
     </None>
   </ItemGroup>
 
+  <PropertyGroup Condition=" '$(TargetFramework)' == 'netstandard2.0'">
+    <DefineConstants>NETSTANDARD;NETSTANDARD2_0</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" '$(TargetFramework)' == 'netcoreapp3.0'">
+    <DefineConstants>NETCOREAPP;NETCOREAPP3_0</DefineConstants>
+  </PropertyGroup>
+  
   <ItemGroup>
-    <PackageReference Include="RG.Missil" Version="1.0.6" />
+    <PackageReference Include="RG.Missil" Version="1.0.8" />
+  </ItemGroup>
+
+  <ItemGroup Condition=" '$(TargetFramework)' == 'netstandard2.0' ">
+    <PackageReference Include="System.Memory" Version="4.5.3" />
+    <PackageReference Include="System.Reflection.Emit" Version="4.3.0" />
   </ItemGroup>
 
 </Project>

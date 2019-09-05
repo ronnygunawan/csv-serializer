@@ -28,7 +28,7 @@ namespace Csv {
 
 		public static T[] Deserialize<T>(string csv, bool hasHeaders = false, char separator = ',') where T : notnull {
 			IDeserializer deserializer = SerializerFactory.GetOrCreateDeserializer<T>();
-			List<object> items = deserializer.Deserialize(csv.AsSpan(), separator, hasHeaders);
+			List<object> items = deserializer.Deserialize(csv.AsMemory(), separator, hasHeaders);
 			return items.Cast<T>().ToArray();
 		}
 	}

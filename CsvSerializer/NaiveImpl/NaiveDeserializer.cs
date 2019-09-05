@@ -150,17 +150,17 @@ namespace Csv.NaiveImpl {
 			}
 		}
 
-		public List<object> Deserialize(ReadOnlySpan<char> csv, char separator, bool skipHeader) {
+		public List<object> Deserialize(ReadOnlyMemory<char> csv, char separator, bool skipHeader) {
 			bool firstRow = true;
 			List<object> items = new List<object>();
 			while (csv.Length > 0) {
 				List<string> columns = StringSplitter.ReadNextLine(ref csv, separator);
 				if (firstRow && skipHeader) {
+					firstRow = false;
 					continue;
 				}
-				firstRow = false;
 				if (_properties.Length != columns.Count) {
-					int endOfLine = csv.IndexOf('\n');
+					int endOfLine = csv.Span.IndexOf('\n');
 					string line = endOfLine == -1 ? csv.ToString() : csv.Slice(0, endOfLine).ToString();
 					throw new CsvFormatException(typeof(T), line, $"Row must consists of {_properties.Length} columns.");
 				}
@@ -253,35 +253,47 @@ namespace Csv.NaiveImpl {
 							break;
 						case DeserializeAs.String:
 							string s = columns[i].Trim();
+#if NETSTANDARD2_0
+							if (s.StartsWith("\"")
+								&& s.EndsWith("\"")) {
+								s = s.Substring(1, s.Length - 2);
+							}
+#else
 							if (s.StartsWith('"')
 								&& s.EndsWith('"')) {
 								s = s[1..^1];
-								s = s.Replace("\"\"", "\"");
-								_properties[i].SetValue(item, s);
-							} else if (!string.IsNullOrWhiteSpace(columns[i])) {
-								_properties[i].SetValue(item, s.TrimEnd('\r'));
 							}
+#endif
+							s = s.Replace("\"\"", "\"").TrimEnd('\r');
+							_properties[i].SetValue(item, s);
 							break;
 						case DeserializeAs.DateTime:
 							s = columns[i].Trim();
+#if NETSTANDARD2_0
+							if (s.StartsWith("\"")
+								&& s.EndsWith("\"")) {
+								s = s.Substring(1, s.Length - 2);
+							}
+#else
 							if (s.StartsWith('"')
 								&& s.EndsWith('"')) {
 								s = s[1..^1];
-								DateTime vDateTime;
-								if (_columnAttributes[i]?.DateFormat switch {
-									string dateFormat => DateTime.TryParseExact(s, dateFormat, null, DateTimeStyles.AssumeLocal, out vDateTime),
-									_ => DateTime.TryParse(s, null, DateTimeStyles.AssumeLocal, out vDateTime)
-								}) {
-									_properties[i].SetValue(item, vDateTime);
-								} else if (!_isNullable[i] || !string.IsNullOrWhiteSpace(s)) {
-									if (_columnAttributes[i]?.DateFormat is string dateFormat) {
-										throw new CsvFormatException(typeof(T), _properties[i].Name, columns[i], $"Input string was not in correct DateTime format. Expected format was '{dateFormat}'.");
-									} else {
-										throw new CsvFormatException(typeof(T), _properties[i].Name, columns[i], "Input string was not in correct DateTime format.");
-									}
+							}
+#endif
+							DateTime vDateTime;
+							if (_columnAttributes[i]?.DateFormat switch {
+								string dateFormat => DateTime.TryParseExact(s, dateFormat, null, DateTimeStyles.AssumeLocal, out vDateTime),
+								_ => DateTime.TryParse(s, null, DateTimeStyles.AssumeLocal, out vDateTime)
+							}) {
+								_properties[i].SetValue(item, vDateTime);
+							} else if (!_isNullable[i] || !string.IsNullOrWhiteSpace(s)) {
+								if (_columnAttributes[i]?.DateFormat is string dateFormat) {
+									throw new CsvFormatException(typeof(T), _properties[i].Name, columns[i], $"Input string was not in correct DateTime format. Expected format was '{dateFormat}'.");
+								} else {
+									throw new CsvFormatException(typeof(T), _properties[i].Name, columns[i], "Input string was not in correct DateTime format.");
 								}
-							} else if (!_isNullable[i] || !string.IsNullOrWhiteSpace(columns[i])) {
-								throw new CsvFormatException(typeof(T), _properties[i].Name, columns[i], "Input string was not in correct DateTime format.");
+							} else {
+								_properties[i].SetValue(item, null);
 							}
 							break;
 						default:

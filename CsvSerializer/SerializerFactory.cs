@@ -3,6 +3,7 @@ using Csv.NaiveImpl;
 using Missil;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -265,22 +266,22 @@ namespace Csv {
 
 		public static IDeserializer GetOrCreateDeserializer<T>() where T : notnull {
 			if (DESERIALIZER_BY_TYPE.TryGetValue(typeof(T), out IDeserializer? deserializer)) return deserializer;
-			if (typeof(T).Name is string className
-				&& (className.Length < 15
-				|| className[0] != '<'
-				|| className[1] != '>')
-				&& typeof(T).IsPublic) {
-				ImplEmitter<IDeserializer> implEmitter = new ImplEmitter<IDeserializer>($"Deserializer{typeof(T).GUID.ToString("N")}");
-				implEmitter.ImplementFunc<object, string, char>("DeserializeItem", gen => DefineDeserializeItem<T>(gen));
-				deserializer = implEmitter.CreateInstance();
-				DESERIALIZER_BY_TYPE.Add(typeof(T), deserializer);
-			} else {
+			//if (typeof(T).Name is string className
+			//	&& (className.Length < 15
+			//	|| className[0] != '<'
+			//	|| className[1] != '>')
+			//	&& typeof(T).IsPublic) {
+			//	ImplEmitter<IDeserializer> implEmitter = new ImplEmitter<IDeserializer>($"Deserializer{typeof(T).GUID.ToString("N")}");
+			//	implEmitter.ImplementFunc<List<object>, ReadOnlyMemory<char>, char, bool>("Deserialize", gen => DefineDeserialize<T>(gen));
+			//	deserializer = implEmitter.CreateInstance();
+			//	DESERIALIZER_BY_TYPE.Add(typeof(T), deserializer);
+			//} else {
 				deserializer = new NaiveDeserializer<T>();
-			}
+			//}
 			return deserializer;
 		}
 
-		private static void DefineDeserializeItem<T>(ILGenerator gen) {
+		private static void DefineDeserialize<T>(ILGenerator gen) {
 			PropertyInfo[] properties = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance);
 			ConstructorInfo? constructorInfo = typeof(T).GetConstructor(Type.EmptyTypes);
 			bool isDefaultConstructor;
@@ -337,7 +338,7 @@ namespace Csv {
 				.Label(out Label beginLoop)
 					.Ldarg_1() // csv
 					.Callvirt(Methods.ReadOnlySpan_Char_get_Length)
-					.Brfalse_S(out Label endLoop)
+					.Brfalse(out Label endLoop)
 					.Ldarga_S(1)
 					.Ldarg_2() // separator
 					.Call(Methods.StringSplitter_ReadNextLine)
@@ -345,9 +346,10 @@ namespace Csv {
 					.Ldarg_3() // skipHeader
 					.Brfalse_S(out Label noSkipHeader)
 						.Ldloc(firstRow)
-						.Brtrue_S(beginLoop)
+						.Brfalse_S(noSkipHeader)
 						.Ldnull()
 						.Stloc(firstRow)
+						.Br_S(beginLoop)
 					.Label(noSkipHeader)
 					.Ldc_I4_X(properties.Length)
 					.Ldloc(columns)
@@ -382,8 +384,10 @@ namespace Csv {
 					.Label(validated)
 					.Newobj(constructorInfo)
 					.Stloc(obj)
+					.Ldloc(obj)
 					.Do(gen => {
 						for (int i = 0; i < properties.Length; i++) {
+							Type propertyType = properties[i].PropertyType;
 							LocalBuilder? local = null;
 							LocalBuilder? nullableLocal = null;
 							MethodInfo? tryParse = null;
@@ -394,93 +398,93 @@ namespace Csv {
 							.Callvirt(Methods.List_String_get_Item)
 							.Stloc_S(col)
 							.Ldloc_S(col);
-							if (typeof(T) == typeof(bool)) {
+							if (propertyType == typeof(bool)) {
 								(local, tryParse, formatExcMessage) = (@bool, Methods.Boolean_TryParse, "Input string was not in correct Boolean format.");
 								goto EMIT_VALUE_PARSER;
-							} else if (Nullable.GetUnderlyingType(typeof(T)) == typeof(bool)) {
+							} else if (Nullable.GetUnderlyingType(propertyType) == typeof(bool)) {
 								(local, nullableLocal, tryParse, formatExcMessage) = (@bool, nBool, Methods.Boolean_TryParse, "Input string was not in correct Boolean format.");
 								goto EMIT_NULLABLE_VALUE_PARSER;
-							} else if (typeof(T) == typeof(byte)) {
+							} else if (propertyType == typeof(byte)) {
 								(local, tryParse, formatExcMessage) = (@byte, Methods.Byte_TryParse, "Input string was not in correct byte format.");
 								goto EMIT_VALUE_PARSER;
-							} else if (Nullable.GetUnderlyingType(typeof(T)) == typeof(byte)) {
+							} else if (Nullable.GetUnderlyingType(propertyType) == typeof(byte)) {
 								(local, nullableLocal, tryParse, formatExcMessage) = (@byte, nByte, Methods.Byte_TryParse, "Input string was not in correct byte format.");
 								goto EMIT_NULLABLE_VALUE_PARSER;
-							} else if (typeof(T) == typeof(sbyte)) {
+							} else if (propertyType == typeof(sbyte)) {
 								(local, tryParse, formatExcMessage) = (@sbyte, Methods.SByte_TryParse, "Input string was not in correct sbyte format.");
 								goto EMIT_VALUE_PARSER;
-							} else if (Nullable.GetUnderlyingType(typeof(T)) == typeof(sbyte)) {
+							} else if (Nullable.GetUnderlyingType(propertyType) == typeof(sbyte)) {
 								(local, nullableLocal, tryParse, formatExcMessage) = (@sbyte, nSbyte, Methods.SByte_TryParse, "Input string was not in correct sbyte format.");
 								goto EMIT_NULLABLE_VALUE_PARSER;
-							} else if (typeof(T) == typeof(short)) {
+							} else if (propertyType == typeof(short)) {
 								(local, tryParse, formatExcMessage) = (@short, Methods.Int16_TryParse, "Input string was not in correct Int16 format.");
 								goto EMIT_VALUE_PARSER;
-							} else if (Nullable.GetUnderlyingType(typeof(T)) == typeof(short)) {
+							} else if (Nullable.GetUnderlyingType(propertyType) == typeof(short)) {
 								(local, nullableLocal, tryParse, formatExcMessage) = (@short, nShort, Methods.Int16_TryParse, "Input string was not in correct Int16 format.");
 								goto EMIT_NULLABLE_VALUE_PARSER;
-							} else if (typeof(T) == typeof(ushort)) {
+							} else if (propertyType == typeof(ushort)) {
 								(local, tryParse, formatExcMessage) = (@ushort, Methods.UInt16_TryParse, "Input string was not in correct UInt16 format.");
 								goto EMIT_VALUE_PARSER;
-							} else if (Nullable.GetUnderlyingType(typeof(T)) == typeof(ushort)) {
+							} else if (Nullable.GetUnderlyingType(propertyType) == typeof(ushort)) {
 								(local, nullableLocal, tryParse, formatExcMessage) = (@ushort, nUshort, Methods.UInt16_TryParse, "Input string was not in correct UInt16 format.");
 								goto EMIT_NULLABLE_VALUE_PARSER;
-							} else if (typeof(T) == typeof(int)) {
+							} else if (propertyType == typeof(int)) {
 								(local, tryParse, formatExcMessage) = (@int, Methods.Int32_TryParse, "Input string was not in correct Int32 format.");
 								goto EMIT_VALUE_PARSER;
-							} else if (Nullable.GetUnderlyingType(typeof(T)) == typeof(int)) {
+							} else if (Nullable.GetUnderlyingType(propertyType) == typeof(int)) {
 								(local, nullableLocal, tryParse, formatExcMessage) = (@int, nInt, Methods.Int32_TryParse, "Input string was not in correct Int32 format.");
 								goto EMIT_NULLABLE_VALUE_PARSER;
-							} else if (typeof(T) == typeof(uint)) {
+							} else if (propertyType == typeof(uint)) {
 								(local, tryParse, formatExcMessage) = (@uint, Methods.UInt32_TryParse, "Input string was not in correct UInt32 format.");
 								goto EMIT_VALUE_PARSER;
-							} else if (Nullable.GetUnderlyingType(typeof(T)) == typeof(uint)) {
+							} else if (Nullable.GetUnderlyingType(propertyType) == typeof(uint)) {
 								(local, nullableLocal, tryParse, formatExcMessage) = (@uint, nUint, Methods.UInt32_TryParse, "Input string was not in correct UInt32 format.");
 								goto EMIT_NULLABLE_VALUE_PARSER;
-							} else if (typeof(T) == typeof(long)) {
+							} else if (propertyType == typeof(long)) {
 								(local, tryParse, formatExcMessage) = (@long, Methods.Int64_TryParse, "Input string was not in correct Int64 format.");
 								goto EMIT_VALUE_PARSER;
-							} else if (Nullable.GetUnderlyingType(typeof(T)) == typeof(long)) {
+							} else if (Nullable.GetUnderlyingType(propertyType) == typeof(long)) {
 								(local, nullableLocal, tryParse, formatExcMessage) = (@long, nLong, Methods.Int64_TryParse, "Input string was not in correct Int64 format.");
 								goto EMIT_NULLABLE_VALUE_PARSER;
-							} else if (typeof(T) == typeof(ulong)) {
+							} else if (propertyType == typeof(ulong)) {
 								(local, tryParse, formatExcMessage) = (@ulong, Methods.UInt64_TryParse, "Input string was not in correct UInt64 format.");
 								goto EMIT_VALUE_PARSER;
-							} else if (Nullable.GetUnderlyingType(typeof(T)) == typeof(ulong)) {
+							} else if (Nullable.GetUnderlyingType(propertyType) == typeof(ulong)) {
 								(local, nullableLocal, tryParse, formatExcMessage) = (@ulong, nUlong, Methods.UInt64_TryParse, "Input string was not in correct UInt64 format.");
 								goto EMIT_NULLABLE_VALUE_PARSER;
-							} else if (typeof(T) == typeof(float)) {
+							} else if (propertyType == typeof(float)) {
 								(local, tryParse, formatExcMessage) = (@float, Methods.Single_TryParse, "Input string was not in correct floating point format.");
 								goto EMIT_VALUE_PARSER;
-							} else if (Nullable.GetUnderlyingType(typeof(T)) == typeof(float)) {
+							} else if (Nullable.GetUnderlyingType(propertyType) == typeof(float)) {
 								(local, nullableLocal, tryParse, formatExcMessage) = (@float, nFloat, Methods.Single_TryParse, "Input string was not in correct floating point format.");
 								goto EMIT_NULLABLE_VALUE_PARSER;
-							} else if (typeof(T) == typeof(double)) {
+							} else if (propertyType == typeof(double)) {
 								(local, tryParse, formatExcMessage) = (@double, Methods.Double_TryParse, "Input string was not in correct floating point format.");
 								goto EMIT_VALUE_PARSER;
-							} else if (Nullable.GetUnderlyingType(typeof(T)) == typeof(double)) {
+							} else if (Nullable.GetUnderlyingType(propertyType) == typeof(double)) {
 								(local, nullableLocal, tryParse, formatExcMessage) = (@double, nDouble, Methods.Double_TryParse, "Input string was not in correct floating point format.");
 								goto EMIT_NULLABLE_VALUE_PARSER;
-							} else if (typeof(T) == typeof(decimal)) {
+							} else if (propertyType == typeof(decimal)) {
 								(local, tryParse, formatExcMessage) = (@decimal, Methods.UInt16_TryParse, "Input string was not in correct decimal format.");
 								goto EMIT_VALUE_PARSER;
-							} else if (Nullable.GetUnderlyingType(typeof(T)) == typeof(decimal)) {
+							} else if (Nullable.GetUnderlyingType(propertyType) == typeof(decimal)) {
 								(local, nullableLocal, tryParse, formatExcMessage) = (@decimal, nDecimal, Methods.UInt16_TryParse, "Input string was not in correct decimal format.");
 								goto EMIT_NULLABLE_VALUE_PARSER;
-							} else if (typeof(T) == typeof(string)) {
+							} else if (propertyType == typeof(string)) {
 								gen
 								.Callvirt(Methods.String_Trim)
-								.Stloc((byte)@string!.LocalIndex)
-								.Ldloc((byte)@string!.LocalIndex)
+								.Stloc(@string!)
+								.Ldloc(@string!)
 								.Ldc_I4_S((int)'"')
 								.Callvirt(Methods.String_StartsWith)
 								.Brfalse_S(out Label notString)
-									.Ldloc((byte)@string!.LocalIndex)
+									.Ldloc(@string!)
 									.Ldc_I4_S((int)'"')
 									.Callvirt(Methods.String_EndsWith)
 								.Brfalse_S(notString)
-									.Ldloc((byte)@string!.LocalIndex)
+									.Ldloc(@string!)
 									.Ldc_I4_1()
-									.Ldloc((byte)@string!.LocalIndex)
+									.Ldloc(@string!)
 									.Callvirt(Methods.String_get_Length)
 									.Ldc_I4_2()
 									.Sub()
@@ -490,7 +494,7 @@ namespace Csv {
 									.Callvirt(Methods.String_Replace)
 									.Br_S(out Label end)
 								.Label(notString)
-									.Ldloc((byte)@string!.LocalIndex)
+									.Ldloc(@string!)
 									.Call(Methods.String_IsNullOrWhiteSpace)
 									.Brfalse_S(out Label invalidString)
 									.Ldnull()
@@ -501,20 +505,169 @@ namespace Csv {
 									.Ldloc_S(col)
 									.Newobj(Methods.CsvFormatException_ctor3)
 									.Throw()
-								.Label(end);
-							} else if (typeof(T) == typeof(DateTime)) {
-
-							} else if (Nullable.GetUnderlyingType(typeof(T)) == typeof(DateTime)) {
-
-							} else {
-								throw new CsvPropertyTypeException(typeof(T));
-							}
-						EMIT_VALUE_PARSER: {
+								.Label(end)
+								.Callvirt(properties[i].GetSetMethod()!);
+								continue;
+							} else if (propertyType == typeof(DateTime)) {
+								Label end = default;
 								gen
-								.Ldloca_S((byte)local!.LocalIndex)
+								.Callvirt(Methods.String_Trim)
+								.Stloc(@string!)
+								.Ldloc(@string!)
+								.Ldc_I4_S((byte)'"')
+								.Callvirt(Methods.String_StartsWith)
+								.Brfalse_S(out Label invalidString)
+								.Ldloc(@string!)
+								.Ldc_I4_S((byte)'"')
+								.Callvirt(Methods.String_EndsWith)
+								.Brfalse_S(invalidString)
+								.Ldloc(@string!)
+								.Ldc_I4_1()
+								.Ldloc(@string!)
+								.Callvirt(Methods.String_get_Length)
+								.Ldc_I4_2()
+								.Sub()
+								.Callvirt(Methods.String_Substring)
+								.Ldstr("\"\"")
+								.Ldstr("\"")
+								.Callvirt(Methods.String_Replace)
+								.Stloc(@string!)
+								.Ldloc(@string!)
+								.Do(gen => {
+									CsvColumnAttribute? columnAttribute = properties[i].GetCustomAttribute<CsvColumnAttribute>();
+									if (columnAttribute?.DateFormat is string dateFormat) {
+										gen
+										.Ldstr(dateFormat)
+										.Ldnull()
+										.Ldc_I4_X((int)DateTimeStyles.AssumeLocal)
+										.Ldloca_S(DateTime!)
+										.Call(Methods.DateTime_TryParseExact)
+										.Brfalse_S(out Label badFormat)
+											.Ldloc(DateTime!)
+											.Br_S(out end)
+										.Label(badFormat)
+										.Ldtoken<T>()
+										.Ldstr(properties[i].Name)
+										.Ldloc_S(1)
+										.Ldstr($"Input string was not in correct DateTime format. Expected format was '{dateFormat}'.")
+										.Newobj(Methods.CsvFormatException_ctor4)
+										.Throw();
+									} else {
+										gen
+										.Ldloca_S(DateTime!)
+										.Call(Methods.DateTime_TryParse)
+										.Brfalse_S(out Label badFormat)
+											.Ldloc(DateTime!)
+											.Br_S(out end)
+										.Label(badFormat)
+										.Ldtoken<T>()
+										.Ldstr(properties[i].Name)
+										.Ldloc_S(1)
+										.Ldstr($"Input string was not in correct DateTime format.")
+										.Newobj(Methods.CsvFormatException_ctor4)
+										.Throw();
+									}
+								})
+								.Label(invalidString)
+								.Ldtoken<T>()
+								.Ldstr(properties[i].Name)
+								.Ldloc_S(1)
+								.Newobj(Methods.CsvFormatException_ctor3)
+								.Throw()
+								.Label(end)
+								.Callvirt(properties[i].GetSetMethod()!);
+								continue;
+							} else if (Nullable.GetUnderlyingType(propertyType) == typeof(DateTime)) {
+								Label end = default;
+								gen
+								.Callvirt(Methods.String_Trim)
+								.Stloc(@string!)
+								.Ldloc(@string!)
+								.Ldc_I4_S((byte)'"')
+								.Callvirt(Methods.String_StartsWith)
+								.Brfalse_S(out Label invalidString)
+								.Ldloc(@string!)
+								.Ldc_I4_S((byte)'"')
+								.Callvirt(Methods.String_EndsWith)
+								.Brfalse_S(invalidString)
+								.Ldloc(@string!)
+								.Ldc_I4_S((byte)'"')
+								.Callvirt(Methods.String_EndsWith)
+								.Brfalse_S(invalidString)
+								.Ldloc(@string!)
+								.Ldc_I4_1()
+								.Ldloc(@string!)
+								.Callvirt(Methods.String_get_Length)
+								.Ldc_I4_2()
+								.Sub()
+								.Callvirt(Methods.String_Substring)
+								.Ldstr("\"\"")
+								.Ldstr("\"")
+								.Callvirt(Methods.String_Replace)
+								.Stloc(@string!)
+								.Ldloc(@string!)
+								.Do(gen => {
+									CsvColumnAttribute? columnAttribute = properties[i].GetCustomAttribute<CsvColumnAttribute>();
+									if (columnAttribute?.DateFormat is string dateFormat) {
+										gen
+										.Ldstr(dateFormat)
+										.Ldnull()
+										.Ldc_I4_X((int)DateTimeStyles.AssumeLocal)
+										.Ldloca_S(DateTime!)
+										.Call(Methods.DateTime_TryParseExact)
+										.Brfalse_S(out Label badFormat)
+											.Ldloc(DateTime!)
+											.Br_S(out end)
+										.Label(badFormat)
+										.Ldtoken<T>()
+										.Ldstr(properties[i].Name)
+										.Ldloc_S(col)
+										.Ldstr($"Input string was not in correct DateTime format. Expected format was '{dateFormat}'.")
+										.Newobj(Methods.CsvFormatException_ctor4)
+										.Throw();
+									} else {
+										gen
+										.Ldloca_S(DateTime!)
+										.Call(Methods.DateTime_TryParse)
+										.Brfalse_S(out Label badFormat)
+											.Ldloc(DateTime!)
+											.Br_S(out end)
+										.Label(badFormat)
+										.Ldtoken<T>()
+										.Ldstr(properties[i].Name)
+										.Ldloc_S(col)
+										.Ldstr($"Input string was not in correct DateTime format.")
+										.Newobj(Methods.CsvFormatException_ctor4)
+										.Throw();
+									}
+								})
+								.Label(invalidString)
+								.Ldloc(@string!)
+								.Call(Methods.String_IsNullOrWhiteSpace)
+								.Brfalse_S(out Label invalidToken)
+									.Ldloca_S(nDateTime!)
+									.Initobj<DateTime?>()
+									.Ldloc_S(nDateTime!)
+									.Br_S(end)
+								.Label(invalidToken)
+									.Ldtoken<T>()
+									.Ldstr(properties[i].Name)
+									.Ldloc_S(col)
+									.Newobj(Methods.CsvFormatException_ctor3)
+									.Throw()
+								.Label(end)
+								.Callvirt(properties[i].GetSetMethod()!);
+								continue;
+							} else {
+								throw new CsvPropertyTypeException(properties[i].PropertyType);
+							}
+						EMIT_VALUE_PARSER:
+							{
+								gen
+								.Ldloca_S(local!)
 								.Call(tryParse!)
-								.Stloc_S((byte)parseSuccess.LocalIndex)
-								.Ldloc_S((byte)parseSuccess.LocalIndex)
+								.Stloc_S(parseSuccess)
+								.Ldloc_S(parseSuccess)
 								.Brfalse_S(out Label @else)
 									.Ldloc_S((byte)local!.LocalIndex)
 									.Br_S(out Label @endif)
@@ -525,17 +678,19 @@ namespace Csv {
 									.Ldstr(formatExcMessage!)
 									.Newobj(Methods.CsvFormatException_ctor4)
 									.Throw()
-								.Label(@endif);
+								.Label(@endif)
+								.Callvirt(properties[i].GetSetMethod()!);
 								continue;
 							}
-						EMIT_NULLABLE_VALUE_PARSER: {
+						EMIT_NULLABLE_VALUE_PARSER:
+							{
 								gen
-								.Ldloca_S((byte)local!.LocalIndex)
+								.Ldloca_S(local!)
 								.Call(tryParse!)
-								.Stloc_S((byte)parseSuccess.LocalIndex)
-								.Ldloc_S((byte)parseSuccess.LocalIndex)
+								.Stloc_S(parseSuccess)
+								.Ldloc_S(parseSuccess)
 								.Brfalse_S(out Label @elseif)
-									.Ldloc_S((byte)local!.LocalIndex)
+									.Ldloc_S(local!)
 									.Newobj(properties[i].PropertyType.GetConstructor(new Type[] { local!.LocalType })!)
 									.Br_S(out Label @endif)
 								.Label(@elseif)
@@ -544,9 +699,9 @@ namespace Csv {
 								.Stloc_S(isEmptyString)
 								.Ldloc_S(isEmptyString)
 								.Brfalse_S(out Label @else)
-									.Ldloca_S((byte)nullableLocal!.LocalIndex)
+									.Ldloca_S(nullableLocal!)
 									.Initobj(properties[i].PropertyType)
-									.Ldloc_S((byte)nullableLocal!.LocalIndex)
+									.Ldloc_S(nullableLocal!)
 									.Br_S(@endif)
 								.Label(@else)
 									.Ldtoken<T>()
@@ -555,409 +710,16 @@ namespace Csv {
 									.Ldstr(formatExcMessage)
 									.Newobj(Methods.CsvFormatException_ctor4)
 									.Throw()
-								.Label(@endif);
+								.Label(@endif)
+								.Callvirt(properties[i].GetSetMethod()!);
 								continue;
 							}
 						}
-					});
-
-
-			//_ = gen.EmitFollowingLines()
-
-			//	.DeclareLocal(typeof(List<string>))
-			//	.DeclareLocal(typeof(string))
-			//	.DeclareLocal(typeof(object))
-			//	.DeclareLocal(typeof(T))
-			//	.DeclareLocalIfRequired(properties, typeof(bool), out LocalBuilder? @bool, out LocalBuilder? @nBool)
-			//	.DeclareLocalIfRequired(properties, typeof(byte), out LocalBuilder? @byte, out LocalBuilder? @nByte)
-			//	.DeclareLocalIfRequired(properties, typeof(sbyte), out LocalBuilder? @sbyte, out LocalBuilder? @nSbyte)
-			//	.DeclareLocalIfRequired(properties, typeof(short), out LocalBuilder? @short, out LocalBuilder? @nShort)
-			//	.DeclareLocalIfRequired(properties, typeof(ushort), out LocalBuilder? @ushort, out LocalBuilder? @nUshort)
-			//	.DeclareLocalIfRequired(properties, typeof(int), out LocalBuilder? @int, out LocalBuilder? @nInt)
-			//	.DeclareLocalIfRequired(properties, typeof(uint), out LocalBuilder? @uint, out LocalBuilder? @nUint)
-			//	.DeclareLocalIfRequired(properties, typeof(long), out LocalBuilder? @long, out LocalBuilder? @nLong)
-			//	.DeclareLocalIfRequired(properties, typeof(ulong), out LocalBuilder? @ulong, out LocalBuilder? @nUlong)
-			//	.DeclareLocalIfRequired(properties, typeof(float), out LocalBuilder? @float, out LocalBuilder? @nFloat)
-			//	.DeclareLocalIfRequired(properties, typeof(double), out LocalBuilder? @double, out LocalBuilder? @nDouble)
-			//	.DeclareLocalIfRequired(properties, typeof(decimal), out LocalBuilder? @decimal, out LocalBuilder? @nDecimal)
-			//	.DeclareLocalIfRequired(properties, typeof(string), out LocalBuilder? @string)
-			//	.DeclareLocalIfRequired(properties, typeof(DateTime), out LocalBuilder? @DateTime, out LocalBuilder? @nDateTime)
-			//	.DeclareLocal(typeof(bool), out LocalBuilder? @parseSuccess)
-			//	.DeclareLocal(typeof(bool), out LocalBuilder? @emptyString)
-
-			//	.Ldarg_1
-			//	.Ldarg_2
-			//	.Call(Methods.StringSplitter_SplitLine)
-			//	.Stloc_0
-			//	.Ldloc_0
-			//	.Callvirt(Methods.List_String_get_Count)
-			//	.Ldc_I4(properties.Length)
-			//	.Ceq
-			//	.Brfalse(out Label @else)
-
-			//	.Do(emitter => isDefaultConstructor switch {
-			//		true => emitter
-			//			.Newobj(constructorInfo)
-			//			.Stloc_S(3),
-			//		_ => emitter
-			//	})
-
-			//	.Do(emitter => {
-			//		for (int i = 0; i < properties.Length; i++) {
-			//			if (isDefaultConstructor) {
-			//				_ = emitter
-			//					.Ldloc_S(3);
-			//			}
-			//			_ = emitter
-			//				.Ldloc_0
-			//				.Ldc_I4(i)
-			//				.Callvirt(Methods.List_String_get_Item)
-			//				.Stloc_S(1)
-			//				.Ldloc_S(1);
-			//			ILBuilder emitParser(LocalBuilder? localBuilder, LocalBuilder? nullableLocalBuilder, MethodInfo tryParse, string formatExcMessage) {
-			//				if (properties[i].PropertyType == localBuilder!.LocalType) {
-			//					Label @else = emitter.DefineLabel();
-			//					Label @endif = emitter.DefineLabel();
-			//					return emitter
-			//						.Ldloca_S(localBuilder!.LocalIndex)
-			//						.Call(tryParse)
-			//						.Stloc_S(parseSuccess!.LocalIndex)
-			//						.Ldloc_S(parseSuccess!.LocalIndex)
-			//						.Brfalse_S(@else)
-
-			//						.Ldloc_S(localBuilder!.LocalIndex)
-			//						.Br_S(@endif)
-
-			//						.MarkLabel(@else)
-			//						.Ldtoken(typeof(T))
-			//						.Ldstr(properties[i].Name)
-			//						.Ldloc_S(1)
-			//						.Ldstr(formatExcMessage)
-			//						.Newobj(Methods.CsvFormatException_ctor4)
-			//						.Throw
-
-			//						.MarkLabel(@endif);
-			//				} else if (Nullable.GetUnderlyingType(properties[i].PropertyType) == localBuilder.LocalType) {
-			//					Label @elseif = emitter.DefineLabel();
-			//					Label @else = emitter.DefineLabel();
-			//					Label @endif = emitter.DefineLabel();
-			//					return emitter
-			//						.Ldloca_S(localBuilder!.LocalIndex)
-			//						.Call(tryParse)
-			//						.Stloc_S(parseSuccess!.LocalIndex)
-			//						.Ldloc_S(parseSuccess!.LocalIndex)
-			//						.Brfalse_S(@elseif)
-
-			//						.Ldloc_S(localBuilder!.LocalIndex)
-			//						.Newobj(properties[i].PropertyType.GetConstructor(new Type[] { localBuilder!.LocalType })!)
-			//						.Br_S(@endif)
-
-			//						.MarkLabel(@elseif)
-			//						.Ldloc_S(1)
-			//						.Call(Methods.String_IsNullOrWhiteSpace)
-			//						.Stloc_S(emptyString!.LocalIndex)
-			//						.Ldloc_S(emptyString!.LocalIndex)
-			//						.Brfalse_S(@else)
-
-			//						.Ldloca_S(nullableLocalBuilder!.LocalIndex)
-			//						.Initobj(properties[i].PropertyType)
-			//						.Ldloc_S(nullableLocalBuilder!.LocalIndex)
-			//						.Br_S(@endif)
-
-			//						.MarkLabel(@else)
-			//						.Ldtoken(typeof(T))
-			//						.Ldstr(properties[i].Name)
-			//						.Ldloc_S(1)
-			//						.Ldstr(formatExcMessage)
-			//						.Newobj(Methods.CsvFormatException_ctor4)
-			//						.Throw
-
-			//						.MarkLabel(@endif);
-			//				} else throw new NotImplementedException();
-			//			}
-			//			_ = properties[i].PropertyType switch
-			//			{
-			//				Type t => t switch
-			//				{
-			//					_ when t == typeof(bool) =>
-			//						emitParser(@bool, @nBool, Methods.Boolean_TryParse, "Input string was not in correct Boolean format."),
-			//					_ when Nullable.GetUnderlyingType(t) == typeof(bool) =>
-			//						emitParser(@bool, @nBool, Methods.Boolean_TryParse, "Input string was not in correct Boolean format."),
-			//					_ when t == typeof(byte) =>
-			//						emitParser(@byte, @nByte, Methods.Byte_TryParse, "Input string was not in correct byte format."),
-			//					_ when Nullable.GetUnderlyingType(t) == typeof(byte) =>
-			//						emitParser(@byte, @nByte, Methods.Byte_TryParse, "Input string was not in correct byte format."),
-			//					_ when t == typeof(sbyte) =>
-			//						emitParser(@sbyte, @nSbyte, Methods.SByte_TryParse, "Input string was not in correct sbyte format."),
-			//					_ when Nullable.GetUnderlyingType(t) == typeof(sbyte) =>
-			//						emitParser(@sbyte, @nSbyte, Methods.SByte_TryParse, "Input string was not in correct sbyte format."),
-			//					_ when t == typeof(short) =>
-			//						emitParser(@short, @nShort, Methods.Int16_TryParse, "Input string was not in correct Int16 format."),
-			//					_ when Nullable.GetUnderlyingType(t) == typeof(short) =>
-			//						emitParser(@short, @nShort, Methods.Int16_TryParse, "Input string was not in correct Int16 format."),
-			//					_ when t == typeof(ushort) =>
-			//						emitParser(@ushort, @nUshort, Methods.UInt16_TryParse, "Input string was not in correct UInt16 format."),
-			//					_ when Nullable.GetUnderlyingType(t) == typeof(ushort) =>
-			//						emitParser(@ushort, @nUshort, Methods.UInt16_TryParse, "Input string was not in correct UInt16 format."),
-			//					_ when t == typeof(int) =>
-			//						emitParser(@int, @nInt, Methods.Int32_TryParse, "Input string was not in correct Int32 format."),
-			//					_ when Nullable.GetUnderlyingType(t) == typeof(int) =>
-			//						emitParser(@int, @nInt, Methods.Int32_TryParse, "Input string was not in correct Int32 format."),
-			//					_ when t == typeof(uint) =>
-			//						emitParser(@uint, @nUint, Methods.UInt32_TryParse, "Input string was not in correct UInt32 format."),
-			//					_ when Nullable.GetUnderlyingType(t) == typeof(uint) =>
-			//						emitParser(@uint, @nUint, Methods.UInt32_TryParse, "Input string was not in correct UInt32 format."),
-			//					_ when t == typeof(long) =>
-			//						emitParser(@long, @nLong, Methods.Int64_TryParse, "Input string was not in correct Int64 format."),
-			//					_ when Nullable.GetUnderlyingType(t) == typeof(long) =>
-			//						emitParser(@long, @nLong, Methods.Int64_TryParse, "Input string was not in correct Int64 format."),
-			//					_ when t == typeof(ulong) =>
-			//						emitParser(@ulong, @nUlong, Methods.UInt64_TryParse, "Input string was not in correct UInt64 format."),
-			//					_ when Nullable.GetUnderlyingType(t) == typeof(ulong) =>
-			//						emitParser(@ulong, @nUlong, Methods.UInt64_TryParse, "Input string was not in correct UInt64 format."),
-			//					_ when t == typeof(float) =>
-			//						emitParser(@float, @nFloat, Methods.Single_TryParse, "Input string was not in correct floating point format."),
-			//					_ when Nullable.GetUnderlyingType(t) == typeof(float) =>
-			//						emitParser(@float, @nFloat, Methods.Single_TryParse, "Input string was not in correct floating point format."),
-			//					_ when t == typeof(double) =>
-			//						emitParser(@double, @nDouble, Methods.Double_TryParse, "Input string was not in correct floating point format."),
-			//					_ when Nullable.GetUnderlyingType(t) == typeof(double) =>
-			//						emitParser(@double, @nDouble, Methods.Double_TryParse, "Input string was not in correct floating point format."),
-			//					_ when t == typeof(decimal) =>
-			//						emitParser(@decimal, @nDecimal, Methods.Decimal_TryParse, "Input string was not in correct decimal format."),
-			//					_ when Nullable.GetUnderlyingType(t) == typeof(decimal) =>
-			//						emitParser(@decimal, @nDecimal, Methods.Decimal_TryParse, "Input string was not in correct decimal format."),
-			//					_ when t == typeof(string) => emitter.Do(builder => {
-			//						_ = builder
-			//							.Callvirt(Methods.String_Trim)
-			//							.Stloc(@string!.LocalIndex)
-			//							.Ldloc(@string!.LocalIndex)
-			//							.Ldc_I4_S('"')
-			//							.Callvirt(Methods.String_StartsWith)
-			//							.Brfalse_S(out Label @notString);
-			//						_ = builder
-			//							.Ldloc(@string!.LocalIndex)
-			//							.Ldc_I4_S('"')
-			//							.Callvirt(Methods.String_EndsWith)
-			//							.Brfalse_S(notString)
-
-			//							.Ldloc(@string!.LocalIndex)
-			//							.Ldc_I4(1)
-			//							.Ldloc(@string!.LocalIndex)
-			//							.Callvirt(Methods.String_get_Length)
-			//							.Ldc_I4(2)
-			//							.Sub
-			//							.Callvirt(Methods.String_Substring)
-			//							.Ldstr("\"\"")
-			//							.Ldstr("\"")
-			//							.Callvirt(Methods.String_Replace)
-			//							.Br_S(out Label @end);
-			//						_ = builder
-			//							.MarkLabel(@notString)
-			//							.Ldloc(@string!.LocalIndex)
-			//							.Call(Methods.String_IsNullOrWhiteSpace)
-			//							.Brfalse_S(out Label @invalidString);
-			//						_ = builder
-			//							.Ldnull
-			//							.Br_S(@end);
-			//						_ = builder
-			//							.MarkLabel(@invalidString)
-			//							.Ldtoken(typeof(T))
-			//							.Ldstr(properties[i].Name)
-			//							.Ldloc_S(1)
-			//							.Newobj(Methods.CsvFormatException_ctor3)
-			//							.Throw
-
-			//							.MarkLabel(@end);
-			//					}),
-			//					_ when t == typeof(DateTime) => emitter.Do(builder => {
-			//						_ = builder
-			//							.Callvirt(Methods.String_Trim)
-			//							.Stloc(@string!.LocalIndex)
-			//							.Ldloc(@string!.LocalIndex)
-			//							.Ldc_I4_S('"')
-			//							.Callvirt(Methods.String_StartsWith)
-			//							.Brfalse_S(out Label @invalidString);
-			//						_ = builder
-			//							.Ldloc(@string!.LocalIndex)
-			//							.Ldc_I4_S('"')
-			//							.Callvirt(Methods.String_EndsWith)
-			//							.Brfalse_S(@invalidString)
-
-			//							.Ldloc(@string!.LocalIndex)
-			//							.Ldc_I4(1)
-			//							.Ldloc(@string!.LocalIndex)
-			//							.Callvirt(Methods.String_get_Length)
-			//							.Ldc_I4(2)
-			//							.Sub
-			//							.Callvirt(Methods.String_Substring)
-			//							.Ldstr("\"\"")
-			//							.Ldstr("\"")
-			//							.Callvirt(Methods.String_Replace)
-			//							.Stloc(@string!.LocalIndex)
-			//							.Ldloc(@string!.LocalIndex);
-			//						CsvColumnAttribute? columnAttribute = properties[i].GetCustomAttribute<CsvColumnAttribute>();
-			//						Label @end = builder.DefineLabel();
-			//						if (columnAttribute?.DateFormat is string dateFormat) {
-			//							_ = builder
-			//								.Ldstr(dateFormat)
-			//								.Ldnull
-			//								.Ldc_I4((int)DateTimeStyles.AssumeLocal)
-			//								.Ldloca_S(@DateTime!.LocalIndex)
-			//								.Call(Methods.DateTime_TryParseExact)
-			//								.Brfalse_S(out Label @badFormat);
-			//							_ = builder
-			//								.Ldloc(@DateTime!.LocalIndex)
-			//								.Br_S(@end);
-			//							_ = builder
-			//								.MarkLabel(badFormat)
-			//								.Ldtoken(typeof(T))
-			//								.Ldstr(properties[i].Name)
-			//								.Ldloc_S(1)
-			//								.Ldstr($"Input string was not in correct DateTime format. Expected format was '{dateFormat}'.")
-			//								.Newobj(Methods.CsvFormatException_ctor4)
-			//								.Throw;
-			//						} else {
-			//							_ = builder
-			//								.Ldloca_S(@DateTime!.LocalIndex)
-			//								.Call(Methods.DateTime_TryParse)
-			//								.Brfalse_S(out Label @badFormat);
-			//							_ = builder
-			//								.Ldloc(@DateTime!.LocalIndex)
-			//								.Br_S(@end);
-			//							_ = builder
-			//								.MarkLabel(badFormat)
-			//								.Ldtoken(typeof(T))
-			//								.Ldstr(properties[i].Name)
-			//								.Ldloc_S(1)
-			//								.Ldstr("Input string was not in correct DateTime format.")
-			//								.Newobj(Methods.CsvFormatException_ctor4)
-			//								.Throw;
-			//						}
-			//						_ = builder
-			//							.MarkLabel(@invalidString)
-			//							.Ldtoken(typeof(T))
-			//							.Ldstr(properties[i].Name)
-			//							.Ldloc_S(1)
-			//							.Newobj(Methods.CsvFormatException_ctor3)
-			//							.Throw
-
-			//							.MarkLabel(@end);
-			//					}),
-			//					_ when Nullable.GetUnderlyingType(t) == typeof(DateTime) => emitter.Do(builder => {
-			//						_ = builder
-			//							.Callvirt(Methods.String_Trim)
-			//							.Stloc(@string!.LocalIndex)
-			//							.Ldloc(@string!.LocalIndex)
-			//							.Ldc_I4_S('"')
-			//							.Callvirt(Methods.String_StartsWith)
-			//							.Brfalse_S(out Label @invalidString);
-			//						_ = builder
-			//							.Ldloc(@string!.LocalIndex)
-			//							.Ldc_I4_S('"')
-			//							.Callvirt(Methods.String_EndsWith)
-			//							.Brfalse_S(@invalidString)
-
-			//							.Ldloc(@string!.LocalIndex)
-			//							.Ldc_I4(1)
-			//							.Ldloc(@string!.LocalIndex)
-			//							.Callvirt(Methods.String_get_Length)
-			//							.Ldc_I4(2)
-			//							.Sub
-			//							.Callvirt(Methods.String_Substring)
-			//							.Ldstr("\"\"")
-			//							.Ldstr("\"")
-			//							.Callvirt(Methods.String_Replace)
-			//							.Stloc(@string!.LocalIndex)
-			//							.Ldloc(@string!.LocalIndex);
-			//						CsvColumnAttribute? columnAttribute = properties[i].GetCustomAttribute<CsvColumnAttribute>();
-			//						Label @end = builder.DefineLabel();
-			//						if (columnAttribute?.DateFormat is string dateFormat) {
-			//							_ = builder
-			//								.Ldstr(dateFormat)
-			//								.Ldnull
-			//								.Ldc_I4((int)DateTimeStyles.AssumeLocal)
-			//								.Ldloca_S(@DateTime!.LocalIndex)
-			//								.Call(Methods.DateTime_TryParseExact)
-			//								.Brfalse_S(out Label @badFormat);
-			//							_ = builder
-			//								.Ldloc(@DateTime!.LocalIndex)
-			//								.Newobj(typeof(DateTime?).GetConstructor(new Type[] { typeof(DateTime) })!)
-			//								.Br_S(@end);
-			//							_ = builder
-			//								.MarkLabel(badFormat)
-			//								.Ldtoken(typeof(T))
-			//								.Ldstr(properties[i].Name)
-			//								.Ldloc_S(1)
-			//								.Ldstr($"Input string was not in correct DateTime format. Expected format was '{dateFormat}'.")
-			//								.Newobj(Methods.CsvFormatException_ctor4)
-			//								.Throw;
-			//						} else {
-			//							_ = builder
-			//								.Ldloca_S(@DateTime!.LocalIndex)
-			//								.Call(Methods.DateTime_TryParse)
-			//								.Brfalse_S(out Label @badFormat);
-			//							_ = builder
-			//								.Ldloc(@DateTime!.LocalIndex)
-			//								.Newobj(typeof(DateTime?).GetConstructor(new Type[] { typeof(DateTime) })!)
-			//								.Br_S(@end);
-			//							_ = builder
-			//								.MarkLabel(badFormat)
-			//								.Ldtoken(typeof(T))
-			//								.Ldstr(properties[i].Name)
-			//								.Ldloc_S(1)
-			//								.Ldstr("Input string was not in correct DateTime format.")
-			//								.Newobj(Methods.CsvFormatException_ctor4)
-			//								.Throw;
-			//						}
-			//						_ = builder
-			//							.MarkLabel(@invalidString)
-			//							.Ldloc(@string!.LocalIndex)
-			//							.Call(Methods.String_IsNullOrWhiteSpace)
-			//							.Brfalse_S(out Label @invalidToken)
-										
-			//							.Ldloca_S(@nDateTime!.LocalIndex)
-			//							.Initobj(typeof(DateTime?))
-			//							.Ldloc_S(@nDateTime!.LocalIndex)
-			//							.Br_S(@end);
-
-			//						_ = builder
-			//							.MarkLabel(invalidToken)
-			//							.Ldtoken(typeof(T))
-			//							.Ldstr(properties[i].Name)
-			//							.Ldloc_S(1)
-			//							.Newobj(Methods.CsvFormatException_ctor3)
-			//							.Throw
-
-			//							.MarkLabel(@end);
-			//					}),
-			//					_ => throw new CsvPropertyTypeException(t)
-			//				}
-			//			};
-			//			if (isDefaultConstructor) {
-			//				if (!properties[i].CanWrite) throw new CsvTypeException(typeof(T), properties[i].Name, $"Property doesn't have a setter.");
-			//				_ = emitter
-			//					.Callvirt(properties[i].GetSetMethod()!);
-			//			}
-			//		}
-			//		if (!isDefaultConstructor) {
-			//			_ = emitter
-			//				.Newobj(constructorInfo)
-			//				.Stloc_3;
-			//		}
-			//	})
-			//	.Br(out Label @endif)
-
-			//	.MarkLabel(@else)
-			//	.Ldtoken(typeof(T))
-			//	.Ldarg_1
-			//	.Ldstr($"Row must consists of {properties.Length} columns.")
-			//	.Newobj(Methods.CsvFormatException_ctor3)
-			//	.Throw
-
-			//	.MarkLabel(@endif)
-			//	.Ldloc_3
-			//	.Ret;
+					})
+					.Callvirt(Methods.List_object_Add)
+					.Br(beginLoop)
+				.Label(endLoop)
+				.Ret();
 		}
 	}
 }

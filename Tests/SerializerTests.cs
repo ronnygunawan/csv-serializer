@@ -166,6 +166,25 @@ namespace Tests {
 			string header = lines[0];
 			header.Should().Be("\"Name\",\"Weight\"");
 		}
+
+		[Fact]
+		public void CanDeserializeCsvFromExcel() {
+			string csv = @"No;Name;Price;Weight;CreatedDate;IsSuspended
+10;Deflector, Dust (For Rear Differential);200000;20,5;13/12/2019;FALSE
+13;""Deflector; Tire; Filter"";150000;15,5;20/11/2019;TRUE";
+			ExcelModel[] models = CsvSerializer.Deserialize<ExcelModel>(csv, hasHeaders: true, separator: ';');
+			models.Count().Should().Be(2);
+		}
+	}
+
+	public class ExcelModel {
+		public int No { get; set; }
+		public string Name { get; set; }
+		public decimal Price { get; set; }
+		public double Weight { get; set; }
+		[CsvColumn("CreatedDate", DateFormat = "dd/MM/yyyy")]
+		public DateTime CreatedDate { get; set; }
+		public bool IsSuspended { get; set; }
 	}
 
 	public class Model {

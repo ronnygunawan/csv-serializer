@@ -8,13 +8,17 @@ using Csv.Parser;
 
 namespace Csv.Emitter {
 	internal static class Methods {
-		public static MethodInfo StringSplitter_ReadNextLine = typeof(StringSplitter).GetMethod(nameof(StringSplitter.ReadNextLine), new Type[] { typeof(ReadOnlySpan<char>).MakeByRefType(), typeof(char) })!;
+		public static int IndexOf(ReadOnlySpan<char> span, char c) => span.IndexOf(c);
+
+		public static MethodInfo StringSplitter_ReadNextLine = typeof(StringSplitter).GetMethod(nameof(StringSplitter.ReadNextLine), new Type[] { typeof(ReadOnlyMemory<char>).MakeByRefType(), typeof(char) })!;
 
 		public static MethodInfo List_String_get_Count = typeof(List<string>).GetProperty(nameof(List<string>.Count), BindingFlags.Public | BindingFlags.Instance)!.GetGetMethod()!;
 		public static MethodInfo List_String_get_Item = typeof(List<string>).GetProperties(BindingFlags.Public | BindingFlags.Instance).Single(prop => prop.GetIndexParameters().Length > 0).GetGetMethod()!;
 
+		public static MethodInfo List_object_Add = typeof(List<object>).GetMethod(nameof(List<object>.Add), new Type[] { typeof(object) })!;
+
 		public static MethodInfo ReadOnlySpan_Char_get_Length = typeof(ReadOnlySpan<char>).GetProperty(nameof(ReadOnlySpan<char>.Length), BindingFlags.Public | BindingFlags.Instance)!.GetGetMethod()!;
-		public static MethodInfo ReadOnlySpan_Char_IndexOf = typeof(MemoryExtensions).GetMethod(nameof(MemoryExtensions.IndexOf), new Type[] { typeof(ReadOnlySpan<char>), typeof(char) })!;
+		public static MethodInfo ReadOnlySpan_Char_IndexOf = typeof(Methods).GetMethod(nameof(Methods.IndexOf), new Type[] { typeof(ReadOnlySpan<char>), typeof(char) })!;
 		public static MethodInfo ReadOnlySpan_Char_ToString = typeof(ReadOnlySpan<char>).GetMethod(nameof(ReadOnlySpan<char>.ToString), Type.EmptyTypes)!;
 		public static MethodInfo ReadOnlySpan_Char_Slice = typeof(ReadOnlySpan<char>).GetMethod(nameof(ReadOnlySpan<char>.Slice), new Type[] { typeof(int), typeof(int) })!;
 

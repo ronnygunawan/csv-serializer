@@ -3,6 +3,6 @@ using System.Collections.Generic;
 
 namespace Csv {
 	public interface IDeserializer {
-		List<object> Deserialize(ReadOnlySpan<char> csv, char separator, bool skipHeader);
+		List<object> Deserialize(ReadOnlyMemory<char> csv, char separator, bool skipHeader);
 	}
 }

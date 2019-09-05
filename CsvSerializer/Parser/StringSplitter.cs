@@ -11,7 +11,8 @@ namespace Csv.Parser {
 			InTrailingWhiteSpace
 		}
 
-		public static List<string> ReadNextLine(ref ReadOnlySpan<char> csv, char separator = ',') {
+		public static List<string> ReadNextLine(ref ReadOnlyMemory<char> csv, char separator = ',') {
+			ReadOnlySpan<char> span = csv.Span;
 			List<string> columns = new List<string>();
 			int startOfLiteral = 0;
 			int endOfLiteral = 0;
@@ -33,7 +34,7 @@ namespace Csv.Parser {
 							return columns;
 					}
 				} else {
-					switch (csv[i]) {
+					switch (span[i]) {
 						case '"':
 							switch (state) {
 								case ParserState.InStartingWhiteSpace:
@@ -41,7 +42,7 @@ namespace Csv.Parser {
 									state = ParserState.InQuotedValue;
 									break;
 								case ParserState.InUnquotedValue:
-									int endOfLine = csv.IndexOf('\n');
+									int endOfLine = span.IndexOf('\n');
 									string line = endOfLine == -1 ? csv.ToString() : csv.Slice(0, endOfLine).ToString();
 									throw new CsvFormatException(line, $"Invalid character at position {i}: \"");
 								case ParserState.InQuotedValue:
@@ -51,7 +52,7 @@ namespace Csv.Parser {
 									state = ParserState.InQuotedValue;
 									break;
 								case ParserState.InTrailingWhiteSpace:
-									endOfLine = csv.IndexOf('\n');
+									endOfLine = span.IndexOf('\n');
 									line = endOfLine == -1 ? csv.ToString() : csv.Slice(0, endOfLine).ToString();
 									throw new CsvFormatException(line, $"Invalid character at position {i}: \"");
 							}
@@ -60,6 +61,7 @@ namespace Csv.Parser {
 							switch (state) {
 								case ParserState.InStartingWhiteSpace:
 								case ParserState.InUnquotedValue:
+								case ParserState.InEscapeSequence:
 									columns.Add(csv.Slice(startOfLiteral, i - startOfLiteral).ToString());
 									startOfLiteral = i + 1;
 									state = ParserState.InStartingWhiteSpace;
@@ -96,7 +98,7 @@ namespace Csv.Parser {
 									break;
 								case ParserState.InTrailingWhiteSpace:
 									if (!char.IsWhiteSpace(c)) {
-										int endOfLine = csv.IndexOf('\n');
+										int endOfLine = span.IndexOf('\n');
 										string line = endOfLine == -1 ? csv.ToString() : csv.Slice(0, endOfLine).ToString();
 										throw new CsvFormatException(line, $"Invalid character at position {i}: {c}");
 									}
