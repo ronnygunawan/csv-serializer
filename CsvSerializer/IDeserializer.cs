@@ -1,5 +1,8 @@
-﻿namespace Csv {
+﻿using System;
+using System.Collections.Generic;
+
+namespace Csv {
 	public interface IDeserializer {
-		object DeserializeItem(string line, char separator);
+		List<object> Deserialize(ReadOnlySpan<char> csv, char separator, bool skipHeader);
 	}
 }

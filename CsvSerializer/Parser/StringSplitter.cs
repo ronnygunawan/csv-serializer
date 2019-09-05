@@ -1,8 +1,115 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace Csv.Parser {
 	internal static class StringSplitter {
-		public static List<string> SplitLine(string line, char separator = ',') {
+		private enum ParserState {
+			InStartingWhiteSpace,
+			InUnquotedValue,
+			InQuotedValue,
+			InEscapeSequence,
+			InTrailingWhiteSpace
+		}
+
+		public static List<string> ReadNextLine(ref ReadOnlySpan<char> csv, char separator = ',') {
+			List<string> columns = new List<string>();
+			int startOfLiteral = 0;
+			int endOfLiteral = 0;
+			ParserState state = ParserState.InStartingWhiteSpace;
+			for (int i = 0, length = csv.Length; i <= length; i++) {
+				if (i == length) {
+					switch (state) {
+						case ParserState.InStartingWhiteSpace:
+						case ParserState.InUnquotedValue:
+						case ParserState.InEscapeSequence:
+							columns.Add(csv.Slice(startOfLiteral, i - startOfLiteral).ToString());
+							csv = csv.Slice(csv.Length - 1, 0);
+							return columns;
+						case ParserState.InQuotedValue:
+							throw new CsvFormatException(csv.ToString(), "End of file in quoted literal.");
+						case ParserState.InTrailingWhiteSpace:
+							columns.Add(csv.Slice(startOfLiteral, endOfLiteral - startOfLiteral + 1).ToString());
+							csv = csv.Slice(csv.Length - 1, 0);
+							return columns;
+					}
+				} else {
+					switch (csv[i]) {
+						case '"':
+							switch (state) {
+								case ParserState.InStartingWhiteSpace:
+									startOfLiteral = i;
+									state = ParserState.InQuotedValue;
+									break;
+								case ParserState.InUnquotedValue:
+									int endOfLine = csv.IndexOf('\n');
+									string line = endOfLine == -1 ? csv.ToString() : csv.Slice(0, endOfLine).ToString();
+									throw new CsvFormatException(line, $"Invalid character at position {i}: \"");
+								case ParserState.InQuotedValue:
+									state = ParserState.InEscapeSequence;
+									break;
+								case ParserState.InEscapeSequence:
+									state = ParserState.InQuotedValue;
+									break;
+								case ParserState.InTrailingWhiteSpace:
+									endOfLine = csv.IndexOf('\n');
+									line = endOfLine == -1 ? csv.ToString() : csv.Slice(0, endOfLine).ToString();
+									throw new CsvFormatException(line, $"Invalid character at position {i}: \"");
+							}
+							break;
+						case char c when c == separator:
+							switch (state) {
+								case ParserState.InStartingWhiteSpace:
+								case ParserState.InUnquotedValue:
+									columns.Add(csv.Slice(startOfLiteral, i - startOfLiteral).ToString());
+									startOfLiteral = i + 1;
+									state = ParserState.InStartingWhiteSpace;
+									break;
+								case ParserState.InTrailingWhiteSpace:
+									columns.Add(csv.Slice(startOfLiteral, endOfLiteral - startOfLiteral + 1).ToString());
+									startOfLiteral = i + 1;
+									state = ParserState.InStartingWhiteSpace;
+									break;
+							}
+							break;
+						case '\n':
+							switch (state) {
+								case ParserState.InStartingWhiteSpace:
+								case ParserState.InUnquotedValue:
+								case ParserState.InEscapeSequence:
+									columns.Add(csv.Slice(startOfLiteral, i - startOfLiteral).ToString());
+									csv = csv.Slice(i + 1);
+									return columns;
+								case ParserState.InTrailingWhiteSpace:
+									columns.Add(csv.Slice(startOfLiteral, endOfLiteral - startOfLiteral + 1).ToString());
+									csv = csv.Slice(i + 1);
+									return columns;
+							}
+							break;
+						case char c:
+							switch (state) {
+								case ParserState.InStartingWhiteSpace:
+									state = ParserState.InUnquotedValue;
+									break;
+								case ParserState.InEscapeSequence:
+									endOfLiteral = i - 1;
+									state = ParserState.InTrailingWhiteSpace;
+									break;
+								case ParserState.InTrailingWhiteSpace:
+									if (!char.IsWhiteSpace(c)) {
+										int endOfLine = csv.IndexOf('\n');
+										string line = endOfLine == -1 ? csv.ToString() : csv.Slice(0, endOfLine).ToString();
+										throw new CsvFormatException(line, $"Invalid character at position {i}: {c}");
+									}
+									break;
+							}
+							break;
+					}
+				}
+			}
+			throw new InvalidOperationException("Parser internal error.");
+		}
+
+		public static List<string> OldSplitLine(string line, char separator = ',') {
 			List<string> columns = new List<string>();
 			int i = 0;
 			int startOfLiteral;
