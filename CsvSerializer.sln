@@ -5,7 +5,9 @@ VisualStudioVersion = 16.0.29209.152
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CsvSerializer", "CsvSerializer\CsvSerializer.csproj", "{580B2E33-309C-4E25-8BF4-E2D4BEABD54C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tests", "Tests\Tests.csproj", "{D0FC3C06-7379-4CAA-B284-E431094F6BE6}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Tests", "Tests\Tests.csproj", "{D0FC3C06-7379-4CAA-B284-E431094F6BE6}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Benchmarks", "Benchmarks\Benchmarks.csproj", "{F64C975D-6C3D-418C-8F4E-62EE507CCC73}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +23,10 @@ Global
 		{D0FC3C06-7379-4CAA-B284-E431094F6BE6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D0FC3C06-7379-4CAA-B284-E431094F6BE6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D0FC3C06-7379-4CAA-B284-E431094F6BE6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F64C975D-6C3D-418C-8F4E-62EE507CCC73}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F64C975D-6C3D-418C-8F4E-62EE507CCC73}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F64C975D-6C3D-418C-8F4E-62EE507CCC73}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F64C975D-6C3D-418C-8F4E-62EE507CCC73}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
