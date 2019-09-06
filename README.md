@@ -17,6 +17,19 @@ string csv = CsvSerializer.Serialize(items, withHeaders: true);
 Item[] items = CsvSerializer.Deserialize<Item>(csv, hasHeaders: true);
 ```
 
+# Custom Header Name and Date Format
+```csharp
+class Product {
+    public string Name { get; set; }
+    
+    [CsvColumn("Price")]
+    public decimal PriceBeforeTaxes { get; set; }
+    
+    [CsvColumn("Added", DateFormat = "dd/MM/yyyy")]
+    public DateTime Added { get; set; }
+}
+```
+
 # Supported Property Types
 ```csharp
 bool
