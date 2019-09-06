@@ -17,12 +17,12 @@ string csv = CsvSerializer.Serialize(items, withHeaders: true);
 Item[] items = CsvSerializer.Deserialize<Item>(csv, hasHeaders: true);
 ```
 
-# Custom delimiter
+With custom delimiter:
 ```csharp
 Item[] items = CsvSerializer.Deserialize<Item>(csv, hasHeaders: true, separator: ';');
 ```
 
-# Custom Header Name and Date Format
+With custom header name and date format:
 ```csharp
 class Product {
     public string Name { get; set; }
@@ -66,7 +66,7 @@ DateTime
 DateTime?
 ```
 
-## Not yet supported:
+Not yet supported:
 ```csharp
 char
 char?
