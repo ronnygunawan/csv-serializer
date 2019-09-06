@@ -17,6 +17,11 @@ string csv = CsvSerializer.Serialize(items, withHeaders: true);
 Item[] items = CsvSerializer.Deserialize<Item>(csv, hasHeaders: true);
 ```
 
+# Custom delimiter
+```csharp
+Item[] items = CsvSerializer.Deserialize<Item>(csv, hasHeaders: true, separator: ';');
+```
+
 # Custom Header Name and Date Format
 ```csharp
 class Product {
