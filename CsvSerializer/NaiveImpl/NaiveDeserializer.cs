@@ -20,7 +20,8 @@ namespace Csv.NaiveImpl {
 			Double,
 			Decimal,
 			String,
-			DateTime
+			DateTime,
+			Uri
 		}
 
 		private readonly PropertyInfo[] _properties;
@@ -142,6 +143,10 @@ namespace Csv.NaiveImpl {
 						break;
 					case Type tNullableDateTime when Nullable.GetUnderlyingType(tNullableDateTime) == typeof(DateTime):
 						_deserializeAs[i] = DeserializeAs.DateTime;
+						_isNullable[i] = true;
+						break;
+					case Type tUri when tUri == typeof(Uri):
+						_deserializeAs[i] = DeserializeAs.Uri;
 						_isNullable[i] = true;
 						break;
 					default:
@@ -294,6 +299,26 @@ namespace Csv.NaiveImpl {
 								}
 							} else {
 								_properties[i].SetValue(item, null);
+							}
+							break;
+						case DeserializeAs.Uri:
+							s = columns[i].Trim();
+#if NETSTANDARD2_0
+							if (s.StartsWith("\"")
+								&& s.EndsWith("\"")) {
+								s = s.Substring(1, s.Length - 2);
+							}
+#else
+							if (s.StartsWith('"')
+								&& s.EndsWith('"')) {
+								s = s[1..^1];
+							}
+#endif
+							s = s.Replace("\"\"", "\"").TrimEnd('\r');
+							if (string.IsNullOrWhiteSpace(s)) {
+								_properties[i].SetValue(item, null);
+							} else {
+								_properties[i].SetValue(item, new Uri(s));
 							}
 							break;
 						default:

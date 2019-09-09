@@ -64,6 +64,7 @@ decimal?
 string
 DateTime
 DateTime?
+Uri
 ```
 
 Not yet supported:
@@ -74,7 +75,6 @@ DateTimeOffset
 DateTimeOffset?
 TimeSpan
 TimeSpan?
-Uri
 Guid
 Guid?
 any Enum values

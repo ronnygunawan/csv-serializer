@@ -252,6 +252,26 @@ namespace Csv {
 									.Ldc_I4_S('"')
 									.Callvirt(Methods.StringBuilder_Append_Char)
 									.MarkLabel(endif),
+								_ when t == typeof(Uri) => emitter
+									.Ldarg_2
+									.Callx(property.GetGetMethod()!)
+									.Dup
+									.Brfalse_S(out Label nullUri)
+									.Callvirt(Methods.Uri_ToString)
+									.MarkLabel(nullUri)
+									.Stloc(@string!.LocalIndex)
+									.Ldloc(@string!.LocalIndex)
+									.Brfalse(out Label @endif)
+									.Ldc_I4_S('"')
+									.Callvirt(Methods.StringBuilder_Append_Char)
+									.Ldloc(@string!.LocalIndex)
+									.Ldstr("\"")
+									.Ldstr("\"\"")
+									.Callvirt(Methods.String_Replace)
+									.Call(Methods.StringBuilder_Append_String)
+									.Ldc_I4_S('"')
+									.Callvirt(Methods.StringBuilder_Append_Char)
+									.MarkLabel(@endif),
 								_ => throw new CsvTypeException(t)
 							}
 						};

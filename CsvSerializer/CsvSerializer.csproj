@@ -15,7 +15,7 @@
     <RepositoryUrl>https://github.com/ronnygunawan/csv-serializer</RepositoryUrl>
     <PackageTags>csv serializer deserializer parser core</PackageTags>
     <Description>Fast CSV to object serializer and deserializer.</Description>
-    <Version>1.0.3</Version>
+    <Version>1.0.4</Version>
     <PackageReleaseNotes></PackageReleaseNotes>
   </PropertyGroup>
 

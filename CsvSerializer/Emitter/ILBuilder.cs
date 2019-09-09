@@ -225,6 +225,7 @@ namespace Csv.Emitter {
 			return this;
 		}
 		public ILBuilder Throw { get { _ilGenerator.Emit(OpCodes.Throw); return this; } }
+		public ILBuilder Dup { get { _ilGenerator.Emit(OpCodes.Dup); return this; } }
 		public ILBuilder Pop { get { _ilGenerator.Emit(OpCodes.Pop); return this; } }
 		public ILBuilder Ret { get { _ilGenerator.Emit(OpCodes.Ret); return this; } }
 		public ILBuilder Do(Action<ILBuilder> action) { action.Invoke(this); return this; }

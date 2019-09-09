@@ -7,7 +7,8 @@ namespace Csv.NaiveImpl {
 		private enum SerializeAs {
 			Number,
 			String,
-			DateTime
+			DateTime,
+			Uri
 		}
 
 		private readonly PropertyInfo[] _properties;
@@ -54,6 +55,9 @@ namespace Csv.NaiveImpl {
 					case Type tNullableDateTime when Nullable.GetUnderlyingType(tNullableDateTime) == typeof(DateTime):
 						_serializeAs[i] = SerializeAs.DateTime;
 						break;
+					case Type tUri when tUri == typeof(Uri):
+						_serializeAs[i] = SerializeAs.Uri;
+						break;
 					default:
 						throw new CsvTypeException(_properties[i].PropertyType);
 				}
@@ -99,6 +103,13 @@ namespace Csv.NaiveImpl {
 							} else {
 								stringBuilder.Append(dateTimeValue.ToString());
 							}
+							stringBuilder.Append('"');
+						}
+						break;
+					case SerializeAs.Uri:
+						if (((Uri?)_properties[i].GetValue(item)) is Uri uri && uri.ToString().Replace("\"", "\"\"") is string uriString) {
+							stringBuilder.Append('"');
+							stringBuilder.Append(uriString);
 							stringBuilder.Append('"');
 						}
 						break;

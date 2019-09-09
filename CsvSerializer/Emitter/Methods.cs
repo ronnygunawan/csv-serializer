@@ -79,6 +79,7 @@ namespace Csv.Emitter {
 		public static MethodInfo Decimal_ToString = typeof(decimal).GetMethod(nameof(decimal.ToString), Type.EmptyTypes)!;
 		public static MethodInfo DateTime_ToString = typeof(DateTime).GetMethod(nameof(DateTime.ToString), Type.EmptyTypes)!;
 		public static MethodInfo DateTime_ToString_Format = typeof(DateTime).GetMethod(nameof(DateTime.ToString), new Type[] { typeof(string) })!;
+		public static MethodInfo Uri_ToString = typeof(Uri).GetMethod(nameof(Uri.ToString), Type.EmptyTypes)!;
 
 		public static MethodInfo NullableDateTime_get_HasValue = typeof(DateTime?).GetProperty(nameof(Nullable<DateTime>.HasValue), BindingFlags.Public | BindingFlags.Instance)!.GetGetMethod()!;
 		public static MethodInfo NullableDateTime_get_Value = typeof(DateTime?).GetProperty(nameof(Nullable<DateTime>.Value), BindingFlags.Public | BindingFlags.Instance)!.GetGetMethod()!;
