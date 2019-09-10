@@ -2,6 +2,7 @@ using Csv;
 using FluentAssertions;
 using System;
 using System.Linq;
+using System.Net;
 using Xunit;
 
 namespace Tests {
@@ -23,10 +24,11 @@ namespace Tests {
 				Decimal = 989898989898m,
 				String = "CSV Serializer",
 				DateTime = new DateTime(2019, 8, 23),
-				Uri = new Uri("http://localhost:5000/")
+				Uri = new Uri("http://localhost:5000/"),
+				StatusCode = HttpStatusCode.OK
 			};
 			string csv = CsvSerializer.Serialize(new[] { item }, withHeaders: true);
-			csv.Should().Be("\"Bool\",\"Byte\",\"SByte\",\"Short\",\"UShort\",\"Int\",\"UInt\",\"Long\",\"ULong\",\"Float\",\"Double\",\"Decimal\",\"String\",\"DateTime\",\"Uri\"\r\nTrue,102,-100,-200,200,-3000,3000,-40000,40000,1E+14,1.7837193718273812E+19,989898989898,\"CSV Serializer\",\"8/23/2019 12:00:00 AM\",\"http://localhost:5000/\"");
+			csv.Should().Be("\"Bool\",\"Byte\",\"SByte\",\"Short\",\"UShort\",\"Int\",\"UInt\",\"Long\",\"ULong\",\"Float\",\"Double\",\"Decimal\",\"String\",\"DateTime\",\"Uri\",\"StatusCode\"\r\nTrue,102,-100,-200,200,-3000,3000,-40000,40000,1E+14,1.7837193718273812E+19,989898989898,\"CSV Serializer\",\"8/23/2019 12:00:00 AM\",\"http://localhost:5000/\",OK");
 		}
 
 		[Fact]
@@ -46,10 +48,11 @@ namespace Tests {
 				Decimal = 989898989898m,
 				String = "CSV Serializer",
 				DateTime = new DateTime(2019, 8, 23),
-				Uri = new Uri("http://localhost:5000/")
+				Uri = new Uri("http://localhost:5000/"),
+				StatusCode = HttpStatusCode.OK
 			};
 			string csv = CsvSerializer.Serialize(new[] { item }, withHeaders: true);
-			csv.Should().Be("\"Bool\",\"Byte\",\"SByte\",\"Short\",\"UShort\",\"Int\",\"UInt\",\"Long\",\"ULong\",\"Float\",\"Double\",\"Decimal\",\"String\",\"DateTime\",\"Uri\"\r\nTrue,102,-100,-200,200,-3000,3000,-40000,40000,1E+14,1.7837193718273812E+19,989898989898,\"CSV Serializer\",\"8/23/2019 12:00:00 AM\",\"http://localhost:5000/\"");
+			csv.Should().Be("\"Bool\",\"Byte\",\"SByte\",\"Short\",\"UShort\",\"Int\",\"UInt\",\"Long\",\"ULong\",\"Float\",\"Double\",\"Decimal\",\"String\",\"DateTime\",\"Uri\",\"StatusCode\"\r\nTrue,102,-100,-200,200,-3000,3000,-40000,40000,1E+14,1.7837193718273812E+19,989898989898,\"CSV Serializer\",\"8/23/2019 12:00:00 AM\",\"http://localhost:5000/\",OK");
 		}
 
 		[Fact]
@@ -122,7 +125,8 @@ namespace Tests {
 				Decimal = 989898989898m,
 				String = "CSV Serializer",
 				DateTime = new DateTime(2019, 8, 23),
-				Uri = new Uri("http://localhost:5000/")
+				Uri = new Uri("http://localhost:5000/"),
+				StatusCode = HttpStatusCode.OK
 			};
 			string csv = CsvSerializer.Serialize(Enumerable.Repeat(item, 1_000_000));
 			new Action(() => CsvSerializer.Deserialize<Model>(csv)).ExecutionTime().Should().BeLessThan(TimeSpan.FromSeconds(20));
@@ -130,7 +134,7 @@ namespace Tests {
 
 		[Fact]
 		public void CsvCanBeDeserializedToPublicType() {
-			string csv = "\"Bool\",\"Byte\",\"SByte\",\"Short\",\"UShort\",\"Int\",\"UInt\",\"Long\",\"ULong\",\"Float\",\"Double\",\"Decimal\",\"String\",\"DateTime\",\"Uri\"\r\nTrue,102,-100,-200,200,-3000,3000,-40000,40000,1E+14,1.7837193718273812E+19,989898989898,\"CSV Serializer\",\"08/23/2019 00:00:00\",\"http://localhost:5000/\"";
+			string csv = "\"Bool\",\"Byte\",\"SByte\",\"Short\",\"UShort\",\"Int\",\"UInt\",\"Long\",\"ULong\",\"Float\",\"Double\",\"Decimal\",\"String\",\"DateTime\",\"Uri\",\"StatusCode\"\r\nTrue,102,-100,-200,200,-3000,3000,-40000,40000,1E+14,1.7837193718273812E+19,989898989898,\"CSV Serializer\",\"08/23/2019 00:00:00\",\"http://localhost:5000/\",OK";
 			Model[] items = CsvSerializer.Deserialize<Model>(csv, hasHeaders: true);
 			items.Length.Should().Be(1);
 			Model item = items.Single();
@@ -209,6 +213,7 @@ namespace Tests {
 		public string? String { get; set; }
 		public DateTime DateTime { get; set; }
 		public Uri? Uri { get; set; }
+		public HttpStatusCode? StatusCode { get; set; }
 	}
 
 	class PrivateModel {

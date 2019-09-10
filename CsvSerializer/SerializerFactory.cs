@@ -277,6 +277,16 @@ namespace Csv {
 										.Ldc_I4_S((byte)'"')
 										.Callvirt(Methods.StringBuilder_Append_Char)
 									.Label(@endif),
+								_ when t.IsEnum => emitter
+									.Ldarg_2()
+									.Callvirt(property.GetGetMethod()!)
+									.Box(t)
+									.Call(Methods.StringBuilder_Append_Object),
+								_ when Nullable.GetUnderlyingType(t)?.IsEnum == true => emitter
+									.Ldarg_2()
+									.Callvirt(property.GetGetMethod()!)
+									.Box(t)
+									.Call(Methods.StringBuilder_Append_Object),
 								_ => throw new CsvTypeException(t)
 							}
 						};

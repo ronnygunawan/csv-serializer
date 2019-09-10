@@ -21,7 +21,8 @@ namespace Csv.NaiveImpl {
 			Decimal,
 			String,
 			DateTime,
-			Uri
+			Uri,
+			Enum
 		}
 
 		private readonly PropertyInfo[] _properties;
@@ -147,6 +148,14 @@ namespace Csv.NaiveImpl {
 						break;
 					case Type tUri when tUri == typeof(Uri):
 						_deserializeAs[i] = DeserializeAs.Uri;
+						_isNullable[i] = true;
+						break;
+					case Type tEnum when tEnum.IsEnum:
+						_deserializeAs[i] = DeserializeAs.Enum;
+						_isNullable[i] = false;
+						break;
+					case Type tNullableEnum when Nullable.GetUnderlyingType(tNullableEnum)?.IsEnum == true:
+						_deserializeAs[i] = DeserializeAs.Enum;
 						_isNullable[i] = true;
 						break;
 					default:
@@ -319,6 +328,19 @@ namespace Csv.NaiveImpl {
 								_properties[i].SetValue(item, null);
 							} else {
 								_properties[i].SetValue(item, new Uri(s));
+							}
+							break;
+						case DeserializeAs.Enum:
+							Type enumType;
+							if (_isNullable[i]) {
+								enumType = Nullable.GetUnderlyingType(_properties[i].PropertyType)!;
+							} else {
+								enumType = _properties[i].PropertyType;
+							}
+							if (Enum.TryParse(enumType, columns[i], out object? vEnum) && vEnum != null) {
+								_properties[i].SetValue(item, vEnum);
+							} else if (!_isNullable[i] || !string.IsNullOrWhiteSpace(columns[i])) {
+								throw new CsvFormatException(typeof(T), _properties[i].Name, columns[i], $"Input string was not in a valid {_properties[i].PropertyType.Name} value.");
 							}
 							break;
 						default:

@@ -64,7 +64,9 @@ decimal?
 string
 DateTime
 DateTime?
-Uri
+Uri // serialized as quoted string
+Enum // serialized as unquoted string
+Enum? // serialized as unquoted string
 ```
 
 Not yet supported:
@@ -77,7 +79,6 @@ TimeSpan
 TimeSpan?
 Guid
 Guid?
-any Enum values
 any Object to string (serialize only)
 any Object to JSON
 any Object to MessagePack Base64

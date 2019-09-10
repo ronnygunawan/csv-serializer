@@ -8,7 +8,8 @@ namespace Csv.NaiveImpl {
 			Number,
 			String,
 			DateTime,
-			Uri
+			Uri,
+			Enum
 		}
 
 		private readonly PropertyInfo[] _properties;
@@ -57,6 +58,12 @@ namespace Csv.NaiveImpl {
 						break;
 					case Type tUri when tUri == typeof(Uri):
 						_serializeAs[i] = SerializeAs.Uri;
+						break;
+					case Type tEnum when tEnum.IsEnum:
+						_serializeAs[i] = SerializeAs.Enum;
+						break;
+					case Type tNullableEnum when Nullable.GetUnderlyingType(tNullableEnum)?.IsEnum == true:
+						_serializeAs[i] = SerializeAs.Enum;
 						break;
 					default:
 						throw new CsvTypeException(_properties[i].PropertyType);
@@ -112,6 +119,9 @@ namespace Csv.NaiveImpl {
 							stringBuilder.Append(uriString);
 							stringBuilder.Append('"');
 						}
+						break;
+					case SerializeAs.Enum:
+						stringBuilder.AppendFormat("{0}", _properties[i].GetValue(item));
 						break;
 					default:
 						throw new NotImplementedException();
