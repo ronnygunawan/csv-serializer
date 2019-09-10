@@ -33,21 +33,20 @@ namespace Csv {
 		}
 
 		private static void DefineSerializeHeader<T>(ILGenerator gen) {
-			_ = gen.EmitFollowingLines()
-
-				.Ldarg_1
-				.Do(emitter => {
+			_ = gen
+				.Ldarg_1()
+				.Do(gen => {
 					bool firstProperty = true;
 					foreach (PropertyInfo property in typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance)) {
 						CsvColumnAttribute? columnAttribute = property.GetCustomAttribute<CsvColumnAttribute>();
 
 						if (!firstProperty) {
-							_ = emitter
-								.Ldarg_2
+							_ = gen
+								.Ldarg_2()
 								.Callvirt(Methods.StringBuilder_Append_Char);
 						}
 
-						_ = emitter
+						_ = gen
 							.Ldstr("\"" + (columnAttribute?.Name ?? property.Name).Replace("\"", "\"\"") + "\"")
 							.Callvirt(Methods.StringBuilder_Append_String);
 
@@ -56,19 +55,19 @@ namespace Csv {
 				})
 				.Ldstr("\r\n")
 				.Callvirt(Methods.StringBuilder_Append_String)
-				.Pop
-				.Ret;
+				.Pop()
+				.Ret();
 		}
 
 		private static void DefineSerializeItem<T>(ILGenerator gen) {
 			PropertyInfo[] properties = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance);
-			_ = gen.EmitFollowingLines()
+			_ = gen
 
 				.DeclareLocal(typeof(string), out LocalBuilder? @string)
 				.DeclareLocal(typeof(DateTime), out LocalBuilder? @DateTime)
 				.DeclareLocal(typeof(DateTime?), out LocalBuilder? @NullableDateTime)
 
-				.Ldarg_1
+				.Ldarg_1()
 				.Do(emitter => {
 					bool firstProperty = true;
 					foreach (PropertyInfo property in properties) {
@@ -77,7 +76,7 @@ namespace Csv {
 
 						if (!firstProperty) {
 							_ = emitter
-								.Ldarg_3
+								.Ldarg_3()
 								.Callvirt(Methods.StringBuilder_Append_Char);
 						}
 						_ = property.PropertyType switch
@@ -85,193 +84,199 @@ namespace Csv {
 							Type t => t switch
 							{
 								_ when t == typeof(bool) => emitter
-									.Ldarg_2
-									.Callx(property.GetGetMethod()!)
+									.Ldarg_2()
+									.Callvirt(property.GetGetMethod()!)
 									.Callvirt(Methods.StringBuilder_Append_Boolean),
 								_ when Nullable.GetUnderlyingType(t) == typeof(bool) => emitter
-									.Ldarg_2
-									.Callx(property.GetGetMethod()!)
+									.Ldarg_2()
+									.Callvirt(property.GetGetMethod()!)
 									.Box(typeof(bool?))
 									.Callvirt(Methods.StringBuilder_Append_Object),
 								_ when t == typeof(byte) => emitter
-									.Ldarg_2
-									.Callx(property.GetGetMethod()!)
+									.Ldarg_2()
+									.Callvirt(property.GetGetMethod()!)
 									.Callvirt(Methods.StringBuilder_Append_Byte),
 								_ when Nullable.GetUnderlyingType(t) == typeof(byte) => emitter
-									.Ldarg_2
-									.Callx(property.GetGetMethod()!)
+									.Ldarg_2()
+									.Callvirt(property.GetGetMethod()!)
 									.Box(typeof(byte?))
 									.Callvirt(Methods.StringBuilder_Append_Object),
 								_ when t == typeof(sbyte) => emitter
-									.Ldarg_2
-									.Callx(property.GetGetMethod()!)
+									.Ldarg_2()
+									.Callvirt(property.GetGetMethod()!)
 									.Callvirt(Methods.StringBuilder_Append_SByte),
 								_ when Nullable.GetUnderlyingType(t) == typeof(sbyte) => emitter
-									.Ldarg_2
-									.Callx(property.GetGetMethod()!)
+									.Ldarg_2()
+									.Callvirt(property.GetGetMethod()!)
 									.Box(typeof(sbyte?))
 									.Callvirt(Methods.StringBuilder_Append_Object),
 								_ when t == typeof(short) => emitter
-									.Ldarg_2
-									.Callx(property.GetGetMethod()!)
+									.Ldarg_2()
+									.Callvirt(property.GetGetMethod()!)
 									.Callvirt(Methods.StringBuilder_Append_Int16),
 								_ when Nullable.GetUnderlyingType(t) == typeof(short) => emitter
-									.Ldarg_2
-									.Callx(property.GetGetMethod()!)
+									.Ldarg_2()
+									.Callvirt(property.GetGetMethod()!)
 									.Box(typeof(short?))
 									.Callvirt(Methods.StringBuilder_Append_Object),
 								_ when t == typeof(ushort) => emitter
-									.Ldarg_2
-									.Callx(property.GetGetMethod()!)
+									.Ldarg_2()
+									.Callvirt(property.GetGetMethod()!)
 									.Callvirt(Methods.StringBuilder_Append_UInt16),
 								_ when Nullable.GetUnderlyingType(t) == typeof(ushort) => emitter
-									.Ldarg_2
-									.Callx(property.GetGetMethod()!)
+									.Ldarg_2()
+									.Callvirt(property.GetGetMethod()!)
 									.Box(typeof(ushort?))
 									.Callvirt(Methods.StringBuilder_Append_Object),
 								_ when t == typeof(int) => emitter
-									.Ldarg_2
-									.Callx(property.GetGetMethod()!)
+									.Ldarg_2()
+									.Callvirt(property.GetGetMethod()!)
 									.Callvirt(Methods.StringBuilder_Append_Int32),
 								_ when Nullable.GetUnderlyingType(t) == typeof(int) => emitter
-									.Ldarg_2
-									.Callx(property.GetGetMethod()!)
+									.Ldarg_2()
+									.Callvirt(property.GetGetMethod()!)
 									.Box(typeof(int?))
 									.Callvirt(Methods.StringBuilder_Append_Object),
 								_ when t == typeof(uint) => emitter
-									.Ldarg_2
-									.Callx(property.GetGetMethod()!)
+									.Ldarg_2()
+									.Callvirt(property.GetGetMethod()!)
 									.Callvirt(Methods.StringBuilder_Append_UInt32),
 								_ when Nullable.GetUnderlyingType(t) == typeof(uint) => emitter
-									.Ldarg_2
-									.Callx(property.GetGetMethod()!)
+									.Ldarg_2()
+									.Callvirt(property.GetGetMethod()!)
 									.Box(typeof(uint?))
 									.Callvirt(Methods.StringBuilder_Append_Object),
 								_ when t == typeof(long) => emitter
-									.Ldarg_2
-									.Callx(property.GetGetMethod()!)
+									.Ldarg_2()
+									.Callvirt(property.GetGetMethod()!)
 									.Callvirt(Methods.StringBuilder_Append_Int64),
 								_ when Nullable.GetUnderlyingType(t) == typeof(long) => emitter
-									.Ldarg_2
-									.Callx(property.GetGetMethod()!)
+									.Ldarg_2()
+									.Callvirt(property.GetGetMethod()!)
 									.Box(typeof(long?))
 									.Callvirt(Methods.StringBuilder_Append_Object),
 								_ when t == typeof(ulong) => emitter
-									.Ldarg_2
-									.Callx(property.GetGetMethod()!)
+									.Ldarg_2()
+									.Callvirt(property.GetGetMethod()!)
 									.Callvirt(Methods.StringBuilder_Append_UInt64),
 								_ when Nullable.GetUnderlyingType(t) == typeof(ulong) => emitter
-									.Ldarg_2
-									.Callx(property.GetGetMethod()!)
+									.Ldarg_2()
+									.Callvirt(property.GetGetMethod()!)
 									.Box(typeof(ulong?))
 									.Callvirt(Methods.StringBuilder_Append_Object),
 								_ when t == typeof(float) => emitter
-									.Ldarg_2
-									.Callx(property.GetGetMethod()!)
+									.Ldarg_2()
+									.Callvirt(property.GetGetMethod()!)
 									.Callvirt(Methods.StringBuilder_Append_Single),
 								_ when Nullable.GetUnderlyingType(t) == typeof(float) => emitter
-									.Ldarg_2
-									.Callx(property.GetGetMethod()!)
+									.Ldarg_2()
+									.Callvirt(property.GetGetMethod()!)
 									.Box(typeof(float?))
 									.Callvirt(Methods.StringBuilder_Append_Object),
 								_ when t == typeof(double) => emitter
-									.Ldarg_2
-									.Callx(property.GetGetMethod()!)
+									.Ldarg_2()
+									.Callvirt(property.GetGetMethod()!)
 									.Callvirt(Methods.StringBuilder_Append_Double),
 								_ when Nullable.GetUnderlyingType(t) == typeof(double) => emitter
-									.Ldarg_2
-									.Callx(property.GetGetMethod()!)
+									.Ldarg_2()
+									.Callvirt(property.GetGetMethod()!)
 									.Box(typeof(double?))
 									.Callvirt(Methods.StringBuilder_Append_Object),
 								_ when t == typeof(decimal) => emitter
-									.Ldarg_2
-									.Callx(property.GetGetMethod()!)
+									.Ldarg_2()
+									.Callvirt(property.GetGetMethod()!)
 									.Callvirt(Methods.StringBuilder_Append_Decimal),
 								_ when Nullable.GetUnderlyingType(t) == typeof(decimal) => emitter
-									.Ldarg_2
-									.Callx(property.GetGetMethod()!)
+									.Ldarg_2()
+									.Callvirt(property.GetGetMethod()!)
 									.Box(typeof(decimal?))
 									.Callvirt(Methods.StringBuilder_Append_Object),
 								_ when t == typeof(string) => emitter
-									.Ldarg_2
-									.Callx(property.GetGetMethod()!)
+									.Ldarg_2()
+									.Callvirt(property.GetGetMethod()!)
 									.Stloc(@string!.LocalIndex)
 									.Ldloc(@string!.LocalIndex)
 									.Brfalse(out Label @endif)
-									.Ldc_I4_S('"')
-									.Callvirt(Methods.StringBuilder_Append_Char)
-									.Ldloc(@string!.LocalIndex)
-									.Ldstr("\"")
-									.Ldstr("\"\"")
-									.Callvirt(Methods.String_Replace)
-									.Call(Methods.StringBuilder_Append_String)
-									.Ldc_I4_S('"')
-									.Callvirt(Methods.StringBuilder_Append_Char)
-									.MarkLabel(@endif),
+										.Ldc_I4_S((byte)'"')
+										.Callvirt(Methods.StringBuilder_Append_Char)
+										.Ldloc(@string!.LocalIndex)
+										.Ldstr("\"")
+										.Ldstr("\"\"")
+										.Callvirt(Methods.String_Replace)
+										.Call(Methods.StringBuilder_Append_String)
+										.Ldc_I4_S((byte)'"')
+										.Callvirt(Methods.StringBuilder_Append_Char)
+									.Label(@endif),
 								_ when t == typeof(DateTime) => emitter
-									.Ldc_I4_S('"')
+									.Ldc_I4_S((byte)'"')
 									.Callvirt(Methods.StringBuilder_Append_Char)
-									.Ldarg_2
-									.Callx(property.GetGetMethod()!)
+									.Ldarg_2()
+									.Callvirt(property.GetGetMethod()!)
 									.Stloc(@DateTime!.LocalIndex)
 									.Ldloca_S(@DateTime!.LocalIndex)
-									.Do(emitter => property.GetCustomAttribute<CsvColumnAttribute>()?.DateFormat switch {
-										string dateFormat => emitter
+									.Do(gen => {
+										if (property.GetCustomAttribute<CsvColumnAttribute>()?.DateFormat is string dateFormat) {
+											gen
 											.Ldstr(dateFormat)
-											.Callvirt(Methods.DateTime_ToString_Format),
-										_ => emitter
-											.Callvirt(Methods.DateTime_ToString)
+											.Callvirt(Methods.DateTime_ToString_Format);
+										} else {
+											gen
+											.Callvirt(Methods.DateTime_ToString);
+										}
 									})
 									.Callvirt(Methods.StringBuilder_Append_String)
-									.Ldc_I4_S('"')
+									.Ldc_I4_S((byte)'"')
 									.Callvirt(Methods.StringBuilder_Append_Char),
 								_ when Nullable.GetUnderlyingType(t) == typeof(DateTime) => emitter
-									.Ldarg_2
-									.Callx(property.GetGetMethod()!)
+									.Ldarg_2()
+									.Callvirt(property.GetGetMethod()!)
 									.Stloc(@NullableDateTime!.LocalIndex)
 									.Ldloca_S(@NullableDateTime!.LocalIndex)
 									.Callvirt(Methods.NullableDateTime_get_HasValue)
 									.Brfalse(out Label @endif)
-									.Ldc_I4_S('"')
-									.Callvirt(Methods.StringBuilder_Append_Char)
-									.Ldarg_2
-									.Callx(property.GetGetMethod()!)
-									.Stloc(@NullableDateTime!.LocalIndex)
-									.Ldloca_S(@NullableDateTime!.LocalIndex)
-									.Callvirt(Methods.NullableDateTime_get_Value)
-									.Stloc(@DateTime!.LocalIndex)
-									.Ldloca_S(@DateTime!.LocalIndex)
-									.Do(emitter => property.GetCustomAttribute<CsvColumnAttribute>()?.DateFormat switch {
-										string dateFormat => emitter
-											.Ldstr(dateFormat)
-											.Callvirt(Methods.DateTime_ToString_Format),
-										_ => emitter
-											.Callvirt(Methods.DateTime_ToString)
-									})
-									.Callvirt(Methods.StringBuilder_Append_String)
-									.Ldc_I4_S('"')
-									.Callvirt(Methods.StringBuilder_Append_Char)
-									.MarkLabel(endif),
+										.Ldc_I4_S((byte)'"')
+										.Callvirt(Methods.StringBuilder_Append_Char)
+										.Ldarg_2()
+										.Callvirt(property.GetGetMethod()!)
+										.Stloc(@NullableDateTime!.LocalIndex)
+										.Ldloca_S(@NullableDateTime!.LocalIndex)
+										.Callvirt(Methods.NullableDateTime_get_Value)
+										.Stloc(@DateTime!.LocalIndex)
+										.Ldloca_S(@DateTime!.LocalIndex)
+										.Do(gen => {
+											if (property.GetCustomAttribute<CsvColumnAttribute>()?.DateFormat is string dateFormat) {
+												gen
+												.Ldstr(dateFormat)
+												.Callvirt(Methods.DateTime_ToString_Format);
+											} else {
+												gen
+												.Callvirt(Methods.DateTime_ToString);
+											}
+										})
+										.Callvirt(Methods.StringBuilder_Append_String)
+										.Ldc_I4_S((byte)'"')
+										.Callvirt(Methods.StringBuilder_Append_Char)
+									.Label(endif),
 								_ when t == typeof(Uri) => emitter
-									.Ldarg_2
-									.Callx(property.GetGetMethod()!)
-									.Dup
+									.Ldarg_2()
+									.Callvirt(property.GetGetMethod()!)
+									.Dup()
 									.Brfalse_S(out Label nullUri)
-									.Callvirt(Methods.Uri_ToString)
-									.MarkLabel(nullUri)
+										.Callvirt(Methods.Uri_ToString)
+									.Label(nullUri)
 									.Stloc(@string!.LocalIndex)
 									.Ldloc(@string!.LocalIndex)
 									.Brfalse(out Label @endif)
-									.Ldc_I4_S('"')
-									.Callvirt(Methods.StringBuilder_Append_Char)
-									.Ldloc(@string!.LocalIndex)
-									.Ldstr("\"")
-									.Ldstr("\"\"")
-									.Callvirt(Methods.String_Replace)
-									.Call(Methods.StringBuilder_Append_String)
-									.Ldc_I4_S('"')
-									.Callvirt(Methods.StringBuilder_Append_Char)
-									.MarkLabel(@endif),
+										.Ldc_I4_S((byte)'"')
+										.Callvirt(Methods.StringBuilder_Append_Char)
+										.Ldloc(@string!.LocalIndex)
+										.Ldstr("\"")
+										.Ldstr("\"\"")
+										.Callvirt(Methods.String_Replace)
+										.Call(Methods.StringBuilder_Append_String)
+										.Ldc_I4_S((byte)'"')
+										.Callvirt(Methods.StringBuilder_Append_Char)
+									.Label(@endif),
 								_ => throw new CsvTypeException(t)
 							}
 						};
@@ -280,8 +285,8 @@ namespace Csv {
 				})
 				.Ldstr("\r\n")
 				.Callvirt(Methods.StringBuilder_Append_String)
-				.Pop
-				.Ret;
+				.Pop()
+				.Ret();
 		}
 
 		public static IDeserializer GetOrCreateDeserializer<T>() where T : notnull {
