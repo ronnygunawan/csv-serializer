@@ -38,6 +38,11 @@ namespace Tests.ConverterTests {
 		[InlineData(typeof(NullableDecimalConverter), typeof(decimal?), 123.45, "123.45")]
 		[InlineData(typeof(NullableDecimalConverter), typeof(decimal?), -123.45, "-123.45")]
 		[InlineData(typeof(NullableDecimalConverter), typeof(decimal?), null, "")]
+		[InlineData(typeof(BooleanConverter), typeof(bool), true, "True")]
+		[InlineData(typeof(BooleanConverter), typeof(bool), false, "False")]
+		[InlineData(typeof(NullableBooleanConverter), typeof(bool?), true, "True")]
+		[InlineData(typeof(NullableBooleanConverter), typeof(bool?), false, "False")]
+		[InlineData(typeof(NullableBooleanConverter), typeof(bool?), null, "")]
 		public void AppendToStringBuilderIsValid(Type converterType, Type valueType, object testValue, string expectedResult) {
 			if (valueType == typeof(decimal)) {
 				testValue = (decimal)(double)testValue;
@@ -79,6 +84,9 @@ namespace Tests.ConverterTests {
 		[InlineData(typeof(NullableDecimalConverter), "123.45", 123.45)]
 		[InlineData(typeof(NullableDecimalConverter), "-123.45", -123.45)]
 		[InlineData(typeof(NullableDecimalConverter), "", null)]
+		[InlineData(typeof(NullableBooleanConverter), "True", true)]
+		[InlineData(typeof(NullableBooleanConverter), "False", false)]
+		[InlineData(typeof(NullableBooleanConverter), "", null)]
 		public void DeserializeIsValid(Type converterType, string testLiteral, object expectedResult) {
 			if (converterType == typeof(DecimalConverter)) {
 				expectedResult = (decimal)(double)expectedResult;
@@ -118,6 +126,11 @@ namespace Tests.ConverterTests {
 		[InlineData(typeof(NullableDecimalConverter), typeof(decimal?), 123.45, "123.45")]
 		[InlineData(typeof(NullableDecimalConverter), typeof(decimal?), -123.45, "-123.45")]
 		[InlineData(typeof(NullableDecimalConverter), typeof(decimal?), null, "")]
+		[InlineData(typeof(BooleanConverter), typeof(bool), true, "True")]
+		[InlineData(typeof(BooleanConverter), typeof(bool), false, "False")]
+		[InlineData(typeof(NullableBooleanConverter), typeof(bool?), true, "True")]
+		[InlineData(typeof(NullableBooleanConverter), typeof(bool?), false, "False")]
+		[InlineData(typeof(NullableBooleanConverter), typeof(bool?), null, "")]
 		public void EmittedAppendToStringBuilderIsValid(Type emitterType, Type valueType, object testValue, string expectedResult) {
 			if (valueType == typeof(decimal)) {
 				testValue = (decimal)(double)testValue;
@@ -177,6 +190,11 @@ namespace Tests.ConverterTests {
 		[InlineData(typeof(NullableDecimalConverter), typeof(decimal?), "123.45", 123.45)]
 		[InlineData(typeof(NullableDecimalConverter), typeof(decimal?), "-123.45", -123.45)]
 		[InlineData(typeof(NullableDecimalConverter), typeof(decimal?), "", null)]
+		[InlineData(typeof(BooleanConverter), typeof(bool), "True", true)]
+		[InlineData(typeof(BooleanConverter), typeof(bool), "False", false)]
+		[InlineData(typeof(NullableBooleanConverter), typeof(bool?), "True", true)]
+		[InlineData(typeof(NullableBooleanConverter), typeof(bool?), "False", false)]
+		[InlineData(typeof(NullableBooleanConverter), typeof(bool?), "", null)]
 		public void EmittedDeserializeIsValid(Type emitterType, Type valueType, string testLiteral, object expectedResult) {
 			if (valueType == typeof(decimal)) {
 				expectedResult = (decimal)(double)expectedResult;
