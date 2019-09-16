@@ -4,7 +4,7 @@ using System.Reflection.Emit;
 using System.Text;
 
 namespace Csv.Converters {
-	public class UriConverter : INativeConverter<Uri?> {
+	internal class UriConverter : INativeConverter<Uri?> {
 		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider provider, Uri? value, CsvColumnAttribute? attribute, char delimiter) {
 			if (value?.ToString() is string address) {
 				stringBuilder
@@ -22,7 +22,9 @@ namespace Csv.Converters {
 			}
 		}
 
-		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? secondaryLocal, CsvColumnAttribute? attribute) => gen
+		/// <param name="local">A local of type <see cref="Uri"/></param>
+		[ConverterEmitter(typeof(Uri))]
+		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
 			.Dup()
 			.Ldnull()
 			.Cgt_Un()
@@ -43,7 +45,8 @@ namespace Csv.Converters {
 				.Pop()
 			.Label(@endif);
 
-		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, LocalBuilder? secondaryLocal, CsvColumnAttribute? attribute) => gen
+		[ConverterEmitter]
+		public void EmitDeserialize(ILGenerator gen, LocalBuilder? _, LocalBuilder? __, CsvColumnAttribute? attribute) => gen
 			.Dup()
 			.CallPropertyGet<ReadOnlyMemory<char>>("Length")
 			.Brfalse_S(out Label @else)

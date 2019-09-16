@@ -4,7 +4,7 @@ using System.Reflection.Emit;
 using System.Text;
 
 namespace Csv.Converters {
-	public class NullableBooleanConverter : INativeConverter<bool?> {
+	internal class NullableBooleanConverter : INativeConverter<bool?> {
 		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider provider, bool? value, CsvColumnAttribute? attribute, char delimiter) {
 			if (value.HasValue) {
 				stringBuilder.Append(value.Value);
@@ -19,6 +19,8 @@ namespace Csv.Converters {
 			}
 		}
 
+		/// <param name="local">A local of type <see cref="Nullable{Boolean}"/></param>
+		[ConverterEmitter(typeof(bool?))]
 		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
 			.Stloc(local!)
 			.Ldloca(local!)
@@ -29,7 +31,9 @@ namespace Csv.Converters {
 				.Callvirt<StringBuilder>("Append", typeof(bool))
 			.Label(@endif);
 
-		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, LocalBuilder? secondaryLocal, CsvColumnAttribute? attribute) => gen
+		/// <param name="local">A local of type <see cref="Nullable{Boolean}"/></param>
+		[ConverterEmitter(typeof(bool?))]
+		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
 			.Dup()
 			.CallPropertyGet<ReadOnlyMemory<char>>("Length")
 			.Brfalse_S(out Label @else)

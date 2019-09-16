@@ -3,7 +3,7 @@ using System.Reflection.Emit;
 using System.Text;
 
 namespace Csv {
-	public interface IConverterEmitter {
+	internal interface IConverterEmitter {
 		/// <summary>
 		/// Value is loaded to the top of stack. Pop it. Under the value is a <see cref="StringBuilder"/>. Keep it there.
 		/// <para>arg0 is an <see cref="IFormatProvider"/>.</para>

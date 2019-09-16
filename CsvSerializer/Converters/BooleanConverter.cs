@@ -1,11 +1,10 @@
 ﻿using Missil;
 using System;
-using System.Collections.Generic;
 using System.Reflection.Emit;
 using System.Text;
 
 namespace Csv.Converters {
-	public class BooleanConverter : INativeConverter<bool> {
+	internal class BooleanConverter : INativeConverter<bool> {
 		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider provider, bool value, CsvColumnAttribute? attribute, char delimiter) {
 			stringBuilder.Append(value);
 		}
@@ -14,10 +13,12 @@ namespace Csv.Converters {
 			return bool.Parse(text.Span);
 		}
 
-		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? secondaryLocal, CsvColumnAttribute? attribute) => gen
+		[ConverterEmitter]
+		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? _, LocalBuilder? __, CsvColumnAttribute? attribute) => gen
 			.Call<StringBuilder>("Append", typeof(bool));
 
-		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, LocalBuilder? secondaryLocal, CsvColumnAttribute? attribute) => gen
+		[ConverterEmitter]
+		public void EmitDeserialize(ILGenerator gen, LocalBuilder? _, LocalBuilder? __, CsvColumnAttribute? attribute) => gen
 			.CallPropertyGet<ReadOnlyMemory<char>>("Span")
 			.Call<bool>("Parse", typeof(ReadOnlySpan<char>));
 	}

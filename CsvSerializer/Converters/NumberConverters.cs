@@ -10,7 +10,7 @@ namespace Csv.Converters {
 	 | NumberConverters.tt TEXT TEMPLATE.  |
 	 | DO NOT MODIFY THIS CLASS!!!         |
 	 ***************************************/
-	public class ByteConverter : INativeConverter<Byte> {
+	internal class ByteConverter : INativeConverter<Byte> {
 		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider provider, Byte value, CsvColumnAttribute? attribute, char delimiter) {
 			stringBuilder.Append(value);
 		}
@@ -19,10 +19,12 @@ namespace Csv.Converters {
 			return Byte.Parse(text.Span, provider: provider);
 		}
 
-		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
+		[ConverterEmitter]
+		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? _, LocalBuilder? __, CsvColumnAttribute? attribute) => gen
 			.Call<StringBuilder>("Append", typeof(Byte));
 
-		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
+		[ConverterEmitter]
+		public void EmitDeserialize(ILGenerator gen, LocalBuilder? _, LocalBuilder? __, CsvColumnAttribute? attribute) => gen
 			.CallPropertyGet<ReadOnlyMemory<char>>("Span")
 			.Ldc_I4_X((int)NumberStyles.Integer)
 			.Ldarg_1()
@@ -34,7 +36,7 @@ namespace Csv.Converters {
 	 | NumberConverters.tt TEXT TEMPLATE.  |
 	 | DO NOT MODIFY THIS CLASS!!!         |
 	 ***************************************/
-	public class NullableByteConverter : INativeConverter<Byte?> {
+	internal class NullableByteConverter : INativeConverter<Byte?> {
 		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider provider, Byte? value, CsvColumnAttribute? attribute, char delimiter) {
 			if (value.HasValue) {
 				stringBuilder.Append(value.Value);
@@ -49,6 +51,9 @@ namespace Csv.Converters {
 			}
 		}
 
+
+		/// <param name="local">A local of type <see cref="Nullable{Byte}"/></param>
+		[ConverterEmitter(typeof(Byte?))]
 		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? secondaryLocal, CsvColumnAttribute? attribute) => gen
 			.Stloc(local!)
 			.Ldloca(local!)
@@ -59,6 +64,8 @@ namespace Csv.Converters {
 				.Callvirt<StringBuilder>("Append", typeof(Byte))
 			.Label(@endif);
 
+		/// <param name="local">A local of type <see cref="Nullable{Byte}"/></param>
+		[ConverterEmitter(typeof(Byte?))]
 		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
 			.Dup()
 			.CallPropertyGet<ReadOnlyMemory<char>>("Length")
@@ -83,7 +90,7 @@ namespace Csv.Converters {
 	 | NumberConverters.tt TEXT TEMPLATE.  |
 	 | DO NOT MODIFY THIS CLASS!!!         |
 	 ***************************************/
-	public class SByteConverter : INativeConverter<SByte> {
+	internal class SByteConverter : INativeConverter<SByte> {
 		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider provider, SByte value, CsvColumnAttribute? attribute, char delimiter) {
 			stringBuilder.Append(value);
 		}
@@ -92,10 +99,12 @@ namespace Csv.Converters {
 			return SByte.Parse(text.Span, provider: provider);
 		}
 
-		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
+		[ConverterEmitter]
+		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? _, LocalBuilder? __, CsvColumnAttribute? attribute) => gen
 			.Call<StringBuilder>("Append", typeof(SByte));
 
-		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
+		[ConverterEmitter]
+		public void EmitDeserialize(ILGenerator gen, LocalBuilder? _, LocalBuilder? __, CsvColumnAttribute? attribute) => gen
 			.CallPropertyGet<ReadOnlyMemory<char>>("Span")
 			.Ldc_I4_X((int)NumberStyles.Integer)
 			.Ldarg_1()
@@ -107,7 +116,7 @@ namespace Csv.Converters {
 	 | NumberConverters.tt TEXT TEMPLATE.  |
 	 | DO NOT MODIFY THIS CLASS!!!         |
 	 ***************************************/
-	public class NullableSByteConverter : INativeConverter<SByte?> {
+	internal class NullableSByteConverter : INativeConverter<SByte?> {
 		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider provider, SByte? value, CsvColumnAttribute? attribute, char delimiter) {
 			if (value.HasValue) {
 				stringBuilder.Append(value.Value);
@@ -122,6 +131,9 @@ namespace Csv.Converters {
 			}
 		}
 
+
+		/// <param name="local">A local of type <see cref="Nullable{SByte}"/></param>
+		[ConverterEmitter(typeof(SByte?))]
 		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? secondaryLocal, CsvColumnAttribute? attribute) => gen
 			.Stloc(local!)
 			.Ldloca(local!)
@@ -132,6 +144,8 @@ namespace Csv.Converters {
 				.Callvirt<StringBuilder>("Append", typeof(SByte))
 			.Label(@endif);
 
+		/// <param name="local">A local of type <see cref="Nullable{SByte}"/></param>
+		[ConverterEmitter(typeof(SByte?))]
 		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
 			.Dup()
 			.CallPropertyGet<ReadOnlyMemory<char>>("Length")
@@ -156,7 +170,7 @@ namespace Csv.Converters {
 	 | NumberConverters.tt TEXT TEMPLATE.  |
 	 | DO NOT MODIFY THIS CLASS!!!         |
 	 ***************************************/
-	public class Int16Converter : INativeConverter<Int16> {
+	internal class Int16Converter : INativeConverter<Int16> {
 		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider provider, Int16 value, CsvColumnAttribute? attribute, char delimiter) {
 			stringBuilder.Append(value);
 		}
@@ -165,10 +179,12 @@ namespace Csv.Converters {
 			return Int16.Parse(text.Span, provider: provider);
 		}
 
-		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
+		[ConverterEmitter]
+		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? _, LocalBuilder? __, CsvColumnAttribute? attribute) => gen
 			.Call<StringBuilder>("Append", typeof(Int16));
 
-		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
+		[ConverterEmitter]
+		public void EmitDeserialize(ILGenerator gen, LocalBuilder? _, LocalBuilder? __, CsvColumnAttribute? attribute) => gen
 			.CallPropertyGet<ReadOnlyMemory<char>>("Span")
 			.Ldc_I4_X((int)NumberStyles.Integer)
 			.Ldarg_1()
@@ -180,7 +196,7 @@ namespace Csv.Converters {
 	 | NumberConverters.tt TEXT TEMPLATE.  |
 	 | DO NOT MODIFY THIS CLASS!!!         |
 	 ***************************************/
-	public class NullableInt16Converter : INativeConverter<Int16?> {
+	internal class NullableInt16Converter : INativeConverter<Int16?> {
 		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider provider, Int16? value, CsvColumnAttribute? attribute, char delimiter) {
 			if (value.HasValue) {
 				stringBuilder.Append(value.Value);
@@ -195,6 +211,9 @@ namespace Csv.Converters {
 			}
 		}
 
+
+		/// <param name="local">A local of type <see cref="Nullable{Int16}"/></param>
+		[ConverterEmitter(typeof(Int16?))]
 		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? secondaryLocal, CsvColumnAttribute? attribute) => gen
 			.Stloc(local!)
 			.Ldloca(local!)
@@ -205,6 +224,8 @@ namespace Csv.Converters {
 				.Callvirt<StringBuilder>("Append", typeof(Int16))
 			.Label(@endif);
 
+		/// <param name="local">A local of type <see cref="Nullable{Int16}"/></param>
+		[ConverterEmitter(typeof(Int16?))]
 		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
 			.Dup()
 			.CallPropertyGet<ReadOnlyMemory<char>>("Length")
@@ -229,7 +250,7 @@ namespace Csv.Converters {
 	 | NumberConverters.tt TEXT TEMPLATE.  |
 	 | DO NOT MODIFY THIS CLASS!!!         |
 	 ***************************************/
-	public class UInt16Converter : INativeConverter<UInt16> {
+	internal class UInt16Converter : INativeConverter<UInt16> {
 		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider provider, UInt16 value, CsvColumnAttribute? attribute, char delimiter) {
 			stringBuilder.Append(value);
 		}
@@ -238,10 +259,12 @@ namespace Csv.Converters {
 			return UInt16.Parse(text.Span, provider: provider);
 		}
 
-		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
+		[ConverterEmitter]
+		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? _, LocalBuilder? __, CsvColumnAttribute? attribute) => gen
 			.Call<StringBuilder>("Append", typeof(UInt16));
 
-		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
+		[ConverterEmitter]
+		public void EmitDeserialize(ILGenerator gen, LocalBuilder? _, LocalBuilder? __, CsvColumnAttribute? attribute) => gen
 			.CallPropertyGet<ReadOnlyMemory<char>>("Span")
 			.Ldc_I4_X((int)NumberStyles.Integer)
 			.Ldarg_1()
@@ -253,7 +276,7 @@ namespace Csv.Converters {
 	 | NumberConverters.tt TEXT TEMPLATE.  |
 	 | DO NOT MODIFY THIS CLASS!!!         |
 	 ***************************************/
-	public class NullableUInt16Converter : INativeConverter<UInt16?> {
+	internal class NullableUInt16Converter : INativeConverter<UInt16?> {
 		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider provider, UInt16? value, CsvColumnAttribute? attribute, char delimiter) {
 			if (value.HasValue) {
 				stringBuilder.Append(value.Value);
@@ -268,6 +291,9 @@ namespace Csv.Converters {
 			}
 		}
 
+
+		/// <param name="local">A local of type <see cref="Nullable{UInt16}"/></param>
+		[ConverterEmitter(typeof(UInt16?))]
 		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? secondaryLocal, CsvColumnAttribute? attribute) => gen
 			.Stloc(local!)
 			.Ldloca(local!)
@@ -278,6 +304,8 @@ namespace Csv.Converters {
 				.Callvirt<StringBuilder>("Append", typeof(UInt16))
 			.Label(@endif);
 
+		/// <param name="local">A local of type <see cref="Nullable{UInt16}"/></param>
+		[ConverterEmitter(typeof(UInt16?))]
 		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
 			.Dup()
 			.CallPropertyGet<ReadOnlyMemory<char>>("Length")
@@ -302,7 +330,7 @@ namespace Csv.Converters {
 	 | NumberConverters.tt TEXT TEMPLATE.  |
 	 | DO NOT MODIFY THIS CLASS!!!         |
 	 ***************************************/
-	public class Int32Converter : INativeConverter<Int32> {
+	internal class Int32Converter : INativeConverter<Int32> {
 		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider provider, Int32 value, CsvColumnAttribute? attribute, char delimiter) {
 			stringBuilder.Append(value);
 		}
@@ -311,10 +339,12 @@ namespace Csv.Converters {
 			return Int32.Parse(text.Span, provider: provider);
 		}
 
-		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
+		[ConverterEmitter]
+		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? _, LocalBuilder? __, CsvColumnAttribute? attribute) => gen
 			.Call<StringBuilder>("Append", typeof(Int32));
 
-		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
+		[ConverterEmitter]
+		public void EmitDeserialize(ILGenerator gen, LocalBuilder? _, LocalBuilder? __, CsvColumnAttribute? attribute) => gen
 			.CallPropertyGet<ReadOnlyMemory<char>>("Span")
 			.Ldc_I4_X((int)NumberStyles.Integer)
 			.Ldarg_1()
@@ -326,7 +356,7 @@ namespace Csv.Converters {
 	 | NumberConverters.tt TEXT TEMPLATE.  |
 	 | DO NOT MODIFY THIS CLASS!!!         |
 	 ***************************************/
-	public class NullableInt32Converter : INativeConverter<Int32?> {
+	internal class NullableInt32Converter : INativeConverter<Int32?> {
 		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider provider, Int32? value, CsvColumnAttribute? attribute, char delimiter) {
 			if (value.HasValue) {
 				stringBuilder.Append(value.Value);
@@ -341,6 +371,9 @@ namespace Csv.Converters {
 			}
 		}
 
+
+		/// <param name="local">A local of type <see cref="Nullable{Int32}"/></param>
+		[ConverterEmitter(typeof(Int32?))]
 		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? secondaryLocal, CsvColumnAttribute? attribute) => gen
 			.Stloc(local!)
 			.Ldloca(local!)
@@ -351,6 +384,8 @@ namespace Csv.Converters {
 				.Callvirt<StringBuilder>("Append", typeof(Int32))
 			.Label(@endif);
 
+		/// <param name="local">A local of type <see cref="Nullable{Int32}"/></param>
+		[ConverterEmitter(typeof(Int32?))]
 		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
 			.Dup()
 			.CallPropertyGet<ReadOnlyMemory<char>>("Length")
@@ -375,7 +410,7 @@ namespace Csv.Converters {
 	 | NumberConverters.tt TEXT TEMPLATE.  |
 	 | DO NOT MODIFY THIS CLASS!!!         |
 	 ***************************************/
-	public class UInt32Converter : INativeConverter<UInt32> {
+	internal class UInt32Converter : INativeConverter<UInt32> {
 		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider provider, UInt32 value, CsvColumnAttribute? attribute, char delimiter) {
 			stringBuilder.Append(value);
 		}
@@ -384,10 +419,12 @@ namespace Csv.Converters {
 			return UInt32.Parse(text.Span, provider: provider);
 		}
 
-		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
+		[ConverterEmitter]
+		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? _, LocalBuilder? __, CsvColumnAttribute? attribute) => gen
 			.Call<StringBuilder>("Append", typeof(UInt32));
 
-		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
+		[ConverterEmitter]
+		public void EmitDeserialize(ILGenerator gen, LocalBuilder? _, LocalBuilder? __, CsvColumnAttribute? attribute) => gen
 			.CallPropertyGet<ReadOnlyMemory<char>>("Span")
 			.Ldc_I4_X((int)NumberStyles.Integer)
 			.Ldarg_1()
@@ -399,7 +436,7 @@ namespace Csv.Converters {
 	 | NumberConverters.tt TEXT TEMPLATE.  |
 	 | DO NOT MODIFY THIS CLASS!!!         |
 	 ***************************************/
-	public class NullableUInt32Converter : INativeConverter<UInt32?> {
+	internal class NullableUInt32Converter : INativeConverter<UInt32?> {
 		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider provider, UInt32? value, CsvColumnAttribute? attribute, char delimiter) {
 			if (value.HasValue) {
 				stringBuilder.Append(value.Value);
@@ -414,6 +451,9 @@ namespace Csv.Converters {
 			}
 		}
 
+
+		/// <param name="local">A local of type <see cref="Nullable{UInt32}"/></param>
+		[ConverterEmitter(typeof(UInt32?))]
 		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? secondaryLocal, CsvColumnAttribute? attribute) => gen
 			.Stloc(local!)
 			.Ldloca(local!)
@@ -424,6 +464,8 @@ namespace Csv.Converters {
 				.Callvirt<StringBuilder>("Append", typeof(UInt32))
 			.Label(@endif);
 
+		/// <param name="local">A local of type <see cref="Nullable{UInt32}"/></param>
+		[ConverterEmitter(typeof(UInt32?))]
 		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
 			.Dup()
 			.CallPropertyGet<ReadOnlyMemory<char>>("Length")
@@ -448,7 +490,7 @@ namespace Csv.Converters {
 	 | NumberConverters.tt TEXT TEMPLATE.  |
 	 | DO NOT MODIFY THIS CLASS!!!         |
 	 ***************************************/
-	public class Int64Converter : INativeConverter<Int64> {
+	internal class Int64Converter : INativeConverter<Int64> {
 		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider provider, Int64 value, CsvColumnAttribute? attribute, char delimiter) {
 			stringBuilder.Append(value);
 		}
@@ -457,10 +499,12 @@ namespace Csv.Converters {
 			return Int64.Parse(text.Span, provider: provider);
 		}
 
-		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
+		[ConverterEmitter]
+		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? _, LocalBuilder? __, CsvColumnAttribute? attribute) => gen
 			.Call<StringBuilder>("Append", typeof(Int64));
 
-		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
+		[ConverterEmitter]
+		public void EmitDeserialize(ILGenerator gen, LocalBuilder? _, LocalBuilder? __, CsvColumnAttribute? attribute) => gen
 			.CallPropertyGet<ReadOnlyMemory<char>>("Span")
 			.Ldc_I4_X((int)NumberStyles.Integer)
 			.Ldarg_1()
@@ -472,7 +516,7 @@ namespace Csv.Converters {
 	 | NumberConverters.tt TEXT TEMPLATE.  |
 	 | DO NOT MODIFY THIS CLASS!!!         |
 	 ***************************************/
-	public class NullableInt64Converter : INativeConverter<Int64?> {
+	internal class NullableInt64Converter : INativeConverter<Int64?> {
 		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider provider, Int64? value, CsvColumnAttribute? attribute, char delimiter) {
 			if (value.HasValue) {
 				stringBuilder.Append(value.Value);
@@ -487,6 +531,9 @@ namespace Csv.Converters {
 			}
 		}
 
+
+		/// <param name="local">A local of type <see cref="Nullable{Int64}"/></param>
+		[ConverterEmitter(typeof(Int64?))]
 		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? secondaryLocal, CsvColumnAttribute? attribute) => gen
 			.Stloc(local!)
 			.Ldloca(local!)
@@ -497,6 +544,8 @@ namespace Csv.Converters {
 				.Callvirt<StringBuilder>("Append", typeof(Int64))
 			.Label(@endif);
 
+		/// <param name="local">A local of type <see cref="Nullable{Int64}"/></param>
+		[ConverterEmitter(typeof(Int64?))]
 		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
 			.Dup()
 			.CallPropertyGet<ReadOnlyMemory<char>>("Length")
@@ -521,7 +570,7 @@ namespace Csv.Converters {
 	 | NumberConverters.tt TEXT TEMPLATE.  |
 	 | DO NOT MODIFY THIS CLASS!!!         |
 	 ***************************************/
-	public class UInt64Converter : INativeConverter<UInt64> {
+	internal class UInt64Converter : INativeConverter<UInt64> {
 		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider provider, UInt64 value, CsvColumnAttribute? attribute, char delimiter) {
 			stringBuilder.Append(value);
 		}
@@ -530,10 +579,12 @@ namespace Csv.Converters {
 			return UInt64.Parse(text.Span, provider: provider);
 		}
 
-		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
+		[ConverterEmitter]
+		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? _, LocalBuilder? __, CsvColumnAttribute? attribute) => gen
 			.Call<StringBuilder>("Append", typeof(UInt64));
 
-		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
+		[ConverterEmitter]
+		public void EmitDeserialize(ILGenerator gen, LocalBuilder? _, LocalBuilder? __, CsvColumnAttribute? attribute) => gen
 			.CallPropertyGet<ReadOnlyMemory<char>>("Span")
 			.Ldc_I4_X((int)NumberStyles.Integer)
 			.Ldarg_1()
@@ -545,7 +596,7 @@ namespace Csv.Converters {
 	 | NumberConverters.tt TEXT TEMPLATE.  |
 	 | DO NOT MODIFY THIS CLASS!!!         |
 	 ***************************************/
-	public class NullableUInt64Converter : INativeConverter<UInt64?> {
+	internal class NullableUInt64Converter : INativeConverter<UInt64?> {
 		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider provider, UInt64? value, CsvColumnAttribute? attribute, char delimiter) {
 			if (value.HasValue) {
 				stringBuilder.Append(value.Value);
@@ -560,6 +611,9 @@ namespace Csv.Converters {
 			}
 		}
 
+
+		/// <param name="local">A local of type <see cref="Nullable{UInt64}"/></param>
+		[ConverterEmitter(typeof(UInt64?))]
 		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? secondaryLocal, CsvColumnAttribute? attribute) => gen
 			.Stloc(local!)
 			.Ldloca(local!)
@@ -570,6 +624,8 @@ namespace Csv.Converters {
 				.Callvirt<StringBuilder>("Append", typeof(UInt64))
 			.Label(@endif);
 
+		/// <param name="local">A local of type <see cref="Nullable{UInt64}"/></param>
+		[ConverterEmitter(typeof(UInt64?))]
 		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
 			.Dup()
 			.CallPropertyGet<ReadOnlyMemory<char>>("Length")
@@ -594,7 +650,7 @@ namespace Csv.Converters {
 	 | NumberConverters.tt TEXT TEMPLATE.  |
 	 | DO NOT MODIFY THIS CLASS!!!         |
 	 ***************************************/
-	public class SingleConverter : INativeConverter<Single> {
+	internal class SingleConverter : INativeConverter<Single> {
 		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider provider, Single value, CsvColumnAttribute? attribute, char delimiter) {
 			string text = value.ToString(provider);
 			if (text.Contains(delimiter)) {
@@ -608,6 +664,8 @@ namespace Csv.Converters {
 			return Single.Parse(text.Span, provider: provider);
 		}
 
+		/// <param name="local">A local of type <see cref="Single"/></param>
+		[ConverterEmitter(typeof(Single))]
 		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
 			.Stloc(local!)
 			.Ldloca(local!)
@@ -627,7 +685,8 @@ namespace Csv.Converters {
 				.Call<StringBuilder>("Append", typeof(string))
 			.Label(endif);
 
-		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
+		[ConverterEmitter]
+		public void EmitDeserialize(ILGenerator gen, LocalBuilder? _, LocalBuilder? __, CsvColumnAttribute? attribute) => gen
 			.CallPropertyGet<ReadOnlyMemory<char>>("Span")
 			.Ldc_I4_X((int)NumberStyles.Float)
 			.Ldarg_1()
@@ -639,7 +698,7 @@ namespace Csv.Converters {
 	 | NumberConverters.tt TEXT TEMPLATE.  |
 	 | DO NOT MODIFY THIS CLASS!!!         |
 	 ***************************************/
-	public class NullableSingleConverter : INativeConverter<Single?> {
+	internal class NullableSingleConverter : INativeConverter<Single?> {
 		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider provider, Single? value, CsvColumnAttribute? attribute, char delimiter) {
 			if (value.HasValue) {
 				string text = value.Value.ToString(provider);
@@ -659,6 +718,10 @@ namespace Csv.Converters {
 			}
 		}
 
+
+		/// <param name="local">A local of type <see cref="Nullable{Single}"/></param>
+		/// <param name="secondaryLocal">A local of type <see cref="Single"/></param>
+		[ConverterEmitter(typeof(Single?), typeof(Single))]
 		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? secondaryLocal, CsvColumnAttribute? attribute) => gen
 			.Stloc(local!)
 			.Ldloca(local!)
@@ -684,6 +747,8 @@ namespace Csv.Converters {
 					.Call<StringBuilder>("Append", typeof(string))
 			.Label(@endif);
 
+		/// <param name="local">A local of type <see cref="Nullable{Single}"/></param>
+		[ConverterEmitter(typeof(Single?))]
 		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
 			.Dup()
 			.CallPropertyGet<ReadOnlyMemory<char>>("Length")
@@ -708,7 +773,7 @@ namespace Csv.Converters {
 	 | NumberConverters.tt TEXT TEMPLATE.  |
 	 | DO NOT MODIFY THIS CLASS!!!         |
 	 ***************************************/
-	public class DoubleConverter : INativeConverter<Double> {
+	internal class DoubleConverter : INativeConverter<Double> {
 		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider provider, Double value, CsvColumnAttribute? attribute, char delimiter) {
 			string text = value.ToString(provider);
 			if (text.Contains(delimiter)) {
@@ -722,6 +787,8 @@ namespace Csv.Converters {
 			return Double.Parse(text.Span, provider: provider);
 		}
 
+		/// <param name="local">A local of type <see cref="Double"/></param>
+		[ConverterEmitter(typeof(Double))]
 		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
 			.Stloc(local!)
 			.Ldloca(local!)
@@ -741,7 +808,8 @@ namespace Csv.Converters {
 				.Call<StringBuilder>("Append", typeof(string))
 			.Label(endif);
 
-		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
+		[ConverterEmitter]
+		public void EmitDeserialize(ILGenerator gen, LocalBuilder? _, LocalBuilder? __, CsvColumnAttribute? attribute) => gen
 			.CallPropertyGet<ReadOnlyMemory<char>>("Span")
 			.Ldc_I4_X((int)NumberStyles.Float)
 			.Ldarg_1()
@@ -753,7 +821,7 @@ namespace Csv.Converters {
 	 | NumberConverters.tt TEXT TEMPLATE.  |
 	 | DO NOT MODIFY THIS CLASS!!!         |
 	 ***************************************/
-	public class NullableDoubleConverter : INativeConverter<Double?> {
+	internal class NullableDoubleConverter : INativeConverter<Double?> {
 		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider provider, Double? value, CsvColumnAttribute? attribute, char delimiter) {
 			if (value.HasValue) {
 				string text = value.Value.ToString(provider);
@@ -773,6 +841,10 @@ namespace Csv.Converters {
 			}
 		}
 
+
+		/// <param name="local">A local of type <see cref="Nullable{Double}"/></param>
+		/// <param name="secondaryLocal">A local of type <see cref="Double"/></param>
+		[ConverterEmitter(typeof(Double?), typeof(Double))]
 		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? secondaryLocal, CsvColumnAttribute? attribute) => gen
 			.Stloc(local!)
 			.Ldloca(local!)
@@ -798,6 +870,8 @@ namespace Csv.Converters {
 					.Call<StringBuilder>("Append", typeof(string))
 			.Label(@endif);
 
+		/// <param name="local">A local of type <see cref="Nullable{Double}"/></param>
+		[ConverterEmitter(typeof(Double?))]
 		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
 			.Dup()
 			.CallPropertyGet<ReadOnlyMemory<char>>("Length")
@@ -822,7 +896,7 @@ namespace Csv.Converters {
 	 | NumberConverters.tt TEXT TEMPLATE.  |
 	 | DO NOT MODIFY THIS CLASS!!!         |
 	 ***************************************/
-	public class DecimalConverter : INativeConverter<Decimal> {
+	internal class DecimalConverter : INativeConverter<Decimal> {
 		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider provider, Decimal value, CsvColumnAttribute? attribute, char delimiter) {
 			string text = value.ToString(provider);
 			if (text.Contains(delimiter)) {
@@ -836,6 +910,8 @@ namespace Csv.Converters {
 			return Decimal.Parse(text.Span, provider: provider);
 		}
 
+		/// <param name="local">A local of type <see cref="Decimal"/></param>
+		[ConverterEmitter(typeof(Decimal))]
 		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
 			.Stloc(local!)
 			.Ldloca(local!)
@@ -855,7 +931,8 @@ namespace Csv.Converters {
 				.Call<StringBuilder>("Append", typeof(string))
 			.Label(endif);
 
-		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
+		[ConverterEmitter]
+		public void EmitDeserialize(ILGenerator gen, LocalBuilder? _, LocalBuilder? __, CsvColumnAttribute? attribute) => gen
 			.CallPropertyGet<ReadOnlyMemory<char>>("Span")
 			.Ldc_I4_X((int)NumberStyles.Currency)
 			.Ldarg_1()
@@ -867,7 +944,7 @@ namespace Csv.Converters {
 	 | NumberConverters.tt TEXT TEMPLATE.  |
 	 | DO NOT MODIFY THIS CLASS!!!         |
 	 ***************************************/
-	public class NullableDecimalConverter : INativeConverter<Decimal?> {
+	internal class NullableDecimalConverter : INativeConverter<Decimal?> {
 		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider provider, Decimal? value, CsvColumnAttribute? attribute, char delimiter) {
 			if (value.HasValue) {
 				string text = value.Value.ToString(provider);
@@ -887,6 +964,10 @@ namespace Csv.Converters {
 			}
 		}
 
+
+		/// <param name="local">A local of type <see cref="Nullable{Decimal}"/></param>
+		/// <param name="secondaryLocal">A local of type <see cref="Decimal"/></param>
+		[ConverterEmitter(typeof(Decimal?), typeof(Decimal))]
 		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? secondaryLocal, CsvColumnAttribute? attribute) => gen
 			.Stloc(local!)
 			.Ldloca(local!)
@@ -912,6 +993,8 @@ namespace Csv.Converters {
 					.Call<StringBuilder>("Append", typeof(string))
 			.Label(@endif);
 
+		/// <param name="local">A local of type <see cref="Nullable{Decimal}"/></param>
+		[ConverterEmitter(typeof(Decimal?))]
 		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
 			.Dup()
 			.CallPropertyGet<ReadOnlyMemory<char>>("Length")

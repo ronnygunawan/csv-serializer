@@ -5,7 +5,7 @@ using System.Reflection.Emit;
 using System.Text;
 
 namespace Csv.Converters {
-	public class NullableDateTimeConverter : INativeConverter<DateTime?> {
+	internal class NullableDateTimeConverter : INativeConverter<DateTime?> {
 		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider provider, DateTime? value, CsvColumnAttribute? attribute, char delimiter) {
 			if (value.HasValue) {
 				string text = attribute?.DateFormat switch {
@@ -33,6 +33,9 @@ namespace Csv.Converters {
 			}
 		}
 
+		/// <param name="nullableLocal">A local of type <see cref="Nullable{DateTime}"/></param>
+		/// <param name="local">A local of type <see cref="DateTime"/></param>
+		[ConverterEmitter(typeof(DateTime?), typeof(DateTime))]
 		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? nullableLocal, LocalBuilder? local, CsvColumnAttribute? attribute) => gen
 			.Stloc(nullableLocal!)
 			.Ldloca(nullableLocal!)
@@ -77,6 +80,8 @@ namespace Csv.Converters {
 				.Label(endAppend)
 			.Label(end);
 
+		/// <param name="local">A local of type <see cref="Nullable{DateTime}"/></param>
+		[ConverterEmitter(typeof(DateTime?))]
 		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
 			.Dup()
 			.CallPropertyGet<ReadOnlyMemory<char>>("Length")

@@ -32,7 +32,7 @@ namespace Csv.Converters {
 	 | NumberConverters.tt TEXT TEMPLATE.  |
 	 | DO NOT MODIFY THIS CLASS!!!         |
 	 ***************************************/
-	public class <#= type #>Converter : INativeConverter<<#= type #>> {
+	internal class <#= type #>Converter : INativeConverter<<#= type #>> {
 		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider provider, <#= type #> value, CsvColumnAttribute? attribute, char delimiter) {
 <# if (type == "Single" || type == "Double" || type == "Decimal") { #>
 			string text = value.ToString(provider);
@@ -50,8 +50,10 @@ namespace Csv.Converters {
 			return <#= type #>.Parse(text.Span, provider: provider);
 		}
 
-		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
 <# if (type == "Single" || type == "Double" || type == "Decimal") { #>
+		/// <param name="local">A local of type <see cref="<#= type #>"/></param>
+		[ConverterEmitter(typeof(<#= type #>))]
+		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
 			.Stloc(local!)
 			.Ldloca(local!)
 			.Ldarg_1()
@@ -70,10 +72,13 @@ namespace Csv.Converters {
 				.Call<StringBuilder>("Append", typeof(string))
 			.Label(endif);
 <# } else { #>
+		[ConverterEmitter]
+		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? _, LocalBuilder? __, CsvColumnAttribute? attribute) => gen
 			.Call<StringBuilder>("Append", typeof(<#= type #>));
 <# } #>
 
-		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
+		[ConverterEmitter]
+		public void EmitDeserialize(ILGenerator gen, LocalBuilder? _, LocalBuilder? __, CsvColumnAttribute? attribute) => gen
 			.CallPropertyGet<ReadOnlyMemory<char>>("Span")
 <# if (type == "Single" || type == "Double") { #>
 			.Ldc_I4_X((int)NumberStyles.Float)
@@ -91,7 +96,7 @@ namespace Csv.Converters {
 	 | NumberConverters.tt TEXT TEMPLATE.  |
 	 | DO NOT MODIFY THIS CLASS!!!         |
 	 ***************************************/
-	public class Nullable<#= type #>Converter : INativeConverter<<#= type #>?> {
+	internal class Nullable<#= type #>Converter : INativeConverter<<#= type #>?> {
 		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider provider, <#= type #>? value, CsvColumnAttribute? attribute, char delimiter) {
 			if (value.HasValue) {
 <# if (type == "Single" || type == "Double" || type == "Decimal") { #>
@@ -115,6 +120,14 @@ namespace Csv.Converters {
 			}
 		}
 
+
+		/// <param name="local">A local of type <see cref="Nullable{<#= type #>}"/></param>
+<# if (type == "Single" || type == "Double" || type == "Decimal") { #>
+		/// <param name="secondaryLocal">A local of type <see cref="<#= type #>"/></param>
+		[ConverterEmitter(typeof(<#= type #>?), typeof(<#= type #>))]
+<# } else { #>
+		[ConverterEmitter(typeof(<#= type #>?))]
+<# } #>
 		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? secondaryLocal, CsvColumnAttribute? attribute) => gen
 			.Stloc(local!)
 			.Ldloca(local!)
@@ -146,6 +159,8 @@ namespace Csv.Converters {
 <# } #>
 			.Label(@endif);
 
+		/// <param name="local">A local of type <see cref="Nullable{<#= type #>}"/></param>
+		[ConverterEmitter(typeof(<#= type #>?))]
 		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
 			.Dup()
 			.CallPropertyGet<ReadOnlyMemory<char>>("Length")

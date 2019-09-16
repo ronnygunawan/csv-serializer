@@ -1,3 +1,3 @@
 ﻿namespace Csv {
-	public interface INativeConverter<T> : IConverter<T>, IConverterEmitter { }
+	internal interface INativeConverter<T> : IConverter<T>, IConverterEmitter { }
 }

@@ -5,7 +5,7 @@ using System.Text;
 using Missil;
 
 namespace Csv.Converters {
-	public class DateTimeConverter : INativeConverter<DateTime> {
+	internal class DateTimeConverter : INativeConverter<DateTime> {
 		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider provider, DateTime value, CsvColumnAttribute? attribute, char delimiter) {
 			string text = attribute?.DateFormat switch {
 				string dateFormat => value.ToString(dateFormat, provider),
@@ -30,6 +30,8 @@ namespace Csv.Converters {
 			}
 		}
 
+		/// <param name="local">A local of type <see cref="DateTime"/></param>
+		[ConverterEmitter(typeof(DateTime))]
 		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
 			.Stloc(local!)
 			.Emit(gen => attribute?.DateFormat switch {
@@ -67,7 +69,8 @@ namespace Csv.Converters {
 				.Call<StringBuilder>("Append", typeof(string))
 			.Label(end);
 
-		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
+		[ConverterEmitter]
+		public void EmitDeserialize(ILGenerator gen, LocalBuilder? _, LocalBuilder? __, CsvColumnAttribute? attribute) => gen
 			.Emit(gen => attribute?.DateFormat switch {
 				string dateFormat => gen
 					.CallPropertyGet<ReadOnlyMemory<char>>("Span")
