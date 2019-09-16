@@ -31,7 +31,7 @@
       <Pack>True</Pack>
       <PackagePath></PackagePath>
     </None>
-    <None Include="Converters\NumberConverters.cs">
+    <None Include="Internal\Converters\NumberConverters.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>NumberConverters.tt</DependentUpon>
@@ -56,7 +56,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="Converters\NumberConverters.tt">
+    <None Update="Internal\ConverterFactory.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>ConverterFactory.cs</LastGenOutput>
+    </None>
+    <None Update="Internal\Converters\NumberConverters.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>NumberConverters.cs</LastGenOutput>
     </None>
@@ -67,7 +71,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Update="Converters\NumberConverters.cs">
+    <Compile Update="Internal\ConverterFactory.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>ConverterFactory.tt</DependentUpon>
+    </Compile>
+    <Compile Update="Internal\Converters\NumberConverters.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>NumberConverters.tt</DependentUpon>

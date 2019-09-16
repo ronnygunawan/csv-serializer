@@ -3,7 +3,7 @@ using System;
 using System.Reflection.Emit;
 using System.Text;
 
-namespace Csv.Converters {
+namespace Csv.Internal.Converters {
 	internal class NullableBooleanConverter : INativeConverter<bool?> {
 		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider provider, bool? value, CsvColumnAttribute? attribute, char delimiter) {
 			if (value.HasValue) {
