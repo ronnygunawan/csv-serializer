@@ -1,4 +1,4 @@
-﻿using Csv.Converters;
+﻿using Csv.Internal.Converters;
 using FluentAssertions;
 using Missil;
 using System;

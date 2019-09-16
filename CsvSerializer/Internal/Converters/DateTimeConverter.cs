@@ -4,7 +4,7 @@ using System.Reflection.Emit;
 using System.Text;
 using Missil;
 
-namespace Csv.Converters {
+namespace Csv.Internal.Converters {
 	internal class DateTimeConverter : INativeConverter<DateTime> {
 		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider provider, DateTime value, CsvColumnAttribute? attribute, char delimiter) {
 			string text = attribute?.DateFormat switch {

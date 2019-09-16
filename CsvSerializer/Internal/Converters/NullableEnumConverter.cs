@@ -1,11 +1,10 @@
 ﻿using Missil;
 using System;
-using System.Collections.Generic;
 using System.Reflection.Emit;
 using System.Text;
 
-namespace Csv.Converters {
-	public class NullableEnumConverter<TEnum> : INativeConverter<TEnum?> where TEnum : struct, Enum {
+namespace Csv.Internal.Converters {
+	internal class NullableEnumConverter<TEnum> : INativeConverter<TEnum?> where TEnum : struct, Enum {
 		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider provider, TEnum? value, CsvColumnAttribute? attribute, char delimiter) {
 			if (value.HasValue) {
 				stringBuilder.Append(value.Value);

@@ -1,0 +1,57 @@
+﻿<#@ template debug="false" hostspecific="false" language="C#" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".cs" #>
+<#
+	string[] structTypes = {
+		"Boolean",
+		"Byte",
+		"SByte",
+		"Int16",
+		"UInt16",
+		"Int32",
+		"UInt32",
+		"Int64",
+		"UInt64",
+		"Single",
+		"Double",
+		"Decimal",
+		"DateTime"
+	};
+#>
+using Csv.Internal.Converters;
+using System;
+using System.Collections.Concurrent;
+
+namespace Csv.Internal {
+	/***************************************
+	 | THIS CLASS WAS AUTO GENERATED USING |
+	 | ConveterFactory.tt TEXT TEMPLATE.   |
+	 | DO NOT MODIFY THIS CLASS!!!         |
+	 ***************************************/
+	internal static class ConverterFactory {
+		private static readonly ConcurrentDictionary<Type, object> _cache = new ConcurrentDictionary<Type, object>();
+
+		public static INativeConverter<T> GetOrCreate<T>() {
+			return (INativeConverter<T>)_cache.GetOrAdd(typeof(T), type => {
+				if (type.IsEnum) {
+					return Activator.CreateInstance(typeof(EnumConverter<>).MakeGenericType(type))!;
+				} else if (Nullable.GetUnderlyingType(type) is Type t && t.IsEnum) {
+					return Activator.CreateInstance(typeof(NullableEnumConverter<>).MakeGenericType(t))!;
+<# foreach (string structType in structTypes) { #>
+				} else if (type == typeof(<#= structType #>)) {
+					return new <#= structType #>Converter();
+				} else if (Nullable.GetUnderlyingType(type) == typeof(<#= structType #>)) {
+					return new Nullable<#= structType #>Converter();
+<# } #>
+				} else if (type == typeof(Uri)) {
+					return new UriConverter();
+				} else {
+					throw new NotImplementedException();
+				}
+			});
+		}
+	}
+}

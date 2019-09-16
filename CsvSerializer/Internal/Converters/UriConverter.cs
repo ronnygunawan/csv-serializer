@@ -3,7 +3,7 @@ using System;
 using System.Reflection.Emit;
 using System.Text;
 
-namespace Csv.Converters {
+namespace Csv.Internal.Converters {
 	internal class UriConverter : INativeConverter<Uri?> {
 		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider provider, Uri? value, CsvColumnAttribute? attribute, char delimiter) {
 			if (value?.ToString() is string address) {

@@ -2,7 +2,7 @@
 using System.Reflection;
 using System.Text;
 
-namespace Csv.NaiveImpl {
+namespace Csv.Internal.NaiveImpl {
 	internal class NaiveSerializer<T> : ISerializer where T : notnull {
 		private enum SerializeAs {
 			Number,

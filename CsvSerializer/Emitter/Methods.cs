@@ -4,7 +4,7 @@ using System.Globalization;
 using System.Linq;
 using System.Reflection;
 using System.Text;
-using Csv.Parser;
+using Csv.Internal;
 
 namespace Csv.Emitter {
 	internal static class Methods {

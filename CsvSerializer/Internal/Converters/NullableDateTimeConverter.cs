@@ -4,7 +4,7 @@ using System.Globalization;
 using System.Reflection.Emit;
 using System.Text;
 
-namespace Csv.Converters {
+namespace Csv.Internal.Converters {
 	internal class NullableDateTimeConverter : INativeConverter<DateTime?> {
 		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider provider, DateTime? value, CsvColumnAttribute? attribute, char delimiter) {
 			if (value.HasValue) {

@@ -2,7 +2,7 @@
 using System.Reflection.Emit;
 using System.Text;
 
-namespace Csv {
+namespace Csv.Internal {
 	internal interface IConverterEmitter {
 		/// <summary>
 		/// Value is loaded to the top of stack. Pop it. Under the value is a <see cref="StringBuilder"/>. Keep it there.

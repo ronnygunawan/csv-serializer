@@ -4,7 +4,7 @@ using System.Globalization;
 using System.Reflection.Emit;
 using System.Text;
 
-namespace Csv.Converters {
+namespace Csv.Internal.Converters {
 	/***************************************
 	 | THIS CLASS WAS AUTO GENERATED USING |
 	 | NumberConverters.tt TEXT TEMPLATE.  |

@@ -1,10 +1,10 @@
-﻿using Csv.Parser;
+﻿using Csv.Internal;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Reflection;
 
-namespace Csv.NaiveImpl {
+namespace Csv.Internal.NaiveImpl {
 	internal class NaiveDeserializer<T> : IDeserializer where T : notnull {
 		private enum DeserializeAs {
 			Boolean,

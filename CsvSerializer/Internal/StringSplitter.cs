@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Csv.Parser {
+namespace Csv.Internal {
 	internal static class StringSplitter {
 		private enum ParserState {
 			InStartingWhiteSpace,

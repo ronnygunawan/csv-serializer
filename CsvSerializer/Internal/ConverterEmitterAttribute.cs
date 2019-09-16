@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Csv {
+namespace Csv.Internal {
 	[AttributeUsage(AttributeTargets.Method)]
 	internal class ConverterEmitterAttribute : Attribute {
 		public Type? PrimaryLocalType { get; }
