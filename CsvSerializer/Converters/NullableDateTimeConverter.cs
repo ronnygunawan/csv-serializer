@@ -6,12 +6,20 @@ using System.Text;
 
 namespace Csv.Converters {
 	public class NullableDateTimeConverter : INativeConverter<DateTime?> {
-		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider provider, DateTime? value, CsvColumnAttribute? attribute) {
+		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider provider, DateTime? value, CsvColumnAttribute? attribute, char delimiter) {
 			if (value.HasValue) {
-				if (attribute?.DateFormat is string dateFormat) {
-					stringBuilder.Append(value.Value.ToString(dateFormat, provider));
+				string text = attribute?.DateFormat switch {
+					string dateFormat => value.Value.ToString(dateFormat, provider),
+					_ => value.Value.ToString(provider)
+				};
+				bool containsQuote = text.Contains('\"');
+				if (containsQuote) {
+					text = text.Replace("\"", "\"\"");
+				}
+				if (containsQuote || text.Contains(delimiter)) {
+					stringBuilder.Append('"').Append(text).Append('"');
 				} else {
-					stringBuilder.Append(value.Value.ToString(provider));
+					stringBuilder.Append(text);
 				}
 			}
 		}
@@ -29,7 +37,7 @@ namespace Csv.Converters {
 			.Stloc(nullableLocal!)
 			.Ldloca(nullableLocal!)
 			.CallvirtPropertyGet<DateTime?>("HasValue")
-			.Brfalse_S(out Label endif)
+			.Brfalse_S(out Label end)
 				.Ldloca(nullableLocal!)
 				.CallPropertyGet<DateTime?>("Value")
 				.Stloc(local!)
@@ -38,15 +46,36 @@ namespace Csv.Converters {
 						.Ldloca(local!)
 						.Ldstr(dateFormat)
 						.Ldarg_1()
-						.Call<DateTime>("ToString", typeof(string), typeof(IFormatProvider))
-						.Call<StringBuilder>("Append", typeof(string)),
+						.Call<DateTime>("ToString", typeof(string), typeof(IFormatProvider)),
 					_ => gen
 						.Ldloca(local!)
 						.Ldarg_1()
 						.Call<DateTime>("ToString", typeof(IFormatProvider))
-						.Call<StringBuilder>("Append", typeof(string))
 				})
-			.Label(endif);
+				.Dup()
+				.Ldc_I4_X((int)'"')
+				.Callvirt<string>("Contains", typeof(char))
+				.Brfalse_S(out Label doesNotContainQuote)
+					.Ldstr("\"")
+					.Ldstr("\"\"")
+					.Call<string>("Replace", typeof(string), typeof(string))
+					.Br_S(out Label appendQuotedString)
+				.Label(doesNotContainQuote)
+				.Dup()
+				.Ldarg_2()
+				.Callvirt<string>("Contains", typeof(char))
+				.Brfalse_S(out Label doesNotContainDelimiter)
+					.Label(appendQuotedString)
+					.Ldc_I4_X((int)'"')
+					.Call<StringBuilder>("Append", typeof(char))
+					.Call<StringBuilder>("Append", typeof(string))
+					.Ldc_I4_X((int)'"')
+					.Call<StringBuilder>("Append", typeof(char))
+					.Br_S(out Label endAppend)
+				.Label(doesNotContainDelimiter)
+					.Call<StringBuilder>("Append", typeof(string))
+				.Label(endAppend)
+			.Label(end);
 
 		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
 			.Dup()

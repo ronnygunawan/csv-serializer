@@ -15,7 +15,7 @@ namespace Tests.ConverterTests {
 			NullableDateTimeConverter converter = new NullableDateTimeConverter();
 			DateTime? date = new DateTime(2019, 5, 4, 3, 2, 1);
 			StringBuilder stringBuilder = new StringBuilder();
-			converter.AppendToStringBuilder(stringBuilder, CultureInfo.InvariantCulture, date, null);
+			converter.AppendToStringBuilder(stringBuilder, CultureInfo.InvariantCulture, date, null, ',');
 			string serialized = stringBuilder.ToString();
 			serialized.Should().Be("05/04/2019 03:02:01");
 		}
@@ -25,7 +25,7 @@ namespace Tests.ConverterTests {
 			NullableDateTimeConverter converter = new NullableDateTimeConverter();
 			DateTime? date = null;
 			StringBuilder stringBuilder = new StringBuilder();
-			converter.AppendToStringBuilder(stringBuilder, CultureInfo.InvariantCulture, date, null);
+			converter.AppendToStringBuilder(stringBuilder, CultureInfo.InvariantCulture, date, null, ',');
 			string serialized = stringBuilder.ToString();
 			serialized.Should().Be("");
 		}
@@ -36,7 +36,7 @@ namespace Tests.ConverterTests {
 			DateTime? date = new DateTime(2019, 5, 4, 3, 2, 1);
 			StringBuilder stringBuilder = new StringBuilder();
 			CsvColumnAttribute attribute = new CsvColumnAttribute("Date") { DateFormat = "yyyy/MMM/dd H:mm:ss" };
-			converter.AppendToStringBuilder(stringBuilder, CultureInfo.InvariantCulture, date, attribute);
+			converter.AppendToStringBuilder(stringBuilder, CultureInfo.InvariantCulture, date, attribute, ',');
 			string serialized = stringBuilder.ToString();
 			serialized.Should().Be("2019/May/04 3:02:01");
 		}
@@ -70,7 +70,7 @@ namespace Tests.ConverterTests {
 		public void EmittedSerializerIsValid() {
 			NullableDateTimeConverter converter = new NullableDateTimeConverter();
 			DateTime? date = new DateTime(2019, 5, 4, 3, 2, 1);
-			DynamicMethod serialize = new DynamicMethod("Serialize", typeof(string), new Type[] { typeof(DateTime?), typeof(IFormatProvider) }, typeof(DateTimeConverterTests));
+			DynamicMethod serialize = new DynamicMethod("Serialize", typeof(string), new Type[] { typeof(DateTime?), typeof(IFormatProvider), typeof(char) }, typeof(DateTimeConverterTests));
 			serialize.GetILGenerator()
 				.DeclareLocal<DateTime?>(out LocalBuilder nullableLocal)
 				.DeclareLocal<DateTime>(out LocalBuilder local)
@@ -79,7 +79,7 @@ namespace Tests.ConverterTests {
 				.Emit(gen => converter.EmitAppendToStringBuilder(gen, nullableLocal, local, null))
 				.Callvirt<StringBuilder>("ToString")
 				.Ret();
-			string serialized = (string)serialize.Invoke(null, new object?[] { date, CultureInfo.InvariantCulture })!;
+			string serialized = (string)serialize.Invoke(null, new object?[] { date, CultureInfo.InvariantCulture, ',' })!;
 			serialized.Should().Be("05/04/2019 03:02:01");
 		}
 
@@ -87,7 +87,7 @@ namespace Tests.ConverterTests {
 		public void EmitterSerializerSerializesNullIntoEmptyString() {
 			NullableDateTimeConverter converter = new NullableDateTimeConverter();
 			DateTime? date = null;
-			DynamicMethod serialize = new DynamicMethod("Serialize", typeof(string), new Type[] { typeof(DateTime?), typeof(IFormatProvider) }, typeof(DateTimeConverterTests));
+			DynamicMethod serialize = new DynamicMethod("Serialize", typeof(string), new Type[] { typeof(DateTime?), typeof(IFormatProvider), typeof(char) }, typeof(DateTimeConverterTests));
 			serialize.GetILGenerator()
 				.DeclareLocal<DateTime?>(out LocalBuilder nullableLocal)
 				.DeclareLocal<DateTime>(out LocalBuilder local)
@@ -96,7 +96,7 @@ namespace Tests.ConverterTests {
 				.Emit(gen => converter.EmitAppendToStringBuilder(gen, nullableLocal, local, null))
 				.Callvirt<StringBuilder>("ToString")
 				.Ret();
-			string serialized = (string)serialize.Invoke(null, new object?[] { date, CultureInfo.InvariantCulture })!;
+			string serialized = (string)serialize.Invoke(null, new object?[] { date, CultureInfo.InvariantCulture, ',' })!;
 			serialized.Should().Be("");
 		}
 
@@ -105,7 +105,7 @@ namespace Tests.ConverterTests {
 			NullableDateTimeConverter converter = new NullableDateTimeConverter();
 			DateTime? date = new DateTime(2019, 5, 4, 3, 2, 1);
 			CsvColumnAttribute attribute = new CsvColumnAttribute("Date") { DateFormat = "yyyy/MMM/dd H:mm:ss" };
-			DynamicMethod serialize = new DynamicMethod("Serialize", typeof(string), new Type[] { typeof(DateTime?), typeof(IFormatProvider) }, typeof(DateTimeConverterTests));
+			DynamicMethod serialize = new DynamicMethod("Serialize", typeof(string), new Type[] { typeof(DateTime?), typeof(IFormatProvider), typeof(char) }, typeof(DateTimeConverterTests));
 			serialize.GetILGenerator()
 				.DeclareLocal<DateTime?>(out LocalBuilder nullableLocal)
 				.DeclareLocal<DateTime>(out LocalBuilder local)
@@ -114,7 +114,7 @@ namespace Tests.ConverterTests {
 				.Emit(gen => converter.EmitAppendToStringBuilder(gen, nullableLocal, local, attribute))
 				.Callvirt<StringBuilder>("ToString")
 				.Ret();
-			string serialized = (string)serialize.Invoke(null, new object?[] { date, CultureInfo.InvariantCulture })!;
+			string serialized = (string)serialize.Invoke(null, new object?[] { date, CultureInfo.InvariantCulture, ',' })!;
 			serialized.Should().Be("2019/May/04 3:02:01");
 		}
 

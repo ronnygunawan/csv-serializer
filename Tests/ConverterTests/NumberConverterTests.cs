@@ -45,9 +45,9 @@ namespace Tests.ConverterTests {
 				testValue = (decimal?)(double?)testValue;
 			}
 			object converterObj = Activator.CreateInstance(converterType)!;
-			MethodInfo serialize = converterType.GetMethod("AppendToStringBuilder", new Type[] { typeof(StringBuilder), typeof(IFormatProvider), valueType, typeof(CsvColumnAttribute) })!;
+			MethodInfo serialize = converterType.GetMethod("AppendToStringBuilder", new Type[] { typeof(StringBuilder), typeof(IFormatProvider), valueType, typeof(CsvColumnAttribute), typeof(char) })!;
 			StringBuilder stringBuilder = new StringBuilder();
-			serialize.Invoke(converterObj, new[] { stringBuilder, CultureInfo.InvariantCulture, testValue, null });
+			serialize.Invoke(converterObj, new[] { stringBuilder, CultureInfo.InvariantCulture, testValue, null, ',' });
 			string serialized = stringBuilder.ToString();
 			serialized.Should().Be(expectedResult);
 		}
@@ -125,19 +125,28 @@ namespace Tests.ConverterTests {
 				testValue = (decimal?)(double?)testValue;
 			}
 			IConverterEmitter emitter = (IConverterEmitter)Activator.CreateInstance(emitterType)!;
-			DynamicMethod serialize = new DynamicMethod("Serialize", typeof(string), new Type[] { valueType, typeof(IFormatProvider) }, typeof(NumberConverterTests));
+			DynamicMethod serialize = new DynamicMethod("Serialize", typeof(string), new Type[] { valueType, typeof(IFormatProvider), typeof(char) }, typeof(NumberConverterTests));
 			LocalBuilder? local = null;
+			LocalBuilder? secondaryLocal = null;
 			serialize.GetILGenerator()
-				.Emit(gen => Nullable.GetUnderlyingType(valueType) switch {
-					{ } => gen.DeclareLocal(valueType, out local),
-					_ => gen
+				.Emit(gen => {
+					if (valueType == typeof(float) || valueType == typeof(double) || valueType == typeof(decimal)) {
+						gen.DeclareLocal(valueType, out local);
+					} else if (Nullable.GetUnderlyingType(valueType) is Type underlyingType) {
+						if (underlyingType == typeof(float) || underlyingType == typeof(double) || underlyingType == typeof(decimal)) {
+							gen.DeclareLocal(typeof(Nullable<>).MakeGenericType(underlyingType), out local);
+							gen.DeclareLocal(valueType, out secondaryLocal);
+						} else {
+							gen.DeclareLocal(typeof(Nullable<>).MakeGenericType(underlyingType), out local);
+						}
+					}
 				})
 				.Newobj<StringBuilder>()
 				.Ldarg_0()
-				.Emit(gen => emitter.EmitAppendToStringBuilder(gen, local, null, null))
+				.Emit(gen => emitter.EmitAppendToStringBuilder(gen, local, secondaryLocal, null))
 				.Callvirt<StringBuilder>("ToString")
 				.Ret();
-			string serialized = (string)serialize.Invoke(null, new[] { testValue, CultureInfo.InvariantCulture })!;
+			string serialized = (string)serialize.Invoke(null, new[] { testValue, CultureInfo.InvariantCulture, ',' })!;
 			serialized.Should().Be(expectedResult);
 		}
 

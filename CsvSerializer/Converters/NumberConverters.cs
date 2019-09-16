@@ -11,7 +11,7 @@ namespace Csv.Converters {
 	 | DO NOT MODIFY THIS CLASS!!!         |
 	 ***************************************/
 	public class ByteConverter : INativeConverter<Byte> {
-		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider formatProvider, Byte value, CsvColumnAttribute? attribute) {
+		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider provider, Byte value, CsvColumnAttribute? attribute, char delimiter) {
 			stringBuilder.Append(value);
 		}
 
@@ -35,7 +35,7 @@ namespace Csv.Converters {
 	 | DO NOT MODIFY THIS CLASS!!!         |
 	 ***************************************/
 	public class NullableByteConverter : INativeConverter<Byte?> {
-		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider formatProvider, Byte? value, CsvColumnAttribute? attribute) {
+		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider provider, Byte? value, CsvColumnAttribute? attribute, char delimiter) {
 			if (value.HasValue) {
 				stringBuilder.Append(value.Value);
 			}
@@ -49,7 +49,7 @@ namespace Csv.Converters {
 			}
 		}
 
-		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
+		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? secondaryLocal, CsvColumnAttribute? attribute) => gen
 			.Stloc(local!)
 			.Ldloca(local!)
 			.CallvirtPropertyGet<Byte?>("HasValue")
@@ -84,7 +84,7 @@ namespace Csv.Converters {
 	 | DO NOT MODIFY THIS CLASS!!!         |
 	 ***************************************/
 	public class SByteConverter : INativeConverter<SByte> {
-		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider formatProvider, SByte value, CsvColumnAttribute? attribute) {
+		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider provider, SByte value, CsvColumnAttribute? attribute, char delimiter) {
 			stringBuilder.Append(value);
 		}
 
@@ -108,7 +108,7 @@ namespace Csv.Converters {
 	 | DO NOT MODIFY THIS CLASS!!!         |
 	 ***************************************/
 	public class NullableSByteConverter : INativeConverter<SByte?> {
-		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider formatProvider, SByte? value, CsvColumnAttribute? attribute) {
+		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider provider, SByte? value, CsvColumnAttribute? attribute, char delimiter) {
 			if (value.HasValue) {
 				stringBuilder.Append(value.Value);
 			}
@@ -122,7 +122,7 @@ namespace Csv.Converters {
 			}
 		}
 
-		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
+		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? secondaryLocal, CsvColumnAttribute? attribute) => gen
 			.Stloc(local!)
 			.Ldloca(local!)
 			.CallvirtPropertyGet<SByte?>("HasValue")
@@ -157,7 +157,7 @@ namespace Csv.Converters {
 	 | DO NOT MODIFY THIS CLASS!!!         |
 	 ***************************************/
 	public class Int16Converter : INativeConverter<Int16> {
-		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider formatProvider, Int16 value, CsvColumnAttribute? attribute) {
+		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider provider, Int16 value, CsvColumnAttribute? attribute, char delimiter) {
 			stringBuilder.Append(value);
 		}
 
@@ -181,7 +181,7 @@ namespace Csv.Converters {
 	 | DO NOT MODIFY THIS CLASS!!!         |
 	 ***************************************/
 	public class NullableInt16Converter : INativeConverter<Int16?> {
-		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider formatProvider, Int16? value, CsvColumnAttribute? attribute) {
+		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider provider, Int16? value, CsvColumnAttribute? attribute, char delimiter) {
 			if (value.HasValue) {
 				stringBuilder.Append(value.Value);
 			}
@@ -195,7 +195,7 @@ namespace Csv.Converters {
 			}
 		}
 
-		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
+		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? secondaryLocal, CsvColumnAttribute? attribute) => gen
 			.Stloc(local!)
 			.Ldloca(local!)
 			.CallvirtPropertyGet<Int16?>("HasValue")
@@ -230,7 +230,7 @@ namespace Csv.Converters {
 	 | DO NOT MODIFY THIS CLASS!!!         |
 	 ***************************************/
 	public class UInt16Converter : INativeConverter<UInt16> {
-		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider formatProvider, UInt16 value, CsvColumnAttribute? attribute) {
+		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider provider, UInt16 value, CsvColumnAttribute? attribute, char delimiter) {
 			stringBuilder.Append(value);
 		}
 
@@ -254,7 +254,7 @@ namespace Csv.Converters {
 	 | DO NOT MODIFY THIS CLASS!!!         |
 	 ***************************************/
 	public class NullableUInt16Converter : INativeConverter<UInt16?> {
-		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider formatProvider, UInt16? value, CsvColumnAttribute? attribute) {
+		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider provider, UInt16? value, CsvColumnAttribute? attribute, char delimiter) {
 			if (value.HasValue) {
 				stringBuilder.Append(value.Value);
 			}
@@ -268,7 +268,7 @@ namespace Csv.Converters {
 			}
 		}
 
-		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
+		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? secondaryLocal, CsvColumnAttribute? attribute) => gen
 			.Stloc(local!)
 			.Ldloca(local!)
 			.CallvirtPropertyGet<UInt16?>("HasValue")
@@ -303,7 +303,7 @@ namespace Csv.Converters {
 	 | DO NOT MODIFY THIS CLASS!!!         |
 	 ***************************************/
 	public class Int32Converter : INativeConverter<Int32> {
-		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider formatProvider, Int32 value, CsvColumnAttribute? attribute) {
+		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider provider, Int32 value, CsvColumnAttribute? attribute, char delimiter) {
 			stringBuilder.Append(value);
 		}
 
@@ -327,7 +327,7 @@ namespace Csv.Converters {
 	 | DO NOT MODIFY THIS CLASS!!!         |
 	 ***************************************/
 	public class NullableInt32Converter : INativeConverter<Int32?> {
-		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider formatProvider, Int32? value, CsvColumnAttribute? attribute) {
+		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider provider, Int32? value, CsvColumnAttribute? attribute, char delimiter) {
 			if (value.HasValue) {
 				stringBuilder.Append(value.Value);
 			}
@@ -341,7 +341,7 @@ namespace Csv.Converters {
 			}
 		}
 
-		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
+		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? secondaryLocal, CsvColumnAttribute? attribute) => gen
 			.Stloc(local!)
 			.Ldloca(local!)
 			.CallvirtPropertyGet<Int32?>("HasValue")
@@ -376,7 +376,7 @@ namespace Csv.Converters {
 	 | DO NOT MODIFY THIS CLASS!!!         |
 	 ***************************************/
 	public class UInt32Converter : INativeConverter<UInt32> {
-		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider formatProvider, UInt32 value, CsvColumnAttribute? attribute) {
+		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider provider, UInt32 value, CsvColumnAttribute? attribute, char delimiter) {
 			stringBuilder.Append(value);
 		}
 
@@ -400,7 +400,7 @@ namespace Csv.Converters {
 	 | DO NOT MODIFY THIS CLASS!!!         |
 	 ***************************************/
 	public class NullableUInt32Converter : INativeConverter<UInt32?> {
-		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider formatProvider, UInt32? value, CsvColumnAttribute? attribute) {
+		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider provider, UInt32? value, CsvColumnAttribute? attribute, char delimiter) {
 			if (value.HasValue) {
 				stringBuilder.Append(value.Value);
 			}
@@ -414,7 +414,7 @@ namespace Csv.Converters {
 			}
 		}
 
-		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
+		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? secondaryLocal, CsvColumnAttribute? attribute) => gen
 			.Stloc(local!)
 			.Ldloca(local!)
 			.CallvirtPropertyGet<UInt32?>("HasValue")
@@ -449,7 +449,7 @@ namespace Csv.Converters {
 	 | DO NOT MODIFY THIS CLASS!!!         |
 	 ***************************************/
 	public class Int64Converter : INativeConverter<Int64> {
-		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider formatProvider, Int64 value, CsvColumnAttribute? attribute) {
+		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider provider, Int64 value, CsvColumnAttribute? attribute, char delimiter) {
 			stringBuilder.Append(value);
 		}
 
@@ -473,7 +473,7 @@ namespace Csv.Converters {
 	 | DO NOT MODIFY THIS CLASS!!!         |
 	 ***************************************/
 	public class NullableInt64Converter : INativeConverter<Int64?> {
-		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider formatProvider, Int64? value, CsvColumnAttribute? attribute) {
+		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider provider, Int64? value, CsvColumnAttribute? attribute, char delimiter) {
 			if (value.HasValue) {
 				stringBuilder.Append(value.Value);
 			}
@@ -487,7 +487,7 @@ namespace Csv.Converters {
 			}
 		}
 
-		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
+		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? secondaryLocal, CsvColumnAttribute? attribute) => gen
 			.Stloc(local!)
 			.Ldloca(local!)
 			.CallvirtPropertyGet<Int64?>("HasValue")
@@ -522,7 +522,7 @@ namespace Csv.Converters {
 	 | DO NOT MODIFY THIS CLASS!!!         |
 	 ***************************************/
 	public class UInt64Converter : INativeConverter<UInt64> {
-		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider formatProvider, UInt64 value, CsvColumnAttribute? attribute) {
+		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider provider, UInt64 value, CsvColumnAttribute? attribute, char delimiter) {
 			stringBuilder.Append(value);
 		}
 
@@ -546,7 +546,7 @@ namespace Csv.Converters {
 	 | DO NOT MODIFY THIS CLASS!!!         |
 	 ***************************************/
 	public class NullableUInt64Converter : INativeConverter<UInt64?> {
-		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider formatProvider, UInt64? value, CsvColumnAttribute? attribute) {
+		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider provider, UInt64? value, CsvColumnAttribute? attribute, char delimiter) {
 			if (value.HasValue) {
 				stringBuilder.Append(value.Value);
 			}
@@ -560,7 +560,7 @@ namespace Csv.Converters {
 			}
 		}
 
-		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
+		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? secondaryLocal, CsvColumnAttribute? attribute) => gen
 			.Stloc(local!)
 			.Ldloca(local!)
 			.CallvirtPropertyGet<UInt64?>("HasValue")
@@ -595,8 +595,13 @@ namespace Csv.Converters {
 	 | DO NOT MODIFY THIS CLASS!!!         |
 	 ***************************************/
 	public class SingleConverter : INativeConverter<Single> {
-		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider formatProvider, Single value, CsvColumnAttribute? attribute) {
-			stringBuilder.Append(value);
+		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider provider, Single value, CsvColumnAttribute? attribute, char delimiter) {
+			string text = value.ToString(provider);
+			if (text.Contains(delimiter)) {
+				stringBuilder.Append('"').Append(text).Append('"');
+			} else {
+				stringBuilder.Append(text);
+			}
 		}
 
 		public Single Deserialize(ReadOnlyMemory<char> text, IFormatProvider provider, CsvColumnAttribute? attribute) {
@@ -604,7 +609,23 @@ namespace Csv.Converters {
 		}
 
 		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
-			.Call<StringBuilder>("Append", typeof(Single));
+			.Stloc(local!)
+			.Ldloca(local!)
+			.Ldarg_1()
+			.Call<Single>("ToString", typeof(IFormatProvider))
+			.Dup()
+			.Ldarg_2()
+			.Callvirt<string>("Contains", typeof(char))
+			.Brfalse_S(out Label @else)
+				.Ldc_I4_X((int)'"')
+				.Call<StringBuilder>("Append", typeof(char))
+				.Call<StringBuilder>("Append", typeof(string))
+				.Ldc_I4_X((int)'"')
+				.Call<StringBuilder>("Append", typeof(char))
+				.Br_S(out Label endif)
+			.Label(@else)
+				.Call<StringBuilder>("Append", typeof(string))
+			.Label(endif);
 
 		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
 			.CallPropertyGet<ReadOnlyMemory<char>>("Span")
@@ -619,9 +640,14 @@ namespace Csv.Converters {
 	 | DO NOT MODIFY THIS CLASS!!!         |
 	 ***************************************/
 	public class NullableSingleConverter : INativeConverter<Single?> {
-		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider formatProvider, Single? value, CsvColumnAttribute? attribute) {
+		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider provider, Single? value, CsvColumnAttribute? attribute, char delimiter) {
 			if (value.HasValue) {
-				stringBuilder.Append(value.Value);
+				string text = value.Value.ToString(provider);
+				if (text.Contains(delimiter)) {
+					stringBuilder.Append('"').Append(text).Append('"');
+				} else {
+					stringBuilder.Append(text);
+				}
 			}
 		}
 
@@ -633,14 +659,29 @@ namespace Csv.Converters {
 			}
 		}
 
-		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
+		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? secondaryLocal, CsvColumnAttribute? attribute) => gen
 			.Stloc(local!)
 			.Ldloca(local!)
 			.CallvirtPropertyGet<Single?>("HasValue")
 			.Brfalse_S(out Label @endif)
 				.Ldloca(local!)
 				.CallPropertyGet<Single?>("Value")
-				.Callvirt<StringBuilder>("Append", typeof(Single))
+				.Stloc(secondaryLocal!)
+				.Ldloca(secondaryLocal!)
+				.Ldarg_1()
+				.Call<Single>("ToString", typeof(IFormatProvider))
+				.Dup()
+				.Ldarg_2()
+				.Callvirt<string>("Contains", typeof(char))
+				.Brfalse_S(out Label @else)
+					.Ldc_I4_X((int)'"')
+					.Call<StringBuilder>("Append", typeof(char))
+					.Call<StringBuilder>("Append", typeof(string))
+					.Ldc_I4_X((int)'"')
+					.Call<StringBuilder>("Append", typeof(char))
+					.Br_S(@endif)
+				.Label(@else)
+					.Call<StringBuilder>("Append", typeof(string))
 			.Label(@endif);
 
 		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
@@ -668,8 +709,13 @@ namespace Csv.Converters {
 	 | DO NOT MODIFY THIS CLASS!!!         |
 	 ***************************************/
 	public class DoubleConverter : INativeConverter<Double> {
-		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider formatProvider, Double value, CsvColumnAttribute? attribute) {
-			stringBuilder.Append(value);
+		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider provider, Double value, CsvColumnAttribute? attribute, char delimiter) {
+			string text = value.ToString(provider);
+			if (text.Contains(delimiter)) {
+				stringBuilder.Append('"').Append(text).Append('"');
+			} else {
+				stringBuilder.Append(text);
+			}
 		}
 
 		public Double Deserialize(ReadOnlyMemory<char> text, IFormatProvider provider, CsvColumnAttribute? attribute) {
@@ -677,7 +723,23 @@ namespace Csv.Converters {
 		}
 
 		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
-			.Call<StringBuilder>("Append", typeof(Double));
+			.Stloc(local!)
+			.Ldloca(local!)
+			.Ldarg_1()
+			.Call<Double>("ToString", typeof(IFormatProvider))
+			.Dup()
+			.Ldarg_2()
+			.Callvirt<string>("Contains", typeof(char))
+			.Brfalse_S(out Label @else)
+				.Ldc_I4_X((int)'"')
+				.Call<StringBuilder>("Append", typeof(char))
+				.Call<StringBuilder>("Append", typeof(string))
+				.Ldc_I4_X((int)'"')
+				.Call<StringBuilder>("Append", typeof(char))
+				.Br_S(out Label endif)
+			.Label(@else)
+				.Call<StringBuilder>("Append", typeof(string))
+			.Label(endif);
 
 		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
 			.CallPropertyGet<ReadOnlyMemory<char>>("Span")
@@ -692,9 +754,14 @@ namespace Csv.Converters {
 	 | DO NOT MODIFY THIS CLASS!!!         |
 	 ***************************************/
 	public class NullableDoubleConverter : INativeConverter<Double?> {
-		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider formatProvider, Double? value, CsvColumnAttribute? attribute) {
+		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider provider, Double? value, CsvColumnAttribute? attribute, char delimiter) {
 			if (value.HasValue) {
-				stringBuilder.Append(value.Value);
+				string text = value.Value.ToString(provider);
+				if (text.Contains(delimiter)) {
+					stringBuilder.Append('"').Append(text).Append('"');
+				} else {
+					stringBuilder.Append(text);
+				}
 			}
 		}
 
@@ -706,14 +773,29 @@ namespace Csv.Converters {
 			}
 		}
 
-		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
+		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? secondaryLocal, CsvColumnAttribute? attribute) => gen
 			.Stloc(local!)
 			.Ldloca(local!)
 			.CallvirtPropertyGet<Double?>("HasValue")
 			.Brfalse_S(out Label @endif)
 				.Ldloca(local!)
 				.CallPropertyGet<Double?>("Value")
-				.Callvirt<StringBuilder>("Append", typeof(Double))
+				.Stloc(secondaryLocal!)
+				.Ldloca(secondaryLocal!)
+				.Ldarg_1()
+				.Call<Double>("ToString", typeof(IFormatProvider))
+				.Dup()
+				.Ldarg_2()
+				.Callvirt<string>("Contains", typeof(char))
+				.Brfalse_S(out Label @else)
+					.Ldc_I4_X((int)'"')
+					.Call<StringBuilder>("Append", typeof(char))
+					.Call<StringBuilder>("Append", typeof(string))
+					.Ldc_I4_X((int)'"')
+					.Call<StringBuilder>("Append", typeof(char))
+					.Br_S(@endif)
+				.Label(@else)
+					.Call<StringBuilder>("Append", typeof(string))
 			.Label(@endif);
 
 		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
@@ -741,8 +823,13 @@ namespace Csv.Converters {
 	 | DO NOT MODIFY THIS CLASS!!!         |
 	 ***************************************/
 	public class DecimalConverter : INativeConverter<Decimal> {
-		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider formatProvider, Decimal value, CsvColumnAttribute? attribute) {
-			stringBuilder.Append(value);
+		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider provider, Decimal value, CsvColumnAttribute? attribute, char delimiter) {
+			string text = value.ToString(provider);
+			if (text.Contains(delimiter)) {
+				stringBuilder.Append('"').Append(text).Append('"');
+			} else {
+				stringBuilder.Append(text);
+			}
 		}
 
 		public Decimal Deserialize(ReadOnlyMemory<char> text, IFormatProvider provider, CsvColumnAttribute? attribute) {
@@ -750,7 +837,23 @@ namespace Csv.Converters {
 		}
 
 		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
-			.Call<StringBuilder>("Append", typeof(Decimal));
+			.Stloc(local!)
+			.Ldloca(local!)
+			.Ldarg_1()
+			.Call<Decimal>("ToString", typeof(IFormatProvider))
+			.Dup()
+			.Ldarg_2()
+			.Callvirt<string>("Contains", typeof(char))
+			.Brfalse_S(out Label @else)
+				.Ldc_I4_X((int)'"')
+				.Call<StringBuilder>("Append", typeof(char))
+				.Call<StringBuilder>("Append", typeof(string))
+				.Ldc_I4_X((int)'"')
+				.Call<StringBuilder>("Append", typeof(char))
+				.Br_S(out Label endif)
+			.Label(@else)
+				.Call<StringBuilder>("Append", typeof(string))
+			.Label(endif);
 
 		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
 			.CallPropertyGet<ReadOnlyMemory<char>>("Span")
@@ -765,9 +868,14 @@ namespace Csv.Converters {
 	 | DO NOT MODIFY THIS CLASS!!!         |
 	 ***************************************/
 	public class NullableDecimalConverter : INativeConverter<Decimal?> {
-		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider formatProvider, Decimal? value, CsvColumnAttribute? attribute) {
+		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider provider, Decimal? value, CsvColumnAttribute? attribute, char delimiter) {
 			if (value.HasValue) {
-				stringBuilder.Append(value.Value);
+				string text = value.Value.ToString(provider);
+				if (text.Contains(delimiter)) {
+					stringBuilder.Append('"').Append(text).Append('"');
+				} else {
+					stringBuilder.Append(text);
+				}
 			}
 		}
 
@@ -779,14 +887,29 @@ namespace Csv.Converters {
 			}
 		}
 
-		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
+		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? secondaryLocal, CsvColumnAttribute? attribute) => gen
 			.Stloc(local!)
 			.Ldloca(local!)
 			.CallvirtPropertyGet<Decimal?>("HasValue")
 			.Brfalse_S(out Label @endif)
 				.Ldloca(local!)
 				.CallPropertyGet<Decimal?>("Value")
-				.Callvirt<StringBuilder>("Append", typeof(Decimal))
+				.Stloc(secondaryLocal!)
+				.Ldloca(secondaryLocal!)
+				.Ldarg_1()
+				.Call<Decimal>("ToString", typeof(IFormatProvider))
+				.Dup()
+				.Ldarg_2()
+				.Callvirt<string>("Contains", typeof(char))
+				.Brfalse_S(out Label @else)
+					.Ldc_I4_X((int)'"')
+					.Call<StringBuilder>("Append", typeof(char))
+					.Call<StringBuilder>("Append", typeof(string))
+					.Ldc_I4_X((int)'"')
+					.Call<StringBuilder>("Append", typeof(char))
+					.Br_S(@endif)
+				.Label(@else)
+					.Call<StringBuilder>("Append", typeof(string))
 			.Label(@endif);
 
 		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen

@@ -33,8 +33,17 @@ namespace Csv.Converters {
 	 | DO NOT MODIFY THIS CLASS!!!         |
 	 ***************************************/
 	public class <#= type #>Converter : INativeConverter<<#= type #>> {
-		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider formatProvider, <#= type #> value, CsvColumnAttribute? attribute) {
+		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider provider, <#= type #> value, CsvColumnAttribute? attribute, char delimiter) {
+<# if (type == "Single" || type == "Double" || type == "Decimal") { #>
+			string text = value.ToString(provider);
+			if (text.Contains(delimiter)) {
+				stringBuilder.Append('"').Append(text).Append('"');
+			} else {
+				stringBuilder.Append(text);
+			}
+<# } else { #>
 			stringBuilder.Append(value);
+<# } #>
 		}
 
 		public <#= type #> Deserialize(ReadOnlyMemory<char> text, IFormatProvider provider, CsvColumnAttribute? attribute) {
@@ -42,7 +51,27 @@ namespace Csv.Converters {
 		}
 
 		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
+<# if (type == "Single" || type == "Double" || type == "Decimal") { #>
+			.Stloc(local!)
+			.Ldloca(local!)
+			.Ldarg_1()
+			.Call<<#= type #>>("ToString", typeof(IFormatProvider))
+			.Dup()
+			.Ldarg_2()
+			.Callvirt<string>("Contains", typeof(char))
+			.Brfalse_S(out Label @else)
+				.Ldc_I4_X((int)'"')
+				.Call<StringBuilder>("Append", typeof(char))
+				.Call<StringBuilder>("Append", typeof(string))
+				.Ldc_I4_X((int)'"')
+				.Call<StringBuilder>("Append", typeof(char))
+				.Br_S(out Label endif)
+			.Label(@else)
+				.Call<StringBuilder>("Append", typeof(string))
+			.Label(endif);
+<# } else { #>
 			.Call<StringBuilder>("Append", typeof(<#= type #>));
+<# } #>
 
 		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
 			.CallPropertyGet<ReadOnlyMemory<char>>("Span")
@@ -63,9 +92,18 @@ namespace Csv.Converters {
 	 | DO NOT MODIFY THIS CLASS!!!         |
 	 ***************************************/
 	public class Nullable<#= type #>Converter : INativeConverter<<#= type #>?> {
-		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider formatProvider, <#= type #>? value, CsvColumnAttribute? attribute) {
+		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider provider, <#= type #>? value, CsvColumnAttribute? attribute, char delimiter) {
 			if (value.HasValue) {
+<# if (type == "Single" || type == "Double" || type == "Decimal") { #>
+				string text = value.Value.ToString(provider);
+				if (text.Contains(delimiter)) {
+					stringBuilder.Append('"').Append(text).Append('"');
+				} else {
+					stringBuilder.Append(text);
+				}
+<# } else { #>
 				stringBuilder.Append(value.Value);
+<# } #>
 			}
 		}
 
@@ -77,14 +115,35 @@ namespace Csv.Converters {
 			}
 		}
 
-		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
+		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? secondaryLocal, CsvColumnAttribute? attribute) => gen
 			.Stloc(local!)
 			.Ldloca(local!)
 			.CallvirtPropertyGet<<#= type #>?>("HasValue")
 			.Brfalse_S(out Label @endif)
+<# if (type == "Single" || type == "Double" || type == "Decimal") { #>
+				.Ldloca(local!)
+				.CallPropertyGet<<#= type #>?>("Value")
+				.Stloc(secondaryLocal!)
+				.Ldloca(secondaryLocal!)
+				.Ldarg_1()
+				.Call<<#= type #>>("ToString", typeof(IFormatProvider))
+				.Dup()
+				.Ldarg_2()
+				.Callvirt<string>("Contains", typeof(char))
+				.Brfalse_S(out Label @else)
+					.Ldc_I4_X((int)'"')
+					.Call<StringBuilder>("Append", typeof(char))
+					.Call<StringBuilder>("Append", typeof(string))
+					.Ldc_I4_X((int)'"')
+					.Call<StringBuilder>("Append", typeof(char))
+					.Br_S(@endif)
+				.Label(@else)
+					.Call<StringBuilder>("Append", typeof(string))
+<# } else { #>
 				.Ldloca(local!)
 				.CallPropertyGet<<#= type #>?>("Value")
 				.Callvirt<StringBuilder>("Append", typeof(<#= type #>))
+<# } #>
 			.Label(@endif);
 
 		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
