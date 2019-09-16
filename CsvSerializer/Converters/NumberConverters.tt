@@ -1,0 +1,106 @@
+﻿<#@ template debug="false" hostspecific="false" language="C#" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".cs" #>
+<#
+	string[] types = {
+		"Byte",
+		"SByte",
+		"Int16",
+		"UInt16",
+		"Int32",
+		"UInt32",
+		"Int64",
+		"UInt64",
+		"Single",
+		"Double",
+		"Decimal"
+	};
+#>
+using Missil;
+using System;
+using System.Globalization;
+using System.Reflection.Emit;
+using System.Text;
+
+namespace Csv.Converters {
+<# foreach(string type in types) { #>
+	public class <#= type #>Converter : INativeConverter<<#= type #>> {
+		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider formatProvider, <#= type #> value, CsvColumnAttribute? attribute) {
+			stringBuilder.Append(value);
+		}
+
+		public <#= type #> Deserialize(ReadOnlyMemory<char> text, IFormatProvider provider, CsvColumnAttribute? attribute) {
+			return <#= type #>.Parse(text.Span, provider: provider);
+		}
+
+		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, CsvColumnAttribute? attribute) => gen
+			.Call<StringBuilder>("Append", typeof(<#= type #>));
+
+		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, CsvColumnAttribute? attribute) => gen
+			.Call(typeof(ReadOnlyMemory<char>).GetProperty("Span")!.GetGetMethod()!)
+<# if (type == "Single" || type == "Double") { #>
+			.Ldc_I4_X((int)NumberStyles.Float)
+<# } else if (type == "Decimal") { #>
+			.Ldc_I4_X((int)NumberStyles.Currency)
+<# } else { #>
+			.Ldc_I4_X((int)NumberStyles.Integer)
+<# } #>
+			.Ldarg_1()
+			.Call<<#= type #>>("Parse", typeof(ReadOnlySpan<char>), typeof(NumberStyles), typeof(IFormatProvider));
+	}
+
+	public class Nullable<#= type #>Converter : INativeConverter<<#= type #>?> {
+		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider formatProvider, <#= type #>? value, CsvColumnAttribute? attribute) {
+			if (value.HasValue) {
+				stringBuilder.Append(value.Value);
+			}
+		}
+
+		public <#= type #>? Deserialize(ReadOnlyMemory<char> text, IFormatProvider provider, CsvColumnAttribute? attribute) {
+			if (text.Length == 0) {
+				return null;
+			} else {
+				return <#= type #>.Parse(text.Span, provider: provider);
+			}
+		}
+
+		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, CsvColumnAttribute? attribute) => gen
+			.Stloc(local!)
+			.Ldloca(local!)
+			.Callvirt(typeof(<#= type #>?).GetProperty("HasValue")!.GetGetMethod()!)
+			.Brfalse_S(out Label @endif)
+				.Ldloca(local!)
+				.Call(typeof(<#= type #>?).GetProperty("Value")!.GetGetMethod()!)
+				.Callvirt<StringBuilder>("Append", typeof(<#= type #>))
+			.Label(@endif);
+
+		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, CsvColumnAttribute? attribute) => gen
+			.Dup()
+			.Call(typeof(ReadOnlyMemory<char>).GetProperty("Length")!.GetGetMethod()!)
+			.Brfalse_S(out Label @else)
+				.Call(typeof(ReadOnlyMemory<char>).GetProperty("Span")!.GetGetMethod()!)
+<# if (type == "Single" || type == "Double") { #>
+				.Ldc_I4_X((int)NumberStyles.Float)
+<# } else if (type == "Decimal") { #>
+				.Ldc_I4_X((int)NumberStyles.Currency)
+<# } else { #>
+				.Ldc_I4_X((int)NumberStyles.Integer)
+<# } #>
+				.Ldarg_1()
+				.Call<<#= type #>>("Parse", typeof(ReadOnlySpan<char>), typeof(NumberStyles), typeof(IFormatProvider))
+				.Newobj<<#= type #>?>(typeof(<#= type #>))
+				.Stloc(local!)
+				.Br_S(out Label @endif)
+			.Label(@else)
+				.Pop()
+				.Ldloca(local!)
+				.Initobj<<#= type #>?>()
+			.Label(@endif)
+			.Ldloc(local!);
+	}
+
+<# } #>
+}
