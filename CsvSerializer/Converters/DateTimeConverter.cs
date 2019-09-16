@@ -22,23 +22,36 @@ namespace Csv.Converters {
 			}
 		}
 
-		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, CsvColumnAttribute? attribute) => gen
+		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
+			.Stloc(local!)
 			.Emit(gen => attribute?.DateFormat switch {
 				string dateFormat => gen
-					.Stloc(local!)
 					.Ldloca(local!)
 					.Ldstr(dateFormat)
 					.Ldarg_1()
 					.Call<DateTime>("ToString", typeof(string), typeof(IFormatProvider))
 					.Call<StringBuilder>("Append", typeof(string)),
 				_ => gen
-					.Stloc(local!)
 					.Ldloca(local!)
 					.Ldarg_1()
 					.Call<DateTime>("ToString", typeof(IFormatProvider))
 					.Call<StringBuilder>("Append", typeof(string))
 			});
 
-		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, CsvColumnAttribute? attribute) => throw new NotImplementedException();
+		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
+			.Emit(gen => attribute?.DateFormat switch {
+				string dateFormat => gen
+					.CallPropertyGet<ReadOnlyMemory<char>>("Span")
+					.Ldstr(dateFormat)
+					.Call(typeof(MemoryExtensions).GetMethod("AsSpan", new Type[] { typeof(string) })!)
+					.Ldarg_1()
+					.Ldc_I4_X((int)DateTimeStyles.AssumeLocal)
+					.Call<DateTime>("ParseExact", typeof(ReadOnlySpan<char>), typeof(ReadOnlySpan<char>), typeof(IFormatProvider), typeof(DateTimeStyles)),
+				_ => gen
+					.CallPropertyGet<ReadOnlyMemory<char>>("Span")
+					.Ldarg_1()
+					.Ldc_I4_X((int)DateTimeStyles.AssumeLocal)
+					.Call<DateTime>("Parse", typeof(ReadOnlySpan<char>), typeof(IFormatProvider), typeof(DateTimeStyles))
+			});
 	}
 }

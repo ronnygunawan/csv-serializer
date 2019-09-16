@@ -9,8 +9,8 @@ using System.Reflection.Emit;
 using System.Text;
 using Xunit;
 
-namespace Tests {
-	public class ConverterTests {
+namespace Tests.ConverterTests {
+	public class NumberConverterTests {
 		[Theory]
 		[InlineData(typeof(ByteConverter), typeof(byte), (byte)0x88, "136")]
 		[InlineData(typeof(ByteConverter), typeof(byte), (byte)0xff, "255")]
@@ -125,7 +125,7 @@ namespace Tests {
 				testValue = (decimal?)(double?)testValue;
 			}
 			IConverterEmitter emitter = (IConverterEmitter)Activator.CreateInstance(emitterType)!;
-			DynamicMethod serialize = new DynamicMethod("Serialize", typeof(string), new Type[] { valueType, typeof(IFormatProvider), typeof(CsvColumnAttribute) }, typeof(ConverterTests));
+			DynamicMethod serialize = new DynamicMethod("Serialize", typeof(string), new Type[] { valueType, typeof(IFormatProvider) }, typeof(NumberConverterTests));
 			LocalBuilder? local = null;
 			serialize.GetILGenerator()
 				.Emit(gen => Nullable.GetUnderlyingType(valueType) switch {
@@ -134,10 +134,10 @@ namespace Tests {
 				})
 				.Newobj<StringBuilder>()
 				.Ldarg_0()
-				.Emit(gen => emitter.EmitAppendToStringBuilder(gen, local, null))
+				.Emit(gen => emitter.EmitAppendToStringBuilder(gen, local, null, null))
 				.Callvirt<StringBuilder>("ToString")
 				.Ret();
-			string serialized = (string)serialize.Invoke(null, new[] { testValue, CultureInfo.InvariantCulture, null })!;
+			string serialized = (string)serialize.Invoke(null, new[] { testValue, CultureInfo.InvariantCulture })!;
 			serialized.Should().Be(expectedResult);
 		}
 
@@ -175,7 +175,7 @@ namespace Tests {
 				expectedResult = (decimal?)(double?)expectedResult;
 			}
 			IConverterEmitter emitter = (IConverterEmitter)Activator.CreateInstance(emitterType)!;
-			DynamicMethod deserialize = new DynamicMethod("Deserialize", valueType, new Type[] { typeof(ReadOnlyMemory<char>), typeof(IFormatProvider), typeof(CsvColumnAttribute) }, typeof(ConverterTests));
+			DynamicMethod deserialize = new DynamicMethod("Deserialize", valueType, new Type[] { typeof(ReadOnlyMemory<char>), typeof(IFormatProvider) }, typeof(NumberConverterTests));
 			LocalBuilder? local = null;
 			deserialize.GetILGenerator()
 				.Emit(gen => Nullable.GetUnderlyingType(valueType) switch {
@@ -183,9 +183,9 @@ namespace Tests {
 					_ => gen
 				})
 				.Ldarga_S(0)
-				.Emit(gen => emitter.EmitDeserialize(gen, local, null))
+				.Emit(gen => emitter.EmitDeserialize(gen, local, null, null))
 				.Ret();
-			object deserialized = deserialize.Invoke(this, new object?[] { testLiteral.AsMemory(), CultureInfo.InvariantCulture, null })!;
+			object deserialized = deserialize.Invoke(this, new object?[] { testLiteral.AsMemory(), CultureInfo.InvariantCulture })!;
 			deserialized.Should().Be(expectedResult);
 		}
 	}

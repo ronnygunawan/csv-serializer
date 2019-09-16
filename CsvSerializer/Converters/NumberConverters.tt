@@ -27,6 +27,11 @@ using System.Text;
 
 namespace Csv.Converters {
 <# foreach(string type in types) { #>
+	/***************************************
+	 | THIS CLASS WAS AUTO GENERATED USING |
+	 | NumberConverters.tt TEXT TEMPLATE.  |
+	 | DO NOT MODIFY THIS CLASS!!!         |
+	 ***************************************/
 	public class <#= type #>Converter : INativeConverter<<#= type #>> {
 		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider formatProvider, <#= type #> value, CsvColumnAttribute? attribute) {
 			stringBuilder.Append(value);
@@ -36,11 +41,11 @@ namespace Csv.Converters {
 			return <#= type #>.Parse(text.Span, provider: provider);
 		}
 
-		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, CsvColumnAttribute? attribute) => gen
+		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
 			.Call<StringBuilder>("Append", typeof(<#= type #>));
 
-		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, CsvColumnAttribute? attribute) => gen
-			.Call(typeof(ReadOnlyMemory<char>).GetProperty("Span")!.GetGetMethod()!)
+		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
+			.CallPropertyGet<ReadOnlyMemory<char>>("Span")
 <# if (type == "Single" || type == "Double") { #>
 			.Ldc_I4_X((int)NumberStyles.Float)
 <# } else if (type == "Decimal") { #>
@@ -52,6 +57,11 @@ namespace Csv.Converters {
 			.Call<<#= type #>>("Parse", typeof(ReadOnlySpan<char>), typeof(NumberStyles), typeof(IFormatProvider));
 	}
 
+	/***************************************
+	 | THIS CLASS WAS AUTO GENERATED USING |
+	 | NumberConverters.tt TEXT TEMPLATE.  |
+	 | DO NOT MODIFY THIS CLASS!!!         |
+	 ***************************************/
 	public class Nullable<#= type #>Converter : INativeConverter<<#= type #>?> {
 		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider formatProvider, <#= type #>? value, CsvColumnAttribute? attribute) {
 			if (value.HasValue) {
@@ -67,21 +77,21 @@ namespace Csv.Converters {
 			}
 		}
 
-		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, CsvColumnAttribute? attribute) => gen
+		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
 			.Stloc(local!)
 			.Ldloca(local!)
-			.Callvirt(typeof(<#= type #>?).GetProperty("HasValue")!.GetGetMethod()!)
+			.CallvirtPropertyGet<<#= type #>?>("HasValue")
 			.Brfalse_S(out Label @endif)
 				.Ldloca(local!)
-				.Call(typeof(<#= type #>?).GetProperty("Value")!.GetGetMethod()!)
+				.CallPropertyGet<<#= type #>?>("Value")
 				.Callvirt<StringBuilder>("Append", typeof(<#= type #>))
 			.Label(@endif);
 
-		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, CsvColumnAttribute? attribute) => gen
+		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
 			.Dup()
-			.Call(typeof(ReadOnlyMemory<char>).GetProperty("Length")!.GetGetMethod()!)
+			.CallPropertyGet<ReadOnlyMemory<char>>("Length")
 			.Brfalse_S(out Label @else)
-				.Call(typeof(ReadOnlyMemory<char>).GetProperty("Span")!.GetGetMethod()!)
+				.CallPropertyGet<ReadOnlyMemory<char>>("Span")
 <# if (type == "Single" || type == "Double") { #>
 				.Ldc_I4_X((int)NumberStyles.Float)
 <# } else if (type == "Decimal") { #>

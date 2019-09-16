@@ -5,6 +5,11 @@ using System.Reflection.Emit;
 using System.Text;
 
 namespace Csv.Converters {
+	/***************************************
+	 | THIS CLASS WAS AUTO GENERATED USING |
+	 | NumberConverters.tt TEXT TEMPLATE.  |
+	 | DO NOT MODIFY THIS CLASS!!!         |
+	 ***************************************/
 	public class ByteConverter : INativeConverter<Byte> {
 		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider formatProvider, Byte value, CsvColumnAttribute? attribute) {
 			stringBuilder.Append(value);
@@ -14,16 +19,21 @@ namespace Csv.Converters {
 			return Byte.Parse(text.Span, provider: provider);
 		}
 
-		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, CsvColumnAttribute? attribute) => gen
+		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
 			.Call<StringBuilder>("Append", typeof(Byte));
 
-		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, CsvColumnAttribute? attribute) => gen
-			.Call(typeof(ReadOnlyMemory<char>).GetProperty("Span")!.GetGetMethod()!)
+		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
+			.CallPropertyGet<ReadOnlyMemory<char>>("Span")
 			.Ldc_I4_X((int)NumberStyles.Integer)
 			.Ldarg_1()
 			.Call<Byte>("Parse", typeof(ReadOnlySpan<char>), typeof(NumberStyles), typeof(IFormatProvider));
 	}
 
+	/***************************************
+	 | THIS CLASS WAS AUTO GENERATED USING |
+	 | NumberConverters.tt TEXT TEMPLATE.  |
+	 | DO NOT MODIFY THIS CLASS!!!         |
+	 ***************************************/
 	public class NullableByteConverter : INativeConverter<Byte?> {
 		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider formatProvider, Byte? value, CsvColumnAttribute? attribute) {
 			if (value.HasValue) {
@@ -39,21 +49,21 @@ namespace Csv.Converters {
 			}
 		}
 
-		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, CsvColumnAttribute? attribute) => gen
+		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
 			.Stloc(local!)
 			.Ldloca(local!)
-			.Callvirt(typeof(Byte?).GetProperty("HasValue")!.GetGetMethod()!)
+			.CallvirtPropertyGet<Byte?>("HasValue")
 			.Brfalse_S(out Label @endif)
 				.Ldloca(local!)
-				.Call(typeof(Byte?).GetProperty("Value")!.GetGetMethod()!)
+				.CallPropertyGet<Byte?>("Value")
 				.Callvirt<StringBuilder>("Append", typeof(Byte))
 			.Label(@endif);
 
-		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, CsvColumnAttribute? attribute) => gen
+		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
 			.Dup()
-			.Call(typeof(ReadOnlyMemory<char>).GetProperty("Length")!.GetGetMethod()!)
+			.CallPropertyGet<ReadOnlyMemory<char>>("Length")
 			.Brfalse_S(out Label @else)
-				.Call(typeof(ReadOnlyMemory<char>).GetProperty("Span")!.GetGetMethod()!)
+				.CallPropertyGet<ReadOnlyMemory<char>>("Span")
 				.Ldc_I4_X((int)NumberStyles.Integer)
 				.Ldarg_1()
 				.Call<Byte>("Parse", typeof(ReadOnlySpan<char>), typeof(NumberStyles), typeof(IFormatProvider))
@@ -68,6 +78,11 @@ namespace Csv.Converters {
 			.Ldloc(local!);
 	}
 
+	/***************************************
+	 | THIS CLASS WAS AUTO GENERATED USING |
+	 | NumberConverters.tt TEXT TEMPLATE.  |
+	 | DO NOT MODIFY THIS CLASS!!!         |
+	 ***************************************/
 	public class SByteConverter : INativeConverter<SByte> {
 		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider formatProvider, SByte value, CsvColumnAttribute? attribute) {
 			stringBuilder.Append(value);
@@ -77,16 +92,21 @@ namespace Csv.Converters {
 			return SByte.Parse(text.Span, provider: provider);
 		}
 
-		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, CsvColumnAttribute? attribute) => gen
+		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
 			.Call<StringBuilder>("Append", typeof(SByte));
 
-		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, CsvColumnAttribute? attribute) => gen
-			.Call(typeof(ReadOnlyMemory<char>).GetProperty("Span")!.GetGetMethod()!)
+		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
+			.CallPropertyGet<ReadOnlyMemory<char>>("Span")
 			.Ldc_I4_X((int)NumberStyles.Integer)
 			.Ldarg_1()
 			.Call<SByte>("Parse", typeof(ReadOnlySpan<char>), typeof(NumberStyles), typeof(IFormatProvider));
 	}
 
+	/***************************************
+	 | THIS CLASS WAS AUTO GENERATED USING |
+	 | NumberConverters.tt TEXT TEMPLATE.  |
+	 | DO NOT MODIFY THIS CLASS!!!         |
+	 ***************************************/
 	public class NullableSByteConverter : INativeConverter<SByte?> {
 		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider formatProvider, SByte? value, CsvColumnAttribute? attribute) {
 			if (value.HasValue) {
@@ -102,21 +122,21 @@ namespace Csv.Converters {
 			}
 		}
 
-		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, CsvColumnAttribute? attribute) => gen
+		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
 			.Stloc(local!)
 			.Ldloca(local!)
-			.Callvirt(typeof(SByte?).GetProperty("HasValue")!.GetGetMethod()!)
+			.CallvirtPropertyGet<SByte?>("HasValue")
 			.Brfalse_S(out Label @endif)
 				.Ldloca(local!)
-				.Call(typeof(SByte?).GetProperty("Value")!.GetGetMethod()!)
+				.CallPropertyGet<SByte?>("Value")
 				.Callvirt<StringBuilder>("Append", typeof(SByte))
 			.Label(@endif);
 
-		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, CsvColumnAttribute? attribute) => gen
+		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
 			.Dup()
-			.Call(typeof(ReadOnlyMemory<char>).GetProperty("Length")!.GetGetMethod()!)
+			.CallPropertyGet<ReadOnlyMemory<char>>("Length")
 			.Brfalse_S(out Label @else)
-				.Call(typeof(ReadOnlyMemory<char>).GetProperty("Span")!.GetGetMethod()!)
+				.CallPropertyGet<ReadOnlyMemory<char>>("Span")
 				.Ldc_I4_X((int)NumberStyles.Integer)
 				.Ldarg_1()
 				.Call<SByte>("Parse", typeof(ReadOnlySpan<char>), typeof(NumberStyles), typeof(IFormatProvider))
@@ -131,6 +151,11 @@ namespace Csv.Converters {
 			.Ldloc(local!);
 	}
 
+	/***************************************
+	 | THIS CLASS WAS AUTO GENERATED USING |
+	 | NumberConverters.tt TEXT TEMPLATE.  |
+	 | DO NOT MODIFY THIS CLASS!!!         |
+	 ***************************************/
 	public class Int16Converter : INativeConverter<Int16> {
 		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider formatProvider, Int16 value, CsvColumnAttribute? attribute) {
 			stringBuilder.Append(value);
@@ -140,16 +165,21 @@ namespace Csv.Converters {
 			return Int16.Parse(text.Span, provider: provider);
 		}
 
-		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, CsvColumnAttribute? attribute) => gen
+		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
 			.Call<StringBuilder>("Append", typeof(Int16));
 
-		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, CsvColumnAttribute? attribute) => gen
-			.Call(typeof(ReadOnlyMemory<char>).GetProperty("Span")!.GetGetMethod()!)
+		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
+			.CallPropertyGet<ReadOnlyMemory<char>>("Span")
 			.Ldc_I4_X((int)NumberStyles.Integer)
 			.Ldarg_1()
 			.Call<Int16>("Parse", typeof(ReadOnlySpan<char>), typeof(NumberStyles), typeof(IFormatProvider));
 	}
 
+	/***************************************
+	 | THIS CLASS WAS AUTO GENERATED USING |
+	 | NumberConverters.tt TEXT TEMPLATE.  |
+	 | DO NOT MODIFY THIS CLASS!!!         |
+	 ***************************************/
 	public class NullableInt16Converter : INativeConverter<Int16?> {
 		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider formatProvider, Int16? value, CsvColumnAttribute? attribute) {
 			if (value.HasValue) {
@@ -165,21 +195,21 @@ namespace Csv.Converters {
 			}
 		}
 
-		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, CsvColumnAttribute? attribute) => gen
+		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
 			.Stloc(local!)
 			.Ldloca(local!)
-			.Callvirt(typeof(Int16?).GetProperty("HasValue")!.GetGetMethod()!)
+			.CallvirtPropertyGet<Int16?>("HasValue")
 			.Brfalse_S(out Label @endif)
 				.Ldloca(local!)
-				.Call(typeof(Int16?).GetProperty("Value")!.GetGetMethod()!)
+				.CallPropertyGet<Int16?>("Value")
 				.Callvirt<StringBuilder>("Append", typeof(Int16))
 			.Label(@endif);
 
-		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, CsvColumnAttribute? attribute) => gen
+		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
 			.Dup()
-			.Call(typeof(ReadOnlyMemory<char>).GetProperty("Length")!.GetGetMethod()!)
+			.CallPropertyGet<ReadOnlyMemory<char>>("Length")
 			.Brfalse_S(out Label @else)
-				.Call(typeof(ReadOnlyMemory<char>).GetProperty("Span")!.GetGetMethod()!)
+				.CallPropertyGet<ReadOnlyMemory<char>>("Span")
 				.Ldc_I4_X((int)NumberStyles.Integer)
 				.Ldarg_1()
 				.Call<Int16>("Parse", typeof(ReadOnlySpan<char>), typeof(NumberStyles), typeof(IFormatProvider))
@@ -194,6 +224,11 @@ namespace Csv.Converters {
 			.Ldloc(local!);
 	}
 
+	/***************************************
+	 | THIS CLASS WAS AUTO GENERATED USING |
+	 | NumberConverters.tt TEXT TEMPLATE.  |
+	 | DO NOT MODIFY THIS CLASS!!!         |
+	 ***************************************/
 	public class UInt16Converter : INativeConverter<UInt16> {
 		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider formatProvider, UInt16 value, CsvColumnAttribute? attribute) {
 			stringBuilder.Append(value);
@@ -203,16 +238,21 @@ namespace Csv.Converters {
 			return UInt16.Parse(text.Span, provider: provider);
 		}
 
-		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, CsvColumnAttribute? attribute) => gen
+		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
 			.Call<StringBuilder>("Append", typeof(UInt16));
 
-		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, CsvColumnAttribute? attribute) => gen
-			.Call(typeof(ReadOnlyMemory<char>).GetProperty("Span")!.GetGetMethod()!)
+		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
+			.CallPropertyGet<ReadOnlyMemory<char>>("Span")
 			.Ldc_I4_X((int)NumberStyles.Integer)
 			.Ldarg_1()
 			.Call<UInt16>("Parse", typeof(ReadOnlySpan<char>), typeof(NumberStyles), typeof(IFormatProvider));
 	}
 
+	/***************************************
+	 | THIS CLASS WAS AUTO GENERATED USING |
+	 | NumberConverters.tt TEXT TEMPLATE.  |
+	 | DO NOT MODIFY THIS CLASS!!!         |
+	 ***************************************/
 	public class NullableUInt16Converter : INativeConverter<UInt16?> {
 		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider formatProvider, UInt16? value, CsvColumnAttribute? attribute) {
 			if (value.HasValue) {
@@ -228,21 +268,21 @@ namespace Csv.Converters {
 			}
 		}
 
-		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, CsvColumnAttribute? attribute) => gen
+		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
 			.Stloc(local!)
 			.Ldloca(local!)
-			.Callvirt(typeof(UInt16?).GetProperty("HasValue")!.GetGetMethod()!)
+			.CallvirtPropertyGet<UInt16?>("HasValue")
 			.Brfalse_S(out Label @endif)
 				.Ldloca(local!)
-				.Call(typeof(UInt16?).GetProperty("Value")!.GetGetMethod()!)
+				.CallPropertyGet<UInt16?>("Value")
 				.Callvirt<StringBuilder>("Append", typeof(UInt16))
 			.Label(@endif);
 
-		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, CsvColumnAttribute? attribute) => gen
+		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
 			.Dup()
-			.Call(typeof(ReadOnlyMemory<char>).GetProperty("Length")!.GetGetMethod()!)
+			.CallPropertyGet<ReadOnlyMemory<char>>("Length")
 			.Brfalse_S(out Label @else)
-				.Call(typeof(ReadOnlyMemory<char>).GetProperty("Span")!.GetGetMethod()!)
+				.CallPropertyGet<ReadOnlyMemory<char>>("Span")
 				.Ldc_I4_X((int)NumberStyles.Integer)
 				.Ldarg_1()
 				.Call<UInt16>("Parse", typeof(ReadOnlySpan<char>), typeof(NumberStyles), typeof(IFormatProvider))
@@ -257,6 +297,11 @@ namespace Csv.Converters {
 			.Ldloc(local!);
 	}
 
+	/***************************************
+	 | THIS CLASS WAS AUTO GENERATED USING |
+	 | NumberConverters.tt TEXT TEMPLATE.  |
+	 | DO NOT MODIFY THIS CLASS!!!         |
+	 ***************************************/
 	public class Int32Converter : INativeConverter<Int32> {
 		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider formatProvider, Int32 value, CsvColumnAttribute? attribute) {
 			stringBuilder.Append(value);
@@ -266,16 +311,21 @@ namespace Csv.Converters {
 			return Int32.Parse(text.Span, provider: provider);
 		}
 
-		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, CsvColumnAttribute? attribute) => gen
+		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
 			.Call<StringBuilder>("Append", typeof(Int32));
 
-		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, CsvColumnAttribute? attribute) => gen
-			.Call(typeof(ReadOnlyMemory<char>).GetProperty("Span")!.GetGetMethod()!)
+		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
+			.CallPropertyGet<ReadOnlyMemory<char>>("Span")
 			.Ldc_I4_X((int)NumberStyles.Integer)
 			.Ldarg_1()
 			.Call<Int32>("Parse", typeof(ReadOnlySpan<char>), typeof(NumberStyles), typeof(IFormatProvider));
 	}
 
+	/***************************************
+	 | THIS CLASS WAS AUTO GENERATED USING |
+	 | NumberConverters.tt TEXT TEMPLATE.  |
+	 | DO NOT MODIFY THIS CLASS!!!         |
+	 ***************************************/
 	public class NullableInt32Converter : INativeConverter<Int32?> {
 		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider formatProvider, Int32? value, CsvColumnAttribute? attribute) {
 			if (value.HasValue) {
@@ -291,21 +341,21 @@ namespace Csv.Converters {
 			}
 		}
 
-		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, CsvColumnAttribute? attribute) => gen
+		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
 			.Stloc(local!)
 			.Ldloca(local!)
-			.Callvirt(typeof(Int32?).GetProperty("HasValue")!.GetGetMethod()!)
+			.CallvirtPropertyGet<Int32?>("HasValue")
 			.Brfalse_S(out Label @endif)
 				.Ldloca(local!)
-				.Call(typeof(Int32?).GetProperty("Value")!.GetGetMethod()!)
+				.CallPropertyGet<Int32?>("Value")
 				.Callvirt<StringBuilder>("Append", typeof(Int32))
 			.Label(@endif);
 
-		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, CsvColumnAttribute? attribute) => gen
+		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
 			.Dup()
-			.Call(typeof(ReadOnlyMemory<char>).GetProperty("Length")!.GetGetMethod()!)
+			.CallPropertyGet<ReadOnlyMemory<char>>("Length")
 			.Brfalse_S(out Label @else)
-				.Call(typeof(ReadOnlyMemory<char>).GetProperty("Span")!.GetGetMethod()!)
+				.CallPropertyGet<ReadOnlyMemory<char>>("Span")
 				.Ldc_I4_X((int)NumberStyles.Integer)
 				.Ldarg_1()
 				.Call<Int32>("Parse", typeof(ReadOnlySpan<char>), typeof(NumberStyles), typeof(IFormatProvider))
@@ -320,6 +370,11 @@ namespace Csv.Converters {
 			.Ldloc(local!);
 	}
 
+	/***************************************
+	 | THIS CLASS WAS AUTO GENERATED USING |
+	 | NumberConverters.tt TEXT TEMPLATE.  |
+	 | DO NOT MODIFY THIS CLASS!!!         |
+	 ***************************************/
 	public class UInt32Converter : INativeConverter<UInt32> {
 		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider formatProvider, UInt32 value, CsvColumnAttribute? attribute) {
 			stringBuilder.Append(value);
@@ -329,16 +384,21 @@ namespace Csv.Converters {
 			return UInt32.Parse(text.Span, provider: provider);
 		}
 
-		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, CsvColumnAttribute? attribute) => gen
+		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
 			.Call<StringBuilder>("Append", typeof(UInt32));
 
-		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, CsvColumnAttribute? attribute) => gen
-			.Call(typeof(ReadOnlyMemory<char>).GetProperty("Span")!.GetGetMethod()!)
+		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
+			.CallPropertyGet<ReadOnlyMemory<char>>("Span")
 			.Ldc_I4_X((int)NumberStyles.Integer)
 			.Ldarg_1()
 			.Call<UInt32>("Parse", typeof(ReadOnlySpan<char>), typeof(NumberStyles), typeof(IFormatProvider));
 	}
 
+	/***************************************
+	 | THIS CLASS WAS AUTO GENERATED USING |
+	 | NumberConverters.tt TEXT TEMPLATE.  |
+	 | DO NOT MODIFY THIS CLASS!!!         |
+	 ***************************************/
 	public class NullableUInt32Converter : INativeConverter<UInt32?> {
 		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider formatProvider, UInt32? value, CsvColumnAttribute? attribute) {
 			if (value.HasValue) {
@@ -354,21 +414,21 @@ namespace Csv.Converters {
 			}
 		}
 
-		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, CsvColumnAttribute? attribute) => gen
+		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
 			.Stloc(local!)
 			.Ldloca(local!)
-			.Callvirt(typeof(UInt32?).GetProperty("HasValue")!.GetGetMethod()!)
+			.CallvirtPropertyGet<UInt32?>("HasValue")
 			.Brfalse_S(out Label @endif)
 				.Ldloca(local!)
-				.Call(typeof(UInt32?).GetProperty("Value")!.GetGetMethod()!)
+				.CallPropertyGet<UInt32?>("Value")
 				.Callvirt<StringBuilder>("Append", typeof(UInt32))
 			.Label(@endif);
 
-		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, CsvColumnAttribute? attribute) => gen
+		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
 			.Dup()
-			.Call(typeof(ReadOnlyMemory<char>).GetProperty("Length")!.GetGetMethod()!)
+			.CallPropertyGet<ReadOnlyMemory<char>>("Length")
 			.Brfalse_S(out Label @else)
-				.Call(typeof(ReadOnlyMemory<char>).GetProperty("Span")!.GetGetMethod()!)
+				.CallPropertyGet<ReadOnlyMemory<char>>("Span")
 				.Ldc_I4_X((int)NumberStyles.Integer)
 				.Ldarg_1()
 				.Call<UInt32>("Parse", typeof(ReadOnlySpan<char>), typeof(NumberStyles), typeof(IFormatProvider))
@@ -383,6 +443,11 @@ namespace Csv.Converters {
 			.Ldloc(local!);
 	}
 
+	/***************************************
+	 | THIS CLASS WAS AUTO GENERATED USING |
+	 | NumberConverters.tt TEXT TEMPLATE.  |
+	 | DO NOT MODIFY THIS CLASS!!!         |
+	 ***************************************/
 	public class Int64Converter : INativeConverter<Int64> {
 		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider formatProvider, Int64 value, CsvColumnAttribute? attribute) {
 			stringBuilder.Append(value);
@@ -392,16 +457,21 @@ namespace Csv.Converters {
 			return Int64.Parse(text.Span, provider: provider);
 		}
 
-		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, CsvColumnAttribute? attribute) => gen
+		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
 			.Call<StringBuilder>("Append", typeof(Int64));
 
-		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, CsvColumnAttribute? attribute) => gen
-			.Call(typeof(ReadOnlyMemory<char>).GetProperty("Span")!.GetGetMethod()!)
+		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
+			.CallPropertyGet<ReadOnlyMemory<char>>("Span")
 			.Ldc_I4_X((int)NumberStyles.Integer)
 			.Ldarg_1()
 			.Call<Int64>("Parse", typeof(ReadOnlySpan<char>), typeof(NumberStyles), typeof(IFormatProvider));
 	}
 
+	/***************************************
+	 | THIS CLASS WAS AUTO GENERATED USING |
+	 | NumberConverters.tt TEXT TEMPLATE.  |
+	 | DO NOT MODIFY THIS CLASS!!!         |
+	 ***************************************/
 	public class NullableInt64Converter : INativeConverter<Int64?> {
 		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider formatProvider, Int64? value, CsvColumnAttribute? attribute) {
 			if (value.HasValue) {
@@ -417,21 +487,21 @@ namespace Csv.Converters {
 			}
 		}
 
-		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, CsvColumnAttribute? attribute) => gen
+		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
 			.Stloc(local!)
 			.Ldloca(local!)
-			.Callvirt(typeof(Int64?).GetProperty("HasValue")!.GetGetMethod()!)
+			.CallvirtPropertyGet<Int64?>("HasValue")
 			.Brfalse_S(out Label @endif)
 				.Ldloca(local!)
-				.Call(typeof(Int64?).GetProperty("Value")!.GetGetMethod()!)
+				.CallPropertyGet<Int64?>("Value")
 				.Callvirt<StringBuilder>("Append", typeof(Int64))
 			.Label(@endif);
 
-		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, CsvColumnAttribute? attribute) => gen
+		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
 			.Dup()
-			.Call(typeof(ReadOnlyMemory<char>).GetProperty("Length")!.GetGetMethod()!)
+			.CallPropertyGet<ReadOnlyMemory<char>>("Length")
 			.Brfalse_S(out Label @else)
-				.Call(typeof(ReadOnlyMemory<char>).GetProperty("Span")!.GetGetMethod()!)
+				.CallPropertyGet<ReadOnlyMemory<char>>("Span")
 				.Ldc_I4_X((int)NumberStyles.Integer)
 				.Ldarg_1()
 				.Call<Int64>("Parse", typeof(ReadOnlySpan<char>), typeof(NumberStyles), typeof(IFormatProvider))
@@ -446,6 +516,11 @@ namespace Csv.Converters {
 			.Ldloc(local!);
 	}
 
+	/***************************************
+	 | THIS CLASS WAS AUTO GENERATED USING |
+	 | NumberConverters.tt TEXT TEMPLATE.  |
+	 | DO NOT MODIFY THIS CLASS!!!         |
+	 ***************************************/
 	public class UInt64Converter : INativeConverter<UInt64> {
 		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider formatProvider, UInt64 value, CsvColumnAttribute? attribute) {
 			stringBuilder.Append(value);
@@ -455,16 +530,21 @@ namespace Csv.Converters {
 			return UInt64.Parse(text.Span, provider: provider);
 		}
 
-		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, CsvColumnAttribute? attribute) => gen
+		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
 			.Call<StringBuilder>("Append", typeof(UInt64));
 
-		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, CsvColumnAttribute? attribute) => gen
-			.Call(typeof(ReadOnlyMemory<char>).GetProperty("Span")!.GetGetMethod()!)
+		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
+			.CallPropertyGet<ReadOnlyMemory<char>>("Span")
 			.Ldc_I4_X((int)NumberStyles.Integer)
 			.Ldarg_1()
 			.Call<UInt64>("Parse", typeof(ReadOnlySpan<char>), typeof(NumberStyles), typeof(IFormatProvider));
 	}
 
+	/***************************************
+	 | THIS CLASS WAS AUTO GENERATED USING |
+	 | NumberConverters.tt TEXT TEMPLATE.  |
+	 | DO NOT MODIFY THIS CLASS!!!         |
+	 ***************************************/
 	public class NullableUInt64Converter : INativeConverter<UInt64?> {
 		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider formatProvider, UInt64? value, CsvColumnAttribute? attribute) {
 			if (value.HasValue) {
@@ -480,21 +560,21 @@ namespace Csv.Converters {
 			}
 		}
 
-		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, CsvColumnAttribute? attribute) => gen
+		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
 			.Stloc(local!)
 			.Ldloca(local!)
-			.Callvirt(typeof(UInt64?).GetProperty("HasValue")!.GetGetMethod()!)
+			.CallvirtPropertyGet<UInt64?>("HasValue")
 			.Brfalse_S(out Label @endif)
 				.Ldloca(local!)
-				.Call(typeof(UInt64?).GetProperty("Value")!.GetGetMethod()!)
+				.CallPropertyGet<UInt64?>("Value")
 				.Callvirt<StringBuilder>("Append", typeof(UInt64))
 			.Label(@endif);
 
-		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, CsvColumnAttribute? attribute) => gen
+		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
 			.Dup()
-			.Call(typeof(ReadOnlyMemory<char>).GetProperty("Length")!.GetGetMethod()!)
+			.CallPropertyGet<ReadOnlyMemory<char>>("Length")
 			.Brfalse_S(out Label @else)
-				.Call(typeof(ReadOnlyMemory<char>).GetProperty("Span")!.GetGetMethod()!)
+				.CallPropertyGet<ReadOnlyMemory<char>>("Span")
 				.Ldc_I4_X((int)NumberStyles.Integer)
 				.Ldarg_1()
 				.Call<UInt64>("Parse", typeof(ReadOnlySpan<char>), typeof(NumberStyles), typeof(IFormatProvider))
@@ -509,6 +589,11 @@ namespace Csv.Converters {
 			.Ldloc(local!);
 	}
 
+	/***************************************
+	 | THIS CLASS WAS AUTO GENERATED USING |
+	 | NumberConverters.tt TEXT TEMPLATE.  |
+	 | DO NOT MODIFY THIS CLASS!!!         |
+	 ***************************************/
 	public class SingleConverter : INativeConverter<Single> {
 		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider formatProvider, Single value, CsvColumnAttribute? attribute) {
 			stringBuilder.Append(value);
@@ -518,16 +603,21 @@ namespace Csv.Converters {
 			return Single.Parse(text.Span, provider: provider);
 		}
 
-		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, CsvColumnAttribute? attribute) => gen
+		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
 			.Call<StringBuilder>("Append", typeof(Single));
 
-		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, CsvColumnAttribute? attribute) => gen
-			.Call(typeof(ReadOnlyMemory<char>).GetProperty("Span")!.GetGetMethod()!)
+		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
+			.CallPropertyGet<ReadOnlyMemory<char>>("Span")
 			.Ldc_I4_X((int)NumberStyles.Float)
 			.Ldarg_1()
 			.Call<Single>("Parse", typeof(ReadOnlySpan<char>), typeof(NumberStyles), typeof(IFormatProvider));
 	}
 
+	/***************************************
+	 | THIS CLASS WAS AUTO GENERATED USING |
+	 | NumberConverters.tt TEXT TEMPLATE.  |
+	 | DO NOT MODIFY THIS CLASS!!!         |
+	 ***************************************/
 	public class NullableSingleConverter : INativeConverter<Single?> {
 		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider formatProvider, Single? value, CsvColumnAttribute? attribute) {
 			if (value.HasValue) {
@@ -543,21 +633,21 @@ namespace Csv.Converters {
 			}
 		}
 
-		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, CsvColumnAttribute? attribute) => gen
+		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
 			.Stloc(local!)
 			.Ldloca(local!)
-			.Callvirt(typeof(Single?).GetProperty("HasValue")!.GetGetMethod()!)
+			.CallvirtPropertyGet<Single?>("HasValue")
 			.Brfalse_S(out Label @endif)
 				.Ldloca(local!)
-				.Call(typeof(Single?).GetProperty("Value")!.GetGetMethod()!)
+				.CallPropertyGet<Single?>("Value")
 				.Callvirt<StringBuilder>("Append", typeof(Single))
 			.Label(@endif);
 
-		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, CsvColumnAttribute? attribute) => gen
+		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
 			.Dup()
-			.Call(typeof(ReadOnlyMemory<char>).GetProperty("Length")!.GetGetMethod()!)
+			.CallPropertyGet<ReadOnlyMemory<char>>("Length")
 			.Brfalse_S(out Label @else)
-				.Call(typeof(ReadOnlyMemory<char>).GetProperty("Span")!.GetGetMethod()!)
+				.CallPropertyGet<ReadOnlyMemory<char>>("Span")
 				.Ldc_I4_X((int)NumberStyles.Float)
 				.Ldarg_1()
 				.Call<Single>("Parse", typeof(ReadOnlySpan<char>), typeof(NumberStyles), typeof(IFormatProvider))
@@ -572,6 +662,11 @@ namespace Csv.Converters {
 			.Ldloc(local!);
 	}
 
+	/***************************************
+	 | THIS CLASS WAS AUTO GENERATED USING |
+	 | NumberConverters.tt TEXT TEMPLATE.  |
+	 | DO NOT MODIFY THIS CLASS!!!         |
+	 ***************************************/
 	public class DoubleConverter : INativeConverter<Double> {
 		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider formatProvider, Double value, CsvColumnAttribute? attribute) {
 			stringBuilder.Append(value);
@@ -581,16 +676,21 @@ namespace Csv.Converters {
 			return Double.Parse(text.Span, provider: provider);
 		}
 
-		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, CsvColumnAttribute? attribute) => gen
+		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
 			.Call<StringBuilder>("Append", typeof(Double));
 
-		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, CsvColumnAttribute? attribute) => gen
-			.Call(typeof(ReadOnlyMemory<char>).GetProperty("Span")!.GetGetMethod()!)
+		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
+			.CallPropertyGet<ReadOnlyMemory<char>>("Span")
 			.Ldc_I4_X((int)NumberStyles.Float)
 			.Ldarg_1()
 			.Call<Double>("Parse", typeof(ReadOnlySpan<char>), typeof(NumberStyles), typeof(IFormatProvider));
 	}
 
+	/***************************************
+	 | THIS CLASS WAS AUTO GENERATED USING |
+	 | NumberConverters.tt TEXT TEMPLATE.  |
+	 | DO NOT MODIFY THIS CLASS!!!         |
+	 ***************************************/
 	public class NullableDoubleConverter : INativeConverter<Double?> {
 		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider formatProvider, Double? value, CsvColumnAttribute? attribute) {
 			if (value.HasValue) {
@@ -606,21 +706,21 @@ namespace Csv.Converters {
 			}
 		}
 
-		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, CsvColumnAttribute? attribute) => gen
+		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
 			.Stloc(local!)
 			.Ldloca(local!)
-			.Callvirt(typeof(Double?).GetProperty("HasValue")!.GetGetMethod()!)
+			.CallvirtPropertyGet<Double?>("HasValue")
 			.Brfalse_S(out Label @endif)
 				.Ldloca(local!)
-				.Call(typeof(Double?).GetProperty("Value")!.GetGetMethod()!)
+				.CallPropertyGet<Double?>("Value")
 				.Callvirt<StringBuilder>("Append", typeof(Double))
 			.Label(@endif);
 
-		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, CsvColumnAttribute? attribute) => gen
+		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
 			.Dup()
-			.Call(typeof(ReadOnlyMemory<char>).GetProperty("Length")!.GetGetMethod()!)
+			.CallPropertyGet<ReadOnlyMemory<char>>("Length")
 			.Brfalse_S(out Label @else)
-				.Call(typeof(ReadOnlyMemory<char>).GetProperty("Span")!.GetGetMethod()!)
+				.CallPropertyGet<ReadOnlyMemory<char>>("Span")
 				.Ldc_I4_X((int)NumberStyles.Float)
 				.Ldarg_1()
 				.Call<Double>("Parse", typeof(ReadOnlySpan<char>), typeof(NumberStyles), typeof(IFormatProvider))
@@ -635,6 +735,11 @@ namespace Csv.Converters {
 			.Ldloc(local!);
 	}
 
+	/***************************************
+	 | THIS CLASS WAS AUTO GENERATED USING |
+	 | NumberConverters.tt TEXT TEMPLATE.  |
+	 | DO NOT MODIFY THIS CLASS!!!         |
+	 ***************************************/
 	public class DecimalConverter : INativeConverter<Decimal> {
 		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider formatProvider, Decimal value, CsvColumnAttribute? attribute) {
 			stringBuilder.Append(value);
@@ -644,16 +749,21 @@ namespace Csv.Converters {
 			return Decimal.Parse(text.Span, provider: provider);
 		}
 
-		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, CsvColumnAttribute? attribute) => gen
+		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
 			.Call<StringBuilder>("Append", typeof(Decimal));
 
-		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, CsvColumnAttribute? attribute) => gen
-			.Call(typeof(ReadOnlyMemory<char>).GetProperty("Span")!.GetGetMethod()!)
+		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
+			.CallPropertyGet<ReadOnlyMemory<char>>("Span")
 			.Ldc_I4_X((int)NumberStyles.Currency)
 			.Ldarg_1()
 			.Call<Decimal>("Parse", typeof(ReadOnlySpan<char>), typeof(NumberStyles), typeof(IFormatProvider));
 	}
 
+	/***************************************
+	 | THIS CLASS WAS AUTO GENERATED USING |
+	 | NumberConverters.tt TEXT TEMPLATE.  |
+	 | DO NOT MODIFY THIS CLASS!!!         |
+	 ***************************************/
 	public class NullableDecimalConverter : INativeConverter<Decimal?> {
 		public void AppendToStringBuilder(StringBuilder stringBuilder, IFormatProvider formatProvider, Decimal? value, CsvColumnAttribute? attribute) {
 			if (value.HasValue) {
@@ -669,21 +779,21 @@ namespace Csv.Converters {
 			}
 		}
 
-		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, CsvColumnAttribute? attribute) => gen
+		public void EmitAppendToStringBuilder(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
 			.Stloc(local!)
 			.Ldloca(local!)
-			.Callvirt(typeof(Decimal?).GetProperty("HasValue")!.GetGetMethod()!)
+			.CallvirtPropertyGet<Decimal?>("HasValue")
 			.Brfalse_S(out Label @endif)
 				.Ldloca(local!)
-				.Call(typeof(Decimal?).GetProperty("Value")!.GetGetMethod()!)
+				.CallPropertyGet<Decimal?>("Value")
 				.Callvirt<StringBuilder>("Append", typeof(Decimal))
 			.Label(@endif);
 
-		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, CsvColumnAttribute? attribute) => gen
+		public void EmitDeserialize(ILGenerator gen, LocalBuilder? local, LocalBuilder? _, CsvColumnAttribute? attribute) => gen
 			.Dup()
-			.Call(typeof(ReadOnlyMemory<char>).GetProperty("Length")!.GetGetMethod()!)
+			.CallPropertyGet<ReadOnlyMemory<char>>("Length")
 			.Brfalse_S(out Label @else)
-				.Call(typeof(ReadOnlyMemory<char>).GetProperty("Span")!.GetGetMethod()!)
+				.CallPropertyGet<ReadOnlyMemory<char>>("Span")
 				.Ldc_I4_X((int)NumberStyles.Currency)
 				.Ldarg_1()
 				.Call<Decimal>("Parse", typeof(ReadOnlySpan<char>), typeof(NumberStyles), typeof(IFormatProvider))
