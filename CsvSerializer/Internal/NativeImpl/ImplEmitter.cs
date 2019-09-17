@@ -2,7 +2,7 @@
 using System.Reflection;
 using System.Reflection.Emit;
 
-namespace Csv.Emitter {
+namespace Csv.Internal.NativeImpl {
 	internal class ImplEmitter<TInterface> where TInterface : class {
 		private readonly TypeBuilder _typeBuilder;
 		private Type? _type;
@@ -79,6 +79,20 @@ namespace Csv.Emitter {
 			_typeBuilder.DefineMethodOverride(methodBuilder, typeof(TInterface).GetMethod(methodName, new Type[] { typeof(T1), typeof(T2), typeof(T3) })!);
 		}
 
+		public void ImplementAction<T1, T2, T3, T4>(string methodName, Action<ILGenerator> ilGenerator) {
+			if (_type != null) {
+				throw new InvalidOperationException("Type already created.");
+			}
+			MethodBuilder methodBuilder = _typeBuilder.DefineMethod(methodName,
+				MethodAttributes.Public |
+				MethodAttributes.Virtual,
+				typeof(void),
+				new Type[] { typeof(T1), typeof(T2), typeof(T3), typeof(T4) });
+			ILGenerator gen = methodBuilder.GetILGenerator();
+			ilGenerator.Invoke(gen);
+			_typeBuilder.DefineMethodOverride(methodBuilder, typeof(TInterface).GetMethod(methodName, new Type[] { typeof(T1), typeof(T2), typeof(T3), typeof(T4) })!);
+		}
+
 		public void ImplementFunc<TReturn>(string methodName, Action<ILGenerator> ilGenerator) {
 			if (_type != null) {
 				throw new InvalidOperationException("Type already created.");
@@ -133,6 +147,20 @@ namespace Csv.Emitter {
 			ILGenerator gen = methodBuilder.GetILGenerator();
 			ilGenerator.Invoke(gen);
 			_typeBuilder.DefineMethodOverride(methodBuilder, typeof(TInterface).GetMethod(methodName, new Type[] { typeof(T1), typeof(T2), typeof(T3) })!);
+		}
+
+		public void ImplementFunc<TReturn, T1, T2, T3, T4>(string methodName, Action<ILGenerator> ilGenerator) {
+			if (_type != null) {
+				throw new InvalidOperationException("Type already created.");
+			}
+			MethodBuilder methodBuilder = _typeBuilder.DefineMethod(methodName,
+				MethodAttributes.Public |
+				MethodAttributes.Virtual,
+				typeof(TReturn),
+				new Type[] { typeof(T1), typeof(T2), typeof(T3), typeof(T4) });
+			ILGenerator gen = methodBuilder.GetILGenerator();
+			ilGenerator.Invoke(gen);
+			_typeBuilder.DefineMethodOverride(methodBuilder, typeof(TInterface).GetMethod(methodName, new Type[] { typeof(T1), typeof(T2), typeof(T3), typeof(T4) })!);
 		}
 
 		public TInterface CreateInstance() {

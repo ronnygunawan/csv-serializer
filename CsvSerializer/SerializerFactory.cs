@@ -1,5 +1,6 @@
 ﻿using Csv.Emitter;
 using Csv.Internal.NaiveImpl;
+using Csv.Internal.NativeImpl;
 using Missil;
 using System;
 using System.Collections.Generic;

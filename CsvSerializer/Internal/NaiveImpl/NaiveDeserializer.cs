@@ -164,11 +164,11 @@ namespace Csv.Internal.NaiveImpl {
 			}
 		}
 
-		public List<object> Deserialize(ReadOnlyMemory<char> csv, char separator, bool skipHeader) {
+		public List<object> Deserialize(IFormatProvider provider, char delimiter, bool skipHeader, ReadOnlyMemory<char> csv) {
 			bool firstRow = true;
 			List<object> items = new List<object>();
 			while (csv.Length > 0) {
-				List<string> columns = StringSplitter.ReadNextLine(ref csv, separator);
+				List<ReadOnlyMemory<char>> columns = StringSplitter.ReadNextLine(ref csv, delimiter);
 				if (firstRow && skipHeader) {
 					firstRow = false;
 					continue;
@@ -182,91 +182,91 @@ namespace Csv.Internal.NaiveImpl {
 				for (int i = 0; i < _properties.Length; i++) {
 					switch (_deserializeAs[i]) {
 						case DeserializeAs.SByte:
-							if (sbyte.TryParse(columns[i], out sbyte vSByte)) {
+							if (sbyte.TryParse(columns[i].Span, out sbyte vSByte)) {
 								_properties[i].SetValue(item, vSByte);
-							} else if (!_isNullable[i] || !string.IsNullOrWhiteSpace(columns[i])) {
-								throw new CsvFormatException(typeof(T), _properties[i].Name, columns[i], "Input string was not in correct sbyte format.");
+							} else if (!_isNullable[i] || columns[i].Length > 0) {
+								throw new CsvFormatException(typeof(T), _properties[i].Name, columns[i].ToString(), "Input string was not in correct sbyte format.");
 							}
 							break;
 						case DeserializeAs.Byte:
-							if (byte.TryParse(columns[i], out byte vByte)) {
+							if (byte.TryParse(columns[i].Span, out byte vByte)) {
 								_properties[i].SetValue(item, vByte);
-							} else if (!_isNullable[i] || !string.IsNullOrWhiteSpace(columns[i])) {
-								throw new CsvFormatException(typeof(T), _properties[i].Name, columns[i], "Input string was not in correct byte format.");
+							} else if (!_isNullable[i] || columns[i].Length > 0) {
+								throw new CsvFormatException(typeof(T), _properties[i].Name, columns[i].ToString(), "Input string was not in correct byte format.");
 							}
 							break;
 						case DeserializeAs.Int16:
-							if (short.TryParse(columns[i], out short vInt16)) {
+							if (short.TryParse(columns[i].Span, out short vInt16)) {
 								_properties[i].SetValue(item, vInt16);
-							} else if (!_isNullable[i] || !string.IsNullOrWhiteSpace(columns[i])) {
-								throw new CsvFormatException(typeof(T), _properties[i].Name, columns[i], "Input string was not in correct Int16 format.");
+							} else if (!_isNullable[i] || columns[i].Length > 0) {
+								throw new CsvFormatException(typeof(T), _properties[i].Name, columns[i].ToString(), "Input string was not in correct Int16 format.");
 							}
 							break;
 						case DeserializeAs.UInt16:
-							if (ushort.TryParse(columns[i], out ushort vUInt16)) {
+							if (ushort.TryParse(columns[i].Span, out ushort vUInt16)) {
 								_properties[i].SetValue(item, vUInt16);
-							} else if (!_isNullable[i] || !string.IsNullOrWhiteSpace(columns[i])) {
-								throw new CsvFormatException(typeof(T), _properties[i].Name, columns[i], "Input string was not in correct UInt16 format.");
+							} else if (!_isNullable[i] || columns[i].Length > 0) {
+								throw new CsvFormatException(typeof(T), _properties[i].Name, columns[i].ToString(), "Input string was not in correct UInt16 format.");
 							}
 							break;
 						case DeserializeAs.Int32:
-							if (int.TryParse(columns[i], out int vInt32)) {
+							if (int.TryParse(columns[i].Span, out int vInt32)) {
 								_properties[i].SetValue(item, vInt32);
-							} else if (!_isNullable[i] || !string.IsNullOrWhiteSpace(columns[i])) {
-								throw new CsvFormatException(typeof(T), _properties[i].Name, columns[i], "Input string was not in correct Int32 format.");
+							} else if (!_isNullable[i] || columns[i].Length > 0) {
+								throw new CsvFormatException(typeof(T), _properties[i].Name, columns[i].ToString(), "Input string was not in correct Int32 format.");
 							}
 							break;
 						case DeserializeAs.UInt32:
-							if (uint.TryParse(columns[i], out uint vUInt32)) {
+							if (uint.TryParse(columns[i].Span, out uint vUInt32)) {
 								_properties[i].SetValue(item, vUInt32);
-							} else if (!_isNullable[i] || !string.IsNullOrWhiteSpace(columns[i])) {
-								throw new CsvFormatException(typeof(T), _properties[i].Name, columns[i], "Input string was not in correct UInt32 format.");
+							} else if (!_isNullable[i] || columns[i].Length > 0) {
+								throw new CsvFormatException(typeof(T), _properties[i].Name, columns[i].ToString(), "Input string was not in correct UInt32 format.");
 							}
 							break;
 						case DeserializeAs.Int64:
-							if (long.TryParse(columns[i], out long vInt64)) {
+							if (long.TryParse(columns[i].Span, out long vInt64)) {
 								_properties[i].SetValue(item, vInt64);
-							} else if (!_isNullable[i] || !string.IsNullOrWhiteSpace(columns[i])) {
-								throw new CsvFormatException(typeof(T), _properties[i].Name, columns[i], "Input string was not in correct Int64 format.");
+							} else if (!_isNullable[i] || columns[i].Length > 0) {
+								throw new CsvFormatException(typeof(T), _properties[i].Name, columns[i].ToString(), "Input string was not in correct Int64 format.");
 							}
 							break;
 						case DeserializeAs.UInt64:
-							if (ulong.TryParse(columns[i], out ulong vUInt64)) {
+							if (ulong.TryParse(columns[i].Span, out ulong vUInt64)) {
 								_properties[i].SetValue(item, vUInt64);
-							} else if (!_isNullable[i] || !string.IsNullOrWhiteSpace(columns[i])) {
-								throw new CsvFormatException(typeof(T), _properties[i].Name, columns[i], "Input string was not in correct UInt64 format.");
+							} else if (!_isNullable[i] || columns[i].Length > 0) {
+								throw new CsvFormatException(typeof(T), _properties[i].Name, columns[i].ToString(), "Input string was not in correct UInt64 format.");
 							}
 							break;
 						case DeserializeAs.Single:
-							if (float.TryParse(columns[i], out float vSingle)) {
+							if (float.TryParse(columns[i].Span, out float vSingle)) {
 								_properties[i].SetValue(item, vSingle);
-							} else if (!_isNullable[i] || !string.IsNullOrWhiteSpace(columns[i])) {
-								throw new CsvFormatException(typeof(T), _properties[i].Name, columns[i], "Input string was not in correct floating point format.");
+							} else if (!_isNullable[i] || columns[i].Length > 0) {
+								throw new CsvFormatException(typeof(T), _properties[i].Name, columns[i].ToString(), "Input string was not in correct floating point format.");
 							}
 							break;
 						case DeserializeAs.Double:
-							if (double.TryParse(columns[i], out double vDouble)) {
+							if (double.TryParse(columns[i].Span, out double vDouble)) {
 								_properties[i].SetValue(item, vDouble);
-							} else if (!_isNullable[i] || !string.IsNullOrWhiteSpace(columns[i])) {
-								throw new CsvFormatException(typeof(T), _properties[i].Name, columns[i], "Input string was not in correct floating point format.");
+							} else if (!_isNullable[i] || columns[i].Length > 0) {
+								throw new CsvFormatException(typeof(T), _properties[i].Name, columns[i].ToString(), "Input string was not in correct floating point format.");
 							}
 							break;
 						case DeserializeAs.Decimal:
-							if (decimal.TryParse(columns[i], out decimal vDecimal)) {
+							if (decimal.TryParse(columns[i].Span, out decimal vDecimal)) {
 								_properties[i].SetValue(item, vDecimal);
-							} else if (!_isNullable[i] || !string.IsNullOrWhiteSpace(columns[i])) {
-								throw new CsvFormatException(typeof(T), _properties[i].Name, columns[i], "Input string was not in correct decimal format.");
+							} else if (!_isNullable[i] || columns[i].Length > 0) {
+								throw new CsvFormatException(typeof(T), _properties[i].Name, columns[i].ToString(), "Input string was not in correct decimal format.");
 							}
 							break;
 						case DeserializeAs.Boolean:
-							if (bool.TryParse(columns[i], out bool vBoolean)) {
+							if (bool.TryParse(columns[i].Span, out bool vBoolean)) {
 								_properties[i].SetValue(item, vBoolean);
-							} else if (!_isNullable[i] || !string.IsNullOrWhiteSpace(columns[i])) {
-								throw new CsvFormatException(typeof(T), _properties[i].Name, columns[i], "Input string was not in correct Boolean format.");
+							} else if (!_isNullable[i] || columns[i].Length > 0) {
+								throw new CsvFormatException(typeof(T), _properties[i].Name, columns[i].ToString(), "Input string was not in correct Boolean format.");
 							}
 							break;
 						case DeserializeAs.String:
-							string s = columns[i].Trim();
+							string s = columns[i].ToString().Trim();
 #if NETSTANDARD2_0
 							if (s.StartsWith("\"")
 								&& s.EndsWith("\"")) {
@@ -282,7 +282,7 @@ namespace Csv.Internal.NaiveImpl {
 							_properties[i].SetValue(item, s);
 							break;
 						case DeserializeAs.DateTime:
-							s = columns[i].Trim();
+							s = columns[i].ToString().Trim();
 #if NETSTANDARD2_0
 							if (s.StartsWith("\"")
 								&& s.EndsWith("\"")) {
@@ -302,16 +302,16 @@ namespace Csv.Internal.NaiveImpl {
 								_properties[i].SetValue(item, vDateTime);
 							} else if (!_isNullable[i] || !string.IsNullOrWhiteSpace(s)) {
 								if (_columnAttributes[i]?.DateFormat is string dateFormat) {
-									throw new CsvFormatException(typeof(T), _properties[i].Name, columns[i], $"Input string was not in correct DateTime format. Expected format was '{dateFormat}'.");
+									throw new CsvFormatException(typeof(T), _properties[i].Name, columns[i].ToString(), $"Input string was not in correct DateTime format. Expected format was '{dateFormat}'.");
 								} else {
-									throw new CsvFormatException(typeof(T), _properties[i].Name, columns[i], "Input string was not in correct DateTime format.");
+									throw new CsvFormatException(typeof(T), _properties[i].Name, columns[i].ToString(), "Input string was not in correct DateTime format.");
 								}
 							} else {
 								_properties[i].SetValue(item, null);
 							}
 							break;
 						case DeserializeAs.Uri:
-							s = columns[i].Trim();
+							s = columns[i].ToString().Trim();
 #if NETSTANDARD2_0
 							if (s.StartsWith("\"")
 								&& s.EndsWith("\"")) {
@@ -337,10 +337,10 @@ namespace Csv.Internal.NaiveImpl {
 							} else {
 								enumType = _properties[i].PropertyType;
 							}
-							if (Enum.TryParse(enumType, columns[i], out object? vEnum) && vEnum != null) {
+							if (Enum.TryParse(enumType, columns[i].ToString(), out object? vEnum) && vEnum != null) {
 								_properties[i].SetValue(item, vEnum);
-							} else if (!_isNullable[i] || !string.IsNullOrWhiteSpace(columns[i])) {
-								throw new CsvFormatException(typeof(T), _properties[i].Name, columns[i], $"Input string was not in a valid {_properties[i].PropertyType.Name} value.");
+							} else if (!_isNullable[i] || columns[i].Length > 0) {
+								throw new CsvFormatException(typeof(T), _properties[i].Name, columns[i].ToString(), $"Input string was not in a valid {_properties[i].PropertyType.Name} value.");
 							}
 							break;
 						default:

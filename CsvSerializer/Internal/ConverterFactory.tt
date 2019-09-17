@@ -34,9 +34,11 @@ namespace Csv.Internal {
 	internal static class ConverterFactory {
 		private static readonly ConcurrentDictionary<Type, object> _cache = new ConcurrentDictionary<Type, object>();
 
-		public static INativeConverter<T> GetOrCreate<T>() {
-			return (INativeConverter<T>)_cache.GetOrAdd(typeof(T), type => {
-				if (type.IsEnum) {
+		public static IConverterEmitter GetOrCreateEmitter(Type type) {
+			return (IConverterEmitter)_cache.GetOrAdd(type, type => {
+				if (type == typeof(string)) {
+					return new StringConverter();
+				} else if (type.IsEnum) {
 					return Activator.CreateInstance(typeof(EnumConverter<>).MakeGenericType(type))!;
 				} else if (Nullable.GetUnderlyingType(type) is Type t && t.IsEnum) {
 					return Activator.CreateInstance(typeof(NullableEnumConverter<>).MakeGenericType(t))!;
@@ -53,5 +55,7 @@ namespace Csv.Internal {
 				}
 			});
 		}
+
+		public static INativeConverter<T> GetOrCreate<T>() where T : notnull => (INativeConverter<T>)GetOrCreateEmitter(typeof(T));
 	}
 }

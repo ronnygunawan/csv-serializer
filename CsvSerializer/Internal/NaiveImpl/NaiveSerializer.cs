@@ -71,11 +71,11 @@ namespace Csv.Internal.NaiveImpl {
 			}
 		}
 
-		public void SerializeHeader(StringBuilder stringBuilder, char separator) {
+		public void SerializeHeader(char delimiter, StringBuilder stringBuilder) {
 			bool firstProperty = true;
 			for (int i = 0; i < _properties.Length; i++) {
 				if (!firstProperty) {
-					stringBuilder.Append(separator);
+					stringBuilder.Append(delimiter);
 				}
 				stringBuilder.Append('"');
 				stringBuilder.Append((_columnAttributes[i]?.Name ?? _properties[i].Name).Replace("\"", "\"\""));
@@ -85,11 +85,11 @@ namespace Csv.Internal.NaiveImpl {
 			stringBuilder.Append("\r\n");
 		}
 
-		public void SerializeItem(StringBuilder stringBuilder, object item, char separator) {
+		public void SerializeItem(IFormatProvider provider, char delimiter, StringBuilder stringBuilder, object item) {
 			bool firstProperty = true;
 			for (int i = 0; i < _properties.Length; i++) {
 				if (!firstProperty) {
-					stringBuilder.Append(separator);
+					stringBuilder.Append(delimiter);
 				}
 				switch (_serializeAs[i]) {
 					case SerializeAs.Number:

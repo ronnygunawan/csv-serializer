@@ -11,9 +11,9 @@ namespace Csv.Internal {
 			InTrailingWhiteSpace
 		}
 
-		public static List<string> ReadNextLine(ref ReadOnlyMemory<char> csv, char separator = ',') {
+		public static List<ReadOnlyMemory<char>> ReadNextLine(ref ReadOnlyMemory<char> csv, char separator = ',') {
 			ReadOnlySpan<char> span = csv.Span;
-			List<string> columns = new List<string>();
+			List<ReadOnlyMemory<char>> columns = new List<ReadOnlyMemory<char>>();
 			int startOfLiteral = 0;
 			int endOfLiteral = 0;
 			ParserState state = ParserState.InStartingWhiteSpace;
@@ -23,13 +23,13 @@ namespace Csv.Internal {
 						case ParserState.InStartingWhiteSpace:
 						case ParserState.InUnquotedValue:
 						case ParserState.InEscapeSequence:
-							columns.Add(csv.Slice(startOfLiteral, i - startOfLiteral).ToString());
+							columns.Add(csv.Slice(startOfLiteral, i - startOfLiteral));
 							csv = csv.Slice(csv.Length - 1, 0);
 							return columns;
 						case ParserState.InQuotedValue:
 							throw new CsvFormatException(csv.ToString(), "End of file in quoted literal.");
 						case ParserState.InTrailingWhiteSpace:
-							columns.Add(csv.Slice(startOfLiteral, endOfLiteral - startOfLiteral + 1).ToString());
+							columns.Add(csv.Slice(startOfLiteral, endOfLiteral - startOfLiteral + 1));
 							csv = csv.Slice(csv.Length - 1, 0);
 							return columns;
 					}
@@ -62,12 +62,12 @@ namespace Csv.Internal {
 								case ParserState.InStartingWhiteSpace:
 								case ParserState.InUnquotedValue:
 								case ParserState.InEscapeSequence:
-									columns.Add(csv.Slice(startOfLiteral, i - startOfLiteral).ToString());
+									columns.Add(csv.Slice(startOfLiteral, i - startOfLiteral));
 									startOfLiteral = i + 1;
 									state = ParserState.InStartingWhiteSpace;
 									break;
 								case ParserState.InTrailingWhiteSpace:
-									columns.Add(csv.Slice(startOfLiteral, endOfLiteral - startOfLiteral + 1).ToString());
+									columns.Add(csv.Slice(startOfLiteral, endOfLiteral - startOfLiteral + 1));
 									startOfLiteral = i + 1;
 									state = ParserState.InStartingWhiteSpace;
 									break;
@@ -78,11 +78,11 @@ namespace Csv.Internal {
 								case ParserState.InStartingWhiteSpace:
 								case ParserState.InUnquotedValue:
 								case ParserState.InEscapeSequence:
-									columns.Add(csv.Slice(startOfLiteral, i - startOfLiteral).ToString());
+									columns.Add(csv.Slice(startOfLiteral, i - startOfLiteral));
 									csv = csv.Slice(i + 1);
 									return columns;
 								case ParserState.InTrailingWhiteSpace:
-									columns.Add(csv.Slice(startOfLiteral, endOfLiteral - startOfLiteral + 1).ToString());
+									columns.Add(csv.Slice(startOfLiteral, endOfLiteral - startOfLiteral + 1));
 									csv = csv.Slice(i + 1);
 									return columns;
 							}
