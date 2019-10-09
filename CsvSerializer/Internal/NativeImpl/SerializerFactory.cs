@@ -14,14 +14,14 @@ namespace Csv.Internal.NativeImpl {
 
 		public static ISerializer GetOrCreate<T>() where T : notnull {
 			if (_cache.TryGetValue(typeof(T), out ISerializer? serializer)) return serializer;
-			if (TypeHelper.IsInternalOrAnonymous<T>()) {
+			//if (TypeHelper.IsInternalOrAnonymous<T>()) {
 				serializer = new NaiveSerializer<T>();
-			} else {
-				ImplEmitter<ISerializer> implEmitter = new ImplEmitter<ISerializer>($"S{typeof(T).GUID.ToString("N")}");
-				implEmitter.ImplementAction<char, StringBuilder>("SerializeHeader", gen => DefineSerializeHeader<T>(gen));
-				implEmitter.ImplementAction<IFormatProvider, char, StringBuilder, object>("SerializeItem", gen => DefineSerializeItem<T>(gen));
-				serializer = implEmitter.CreateInstance();
-			}
+			//} else {
+			//	ImplEmitter<ISerializer> implEmitter = new ImplEmitter<ISerializer>($"S{typeof(T).GUID.ToString("N")}");
+			//	implEmitter.ImplementAction<char, StringBuilder>("SerializeHeader", gen => DefineSerializeHeader<T>(gen));
+			//	implEmitter.ImplementAction<IFormatProvider, char, StringBuilder, object>("SerializeItem", gen => DefineSerializeItem<T>(gen));
+			//	serializer = implEmitter.CreateInstance();
+			//}
 			_cache.TryAdd(typeof(T), serializer);
 			return serializer;
 		}

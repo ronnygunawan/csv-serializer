@@ -13,7 +13,7 @@ namespace Tests {
 				Decimal = 123_456.789m,
 				Double = 123_456.789
 			};
-			string csv = CsvSerializer.Serialize(new[] { model });
+			string csv = CsvSerializer.Serialize(new[] { model }, provider: provider);
 			DecimalAndDouble[] deserialized = CsvSerializer.Deserialize<DecimalAndDouble>(csv, provider: provider);
 			deserialized.Length.Should().Be(1);
 			model = deserialized[0];
@@ -28,7 +28,7 @@ namespace Tests {
 				Decimal = 123_456.789m,
 				Double = 123_456.789
 			};
-			string csv = CsvSerializer.Serialize(new[] { model });
+			string csv = CsvSerializer.Serialize(new[] { model }, provider: provider);
 			DecimalAndDouble[] deserialized = CsvSerializer.Deserialize<DecimalAndDouble>(csv, provider: provider);
 			deserialized.Length.Should().Be(1);
 			model = deserialized[0];
@@ -43,7 +43,7 @@ namespace Tests {
 				Decimal = 123_456.789m,
 				Double = 123_456.789
 			};
-			string csv = CsvSerializer.Serialize(new[] { model });
+			string csv = CsvSerializer.Serialize(new[] { model }, provider: provider);
 			DecimalAndDouble[] deserialized = CsvSerializer.Deserialize<DecimalAndDouble>(csv, provider: provider);
 			deserialized.Length.Should().Be(1);
 			model = deserialized[0];
@@ -58,7 +58,7 @@ namespace Tests {
 				Decimal = 123_456.789m,
 				Double = 123_456.789
 			};
-			string csv = CsvSerializer.Serialize(new[] { model });
+			string csv = CsvSerializer.Serialize(new[] { model }, provider: provider);
 			DecimalAndDouble[] deserialized = CsvSerializer.Deserialize<DecimalAndDouble>(csv, provider: provider);
 			deserialized.Length.Should().Be(1);
 			model = deserialized[0];
@@ -73,7 +73,7 @@ namespace Tests {
 				Decimal = 123_456.789m,
 				Double = 123_456.789
 			};
-			string csv = CsvSerializer.Serialize(new[] { model });
+			string csv = CsvSerializer.Serialize(new[] { model }, provider: provider);
 			DecimalAndDouble[] deserialized = CsvSerializer.Deserialize<DecimalAndDouble>(csv, provider: provider);
 			deserialized.Length.Should().Be(1);
 			model = deserialized[0];
@@ -88,7 +88,7 @@ namespace Tests {
 				Decimal = 123_456.789m,
 				Double = 123_456.789
 			};
-			string csv = CsvSerializer.Serialize(new[] { model });
+			string csv = CsvSerializer.Serialize(new[] { model }, provider: provider);
 			DecimalAndDouble[] deserialized = CsvSerializer.Deserialize<DecimalAndDouble>(csv, provider: provider);
 			deserialized.Length.Should().Be(1);
 			model = deserialized[0];
@@ -103,7 +103,7 @@ namespace Tests {
 				Decimal = 123_456.789m,
 				Double = 123_456.789
 			};
-			string csv = CsvSerializer.Serialize(new[] { model });
+			string csv = CsvSerializer.Serialize(new[] { model }, provider: provider);
 			DecimalAndDouble[] deserialized = CsvSerializer.Deserialize<DecimalAndDouble>(csv, provider: provider);
 			deserialized.Length.Should().Be(1);
 			model = deserialized[0];
@@ -118,7 +118,7 @@ namespace Tests {
 				Decimal = 123_456.789m,
 				Double = 123_456.789
 			};
-			string csv = CsvSerializer.Serialize(new[] { model });
+			string csv = CsvSerializer.Serialize(new[] { model }, provider: provider);
 			DecimalAndDouble[] deserialized = CsvSerializer.Deserialize<DecimalAndDouble>(csv, provider: provider);
 			deserialized.Length.Should().Be(1);
 			model = deserialized[0];

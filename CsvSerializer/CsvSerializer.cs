@@ -6,9 +6,9 @@ using System.Runtime.CompilerServices;
 using System.Security;
 using System.Text;
 
-#if DEBUG
+//#if DEBUG
 [assembly: InternalsVisibleTo("Tests")]
-#endif
+//#endif
 [assembly: InternalsVisibleTo("CsvSerializer.Dynamic")]
 [assembly: AllowPartiallyTrustedCallers]
 [assembly: SecurityTransparent]
