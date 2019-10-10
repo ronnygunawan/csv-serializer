@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 using System.Reflection;
 using System.Text;
 
@@ -93,7 +94,12 @@ namespace Csv.Internal.NaiveImpl {
 				}
 				switch (_serializeAs[i]) {
 					case SerializeAs.Number:
-						stringBuilder.AppendFormat("{0}", _properties[i].GetValue(item));
+						string? str = Convert.ToString(_properties[i].GetValue(item), provider);
+						if (str is string && str.Contains(delimiter)) {
+							stringBuilder.AppendFormat("\"{0}\"", str);
+						} else {
+							stringBuilder.AppendFormat("{0}", str);
+						}
 						break;
 					case SerializeAs.String:
 						if (((string?)_properties[i].GetValue(item))?.Replace("\"", "\"\"") is string stringValue) {
@@ -106,9 +112,9 @@ namespace Csv.Internal.NaiveImpl {
 						if (((DateTime?)_properties[i].GetValue(item)) is DateTime dateTimeValue) {
 							stringBuilder.Append('"');
 							if (_columnAttributes[i]?.DateFormat is string dateFormat) {
-								stringBuilder.Append(dateTimeValue.ToString(dateFormat));
+								stringBuilder.Append(dateTimeValue.ToString(dateFormat, provider));
 							} else {
-								stringBuilder.Append(dateTimeValue.ToString());
+								stringBuilder.Append(dateTimeValue.ToString(provider));
 							}
 							stringBuilder.Append('"');
 						}

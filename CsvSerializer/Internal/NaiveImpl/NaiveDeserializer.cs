@@ -182,84 +182,108 @@ namespace Csv.Internal.NaiveImpl {
 				for (int i = 0; i < _properties.Length; i++) {
 					switch (_deserializeAs[i]) {
 						case DeserializeAs.SByte:
-							if (sbyte.TryParse(columns[i].Span, out sbyte vSByte)) {
+							if (columns[i].Length >= 2 && columns[i].Span[0] == '"' && sbyte.TryParse(columns[i].Span[1..^1], NumberStyles.Integer, provider, out sbyte vSByte)) {
+								_properties[i].SetValue(item, vSByte);
+							} else if (sbyte.TryParse(columns[i].Span, NumberStyles.Integer, provider, out vSByte)) {
 								_properties[i].SetValue(item, vSByte);
 							} else if (!_isNullable[i] || columns[i].Length > 0) {
 								throw new CsvFormatException(typeof(T), _properties[i].Name, columns[i].ToString(), "Input string was not in correct sbyte format.");
 							}
 							break;
 						case DeserializeAs.Byte:
-							if (byte.TryParse(columns[i].Span, out byte vByte)) {
+							if (columns[i].Length >= 2 && columns[i].Span[0] == '"' && byte.TryParse(columns[i].Span[1..^1], NumberStyles.Integer, provider, out byte vByte)) {
+								_properties[i].SetValue(item, vByte);
+							} else if (byte.TryParse(columns[i].Span, NumberStyles.Integer, provider, out vByte)) {
 								_properties[i].SetValue(item, vByte);
 							} else if (!_isNullable[i] || columns[i].Length > 0) {
 								throw new CsvFormatException(typeof(T), _properties[i].Name, columns[i].ToString(), "Input string was not in correct byte format.");
 							}
 							break;
 						case DeserializeAs.Int16:
-							if (short.TryParse(columns[i].Span, out short vInt16)) {
+							if (columns[i].Length >= 2 && columns[i].Span[0] == '"' && short.TryParse(columns[i].Span[1..^1], NumberStyles.Integer, provider, out short vInt16)) {
+								_properties[i].SetValue(item, vInt16);
+							} else if (short.TryParse(columns[i].Span, NumberStyles.Integer, provider, out vInt16)) {
 								_properties[i].SetValue(item, vInt16);
 							} else if (!_isNullable[i] || columns[i].Length > 0) {
 								throw new CsvFormatException(typeof(T), _properties[i].Name, columns[i].ToString(), "Input string was not in correct Int16 format.");
 							}
 							break;
 						case DeserializeAs.UInt16:
-							if (ushort.TryParse(columns[i].Span, out ushort vUInt16)) {
+							if (columns[i].Length >= 2 && columns[i].Span[0] == '"' && ushort.TryParse(columns[i].Span[1..^1], NumberStyles.Integer, provider, out ushort vUInt16)) {
+								_properties[i].SetValue(item, vUInt16);
+							} else if (ushort.TryParse(columns[i].Span, NumberStyles.Integer, provider, out vUInt16)) {
 								_properties[i].SetValue(item, vUInt16);
 							} else if (!_isNullable[i] || columns[i].Length > 0) {
 								throw new CsvFormatException(typeof(T), _properties[i].Name, columns[i].ToString(), "Input string was not in correct UInt16 format.");
 							}
 							break;
 						case DeserializeAs.Int32:
-							if (int.TryParse(columns[i].Span, out int vInt32)) {
+							if (columns[i].Length >= 2 && columns[i].Span[0] == '"' && int.TryParse(columns[i].Span[1..^1], NumberStyles.Integer, provider, out int vInt32)) {
+								_properties[i].SetValue(item, vInt32);
+							} else if (int.TryParse(columns[i].Span, NumberStyles.Integer, provider, out vInt32)) {
 								_properties[i].SetValue(item, vInt32);
 							} else if (!_isNullable[i] || columns[i].Length > 0) {
 								throw new CsvFormatException(typeof(T), _properties[i].Name, columns[i].ToString(), "Input string was not in correct Int32 format.");
 							}
 							break;
 						case DeserializeAs.UInt32:
-							if (uint.TryParse(columns[i].Span, out uint vUInt32)) {
+							if (columns[i].Length >= 2 && columns[i].Span[0] == '"' && uint.TryParse(columns[i].Span[1..^1], NumberStyles.Integer, provider, out uint vUInt32)) {
+								_properties[i].SetValue(item, vUInt32);
+							} else if (uint.TryParse(columns[i].Span, NumberStyles.Integer, provider, out vUInt32)) {
 								_properties[i].SetValue(item, vUInt32);
 							} else if (!_isNullable[i] || columns[i].Length > 0) {
 								throw new CsvFormatException(typeof(T), _properties[i].Name, columns[i].ToString(), "Input string was not in correct UInt32 format.");
 							}
 							break;
 						case DeserializeAs.Int64:
-							if (long.TryParse(columns[i].Span, out long vInt64)) {
+							if (columns[i].Length >= 2 && columns[i].Span[0] == '"' && long.TryParse(columns[i].Span[1..^1], NumberStyles.Integer, provider, out long vInt64)) {
+								_properties[i].SetValue(item, vInt64);
+							} else if (long.TryParse(columns[i].Span, NumberStyles.Integer, provider, out vInt64)) {
 								_properties[i].SetValue(item, vInt64);
 							} else if (!_isNullable[i] || columns[i].Length > 0) {
 								throw new CsvFormatException(typeof(T), _properties[i].Name, columns[i].ToString(), "Input string was not in correct Int64 format.");
 							}
 							break;
 						case DeserializeAs.UInt64:
-							if (ulong.TryParse(columns[i].Span, out ulong vUInt64)) {
+							if (columns[i].Length >= 2 && columns[i].Span[0] == '"' && ulong.TryParse(columns[i].Span[1..^1], NumberStyles.Integer, provider, out ulong vUInt64)) {
+								_properties[i].SetValue(item, vUInt64);
+							} else if (ulong.TryParse(columns[i].Span, NumberStyles.Integer, provider, out vUInt64)) {
 								_properties[i].SetValue(item, vUInt64);
 							} else if (!_isNullable[i] || columns[i].Length > 0) {
 								throw new CsvFormatException(typeof(T), _properties[i].Name, columns[i].ToString(), "Input string was not in correct UInt64 format.");
 							}
 							break;
 						case DeserializeAs.Single:
-							if (float.TryParse(columns[i].Span, out float vSingle)) {
+							if (columns[i].Length >= 2 && columns[i].Span[0] == '"' && float.TryParse(columns[i].Span[1..^1], NumberStyles.Float, provider, out float vSingle)) {
+								_properties[i].SetValue(item, vSingle);
+							} else if (float.TryParse(columns[i].Span, NumberStyles.Float, provider, out vSingle)) {
 								_properties[i].SetValue(item, vSingle);
 							} else if (!_isNullable[i] || columns[i].Length > 0) {
 								throw new CsvFormatException(typeof(T), _properties[i].Name, columns[i].ToString(), "Input string was not in correct floating point format.");
 							}
 							break;
 						case DeserializeAs.Double:
-							if (double.TryParse(columns[i].Span, out double vDouble)) {
+							if (columns[i].Length >= 2 && columns[i].Span[0] == '"' && double.TryParse(columns[i].Span[1..^1], NumberStyles.Float, provider, out double vDouble)) {
+								_properties[i].SetValue(item, vDouble);
+							} else if (double.TryParse(columns[i].Span, NumberStyles.Float, provider, out vDouble)) {
 								_properties[i].SetValue(item, vDouble);
 							} else if (!_isNullable[i] || columns[i].Length > 0) {
 								throw new CsvFormatException(typeof(T), _properties[i].Name, columns[i].ToString(), "Input string was not in correct floating point format.");
 							}
 							break;
 						case DeserializeAs.Decimal:
-							if (decimal.TryParse(columns[i].Span, out decimal vDecimal)) {
+							if (columns[i].Length >= 2 && columns[i].Span[0] == '"' && decimal.TryParse(columns[i].Span[1..^1], NumberStyles.Number, provider, out decimal vDecimal)) {
+								_properties[i].SetValue(item, vDecimal);
+							} else if (decimal.TryParse(columns[i].Span, NumberStyles.Number, provider, out vDecimal)) {
 								_properties[i].SetValue(item, vDecimal);
 							} else if (!_isNullable[i] || columns[i].Length > 0) {
 								throw new CsvFormatException(typeof(T), _properties[i].Name, columns[i].ToString(), "Input string was not in correct decimal format.");
 							}
 							break;
 						case DeserializeAs.Boolean:
-							if (bool.TryParse(columns[i].Span, out bool vBoolean)) {
+							if (columns[i].Length >= 2 && columns[i].Span[0] == '"' && bool.TryParse(columns[i].Span[1..^1], out bool vBoolean)) {
+								_properties[i].SetValue(item, vBoolean);
+							} else if (bool.TryParse(columns[i].Span, out vBoolean)) {
 								_properties[i].SetValue(item, vBoolean);
 							} else if (!_isNullable[i] || columns[i].Length > 0) {
 								throw new CsvFormatException(typeof(T), _properties[i].Name, columns[i].ToString(), "Input string was not in correct Boolean format.");

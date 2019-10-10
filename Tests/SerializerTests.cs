@@ -1,6 +1,7 @@
 using Csv;
 using FluentAssertions;
 using System;
+using System.Globalization;
 using System.Linq;
 using System.Net;
 using Xunit;
@@ -52,7 +53,7 @@ namespace Tests {
 				StatusCode = HttpStatusCode.OK
 			};
 			string csv = CsvSerializer.Serialize(new[] { item }, withHeaders: true);
-			csv.Should().Be("\"Bool\",\"Byte\",\"SByte\",\"Short\",\"UShort\",\"Int\",\"UInt\",\"Long\",\"ULong\",\"Float\",\"Double\",\"Decimal\",\"String\",\"DateTime\",\"Uri\",\"StatusCode\"\r\nTrue,102,-100,-200,200,-3000,3000,-40000,40000,1E+14,1.7837193718273812E+19,989898989898,\"CSV Serializer\",8/23/2019 12:00:00 AM,\"http://localhost:5000/\",OK");
+			csv.Should().Be("\"Bool\",\"Byte\",\"SByte\",\"Short\",\"UShort\",\"Int\",\"UInt\",\"Long\",\"ULong\",\"Float\",\"Double\",\"Decimal\",\"String\",\"DateTime\",\"Uri\",\"StatusCode\"\r\nTrue,102,-100,-200,200,-3000,3000,-40000,40000,1E+14,1.7837193718273812E+19,989898989898,\"CSV Serializer\",\"8/23/2019 12:00:00 AM\",\"http://localhost:5000/\",OK");
 		}
 
 		[Fact]
@@ -182,7 +183,7 @@ namespace Tests {
 			string csv = @"No;Name;Price;Weight;CreatedDate;IsSuspended
 10;Deflector, Dust (For Rear Differential);200000;20,5;13/12/2019;FALSE
 13;""Deflector; Tire; Filter"";150000;15,5;20/11/2019;TRUE";
-			ExcelModel[] models = CsvSerializer.Deserialize<ExcelModel>(csv, hasHeaders: true, delimiter: ';');
+			ExcelModel[] models = CsvSerializer.Deserialize<ExcelModel>(csv, hasHeaders: true, delimiter: ';', provider: CultureInfo.GetCultureInfo("id-ID"));
 			models.Count().Should().Be(2);
 		}
 	}

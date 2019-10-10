@@ -1,11 +1,17 @@
 ﻿using Csv;
 using FluentAssertions;
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using Xunit;
 
 namespace Tests {
 	public class InternationalizationTests {
+		private class MapCoordinates {
+			public double Latitude { get; set; }
+			public double Longitude { get; set; }
+		}
+
 		[Fact]
 		public void CanSerializeAndDeserializeInEN_USLocale() {
 			IFormatProvider provider = CultureInfo.GetCultureInfo("en-US");
@@ -34,6 +40,26 @@ namespace Tests {
 			model = deserialized[0];
 			model.Decimal.Should().Be(123_456.789m);
 			model.Double.Should().Be(123_456.789);
+		}
+
+		[Fact]
+		public void CanSerializeAndDeserializeWithModifiedThreadCulture() {
+			CultureInfo temp = CultureInfo.CurrentCulture;
+			try {
+				CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("id-ID");
+				DecimalAndDouble model = new DecimalAndDouble {
+					Decimal = 123_456.789m,
+					Double = 123_456.789
+				};
+				string csv = CsvSerializer.Serialize(new[] { model });
+				DecimalAndDouble[] deserialized = CsvSerializer.Deserialize<DecimalAndDouble>(csv);
+				deserialized.Length.Should().Be(1);
+				model = deserialized[0];
+				model.Decimal.Should().Be(123_456.789m);
+				model.Double.Should().Be(123_456.789);
+			} finally {
+				CultureInfo.CurrentCulture = temp;
+			}
 		}
 
 		[Fact]
