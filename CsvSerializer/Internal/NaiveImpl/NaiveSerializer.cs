@@ -10,7 +10,8 @@ namespace Csv.Internal.NaiveImpl {
 			String,
 			DateTime,
 			Uri,
-			Enum
+			Enum,
+			Object
 		}
 
 		private readonly PropertyInfo[] _properties;
@@ -67,7 +68,9 @@ namespace Csv.Internal.NaiveImpl {
 						_serializeAs[i] = SerializeAs.Enum;
 						break;
 					default:
-						throw new CsvTypeException(_properties[i].PropertyType);
+						_serializeAs[i] = SerializeAs.Object;
+						break;
+						//throw new CsvTypeException(_properties[i].PropertyType);
 				}
 			}
 		}
