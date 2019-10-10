@@ -1,7 +1,7 @@
 ﻿using System;
-using System.Globalization;
 using System.Reflection;
 using System.Text;
+using System.Text.Json;
 
 namespace Csv.Internal.NaiveImpl {
 	internal class NaiveSerializer<T> : ISerializer where T : notnull {
@@ -130,7 +130,8 @@ namespace Csv.Internal.NaiveImpl {
 						stringBuilder.AppendFormat("{0}", _properties[i].GetValue(item));
 						break;
 					default:
-						throw new NotImplementedException();
+						stringBuilder.AppendFormat("\"{0}\"", JsonSerializer.Serialize(_properties[i].GetValue(item)).Replace("\"", "\"\""));
+						break;
 				}
 				firstProperty = false;
 			}

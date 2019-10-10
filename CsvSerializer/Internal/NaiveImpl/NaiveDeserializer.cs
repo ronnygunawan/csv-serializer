@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Reflection;
+using System.Text.Json;
 
 namespace Csv.Internal.NaiveImpl {
 	internal class NaiveDeserializer<T> : IDeserializer where T : notnull {
@@ -22,7 +23,8 @@ namespace Csv.Internal.NaiveImpl {
 			String,
 			DateTime,
 			Uri,
-			Enum
+			Enum,
+			Object
 		}
 
 		private readonly PropertyInfo[] _properties;
@@ -159,7 +161,9 @@ namespace Csv.Internal.NaiveImpl {
 						_isNullable[i] = true;
 						break;
 					default:
-						throw new CsvTypeException(_properties[i].PropertyType);
+						_deserializeAs[i] = DeserializeAs.Object;
+						_isNullable[i] = true;
+						break;
 				}
 			}
 		}
@@ -366,6 +370,22 @@ namespace Csv.Internal.NaiveImpl {
 							} else if (!_isNullable[i] || columns[i].Length > 0) {
 								throw new CsvFormatException(typeof(T), _properties[i].Name, columns[i].ToString(), $"Input string was not in a valid {_properties[i].PropertyType.Name} value.");
 							}
+							break;
+						case DeserializeAs.Object:
+							s = columns[i].ToString().Trim();
+#if NETSTANDARD2_0
+							if (s.StartsWith("\"")
+								&& s.EndsWith("\"")) {
+								s = s.Substring(1, s.Length - 2);
+							}
+#else
+							if (s.StartsWith('"')
+								&& s.EndsWith('"')) {
+								s = s[1..^1];
+							}
+#endif
+							s = s.Replace("\"\"", "\"").TrimEnd('\r');
+							_properties[i].SetValue(item, JsonSerializer.Deserialize(s, _properties[i].PropertyType));
 							break;
 						default:
 							throw new NotImplementedException();
