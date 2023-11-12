@@ -1,21 +1,20 @@
 ﻿using Csv;
 using FluentAssertions;
 using System;
-using System.Collections.Generic;
 using System.Globalization;
 using Xunit;
 
 namespace Tests {
 	public class InternationalizationTests {
-		private class MapCoordinates {
-			public double Latitude { get; set; }
-			public double Longitude { get; set; }
+		private sealed record MapCoordinates {
+			public double Latitude { get; init; }
+			public double Longitude { get; init; }
 		}
 
 		[Fact]
 		public void CanSerializeAndDeserializeInEN_USLocale() {
 			IFormatProvider provider = CultureInfo.GetCultureInfo("en-US");
-			DecimalAndDouble model = new DecimalAndDouble {
+			DecimalAndDouble model = new() {
 				Decimal = 123_456.789m,
 				Double = 123_456.789
 			};
@@ -30,7 +29,7 @@ namespace Tests {
 		[Fact]
 		public void CanSerializeAndDeserializeInEN_GBLocale() {
 			IFormatProvider provider = CultureInfo.GetCultureInfo("en-GB");
-			DecimalAndDouble model = new DecimalAndDouble {
+			DecimalAndDouble model = new() {
 				Decimal = 123_456.789m,
 				Double = 123_456.789
 			};
@@ -47,7 +46,7 @@ namespace Tests {
 			CultureInfo temp = CultureInfo.CurrentCulture;
 			try {
 				CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("id-ID");
-				DecimalAndDouble model = new DecimalAndDouble {
+				DecimalAndDouble model = new() {
 					Decimal = 123_456.789m,
 					Double = 123_456.789
 				};
@@ -65,7 +64,7 @@ namespace Tests {
 		[Fact]
 		public void CanSerializeAndDeserializeInID_IDLocale() {
 			IFormatProvider provider = CultureInfo.GetCultureInfo("id-ID");
-			DecimalAndDouble model = new DecimalAndDouble {
+			DecimalAndDouble model = new() {
 				Decimal = 123_456.789m,
 				Double = 123_456.789
 			};
@@ -80,7 +79,7 @@ namespace Tests {
 		[Fact]
 		public void CanSerializeAndDeserializeInEN_INLocale() {
 			IFormatProvider provider = CultureInfo.GetCultureInfo("en-IN");
-			DecimalAndDouble model = new DecimalAndDouble {
+			DecimalAndDouble model = new() {
 				Decimal = 123_456.789m,
 				Double = 123_456.789
 			};
@@ -95,7 +94,7 @@ namespace Tests {
 		[Fact]
 		public void CanSerializeAndDeserializeInFR_FRLocale() {
 			IFormatProvider provider = CultureInfo.GetCultureInfo("fr-FR");
-			DecimalAndDouble model = new DecimalAndDouble {
+			DecimalAndDouble model = new() {
 				Decimal = 123_456.789m,
 				Double = 123_456.789
 			};
@@ -110,7 +109,7 @@ namespace Tests {
 		[Fact]
 		public void CanSerializeAndDeserializeInDE_DELocale() {
 			IFormatProvider provider = CultureInfo.GetCultureInfo("de-DE");
-			DecimalAndDouble model = new DecimalAndDouble {
+			DecimalAndDouble model = new() {
 				Decimal = 123_456.789m,
 				Double = 123_456.789
 			};
@@ -125,7 +124,7 @@ namespace Tests {
 		[Fact]
 		public void CanSerializeAndDeserializeInZH_CNLocale() {
 			IFormatProvider provider = CultureInfo.GetCultureInfo("zh-CN");
-			DecimalAndDouble model = new DecimalAndDouble {
+			DecimalAndDouble model = new() {
 				Decimal = 123_456.789m,
 				Double = 123_456.789
 			};
@@ -140,7 +139,7 @@ namespace Tests {
 		[Fact]
 		public void CanSerializeAndDeserializeInAR_SALocale() {
 			IFormatProvider provider = CultureInfo.GetCultureInfo("ar-SA");
-			DecimalAndDouble model = new DecimalAndDouble {
+			DecimalAndDouble model = new() {
 				Decimal = 123_456.789m,
 				Double = 123_456.789
 			};

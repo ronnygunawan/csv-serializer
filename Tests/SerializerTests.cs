@@ -28,13 +28,17 @@ namespace Tests {
 				Uri = new Uri("http://localhost:5000/"),
 				StatusCode = HttpStatusCode.OK
 			};
+
 			string csv = CsvSerializer.Serialize(new[] { item }, withHeaders: true);
-			csv.Should().Be("\"Bool\",\"Byte\",\"SByte\",\"Short\",\"UShort\",\"Int\",\"UInt\",\"Long\",\"ULong\",\"Float\",\"Double\",\"Decimal\",\"String\",\"DateTime\",\"Uri\",\"StatusCode\"\r\nTrue,102,-100,-200,200,-3000,3000,-40000,40000,1E+14,1.7837193718273812E+19,989898989898,\"CSV Serializer\",\"8/23/2019 12:00:00 AM\",\"http://localhost:5000/\",OK");
+			csv.Should().Be("""
+				"Bool","Byte","SByte","Short","UShort","Int","UInt","Long","ULong","Float","Double","Decimal","String","DateTime","Uri","StatusCode"
+				True,102,-100,-200,200,-3000,3000,-40000,40000,1E+14,1.7837193718273812E+19,989898989898,"CSV Serializer","8/23/2019 12:00:00 AM","http://localhost:5000/",OK
+				""");
 		}
 
 		[Fact]
 		public void PublicTypesAreSerializedUsingDynamicSerializer() {
-			Model item = new Model {
+			Model item = new() {
 				Bool = true,
 				Byte = 0x66,
 				SByte = -100,
@@ -53,16 +57,22 @@ namespace Tests {
 				StatusCode = HttpStatusCode.OK
 			};
 			string csv = CsvSerializer.Serialize(new[] { item }, withHeaders: true);
-			csv.Should().Be("\"Bool\",\"Byte\",\"SByte\",\"Short\",\"UShort\",\"Int\",\"UInt\",\"Long\",\"ULong\",\"Float\",\"Double\",\"Decimal\",\"String\",\"DateTime\",\"Uri\",\"StatusCode\"\r\nTrue,102,-100,-200,200,-3000,3000,-40000,40000,1E+14,1.7837193718273812E+19,989898989898,\"CSV Serializer\",\"8/23/2019 12:00:00 AM\",\"http://localhost:5000/\",OK");
+			csv.Should().Be("""
+				"Bool","Byte","SByte","Short","UShort","Int","UInt","Long","ULong","Float","Double","Decimal","String","DateTime","Uri","StatusCode"
+				True,102,-100,-200,200,-3000,3000,-40000,40000,1E+14,1.7837193718273812E+19,989898989898,"CSV Serializer","8/23/2019 12:00:00 AM","http://localhost:5000/",OK
+				""");
 		}
 
 		[Fact]
 		public void PrivateTypesAreSerializedUsingNaiveSerializer() {
-			PrivateModel item = new PrivateModel {
+			PrivateModel item = new() {
 				Name = "CSV Serializer"
 			};
 			string csv = CsvSerializer.Serialize(new[] { item }, withHeaders: true);
-			csv.Should().Be("\"Name\"\r\n\"CSV Serializer\"");
+			csv.Should().Be("""
+				"Name"
+				"CSV Serializer"
+				""");
 		}
 
 		[Fact]
@@ -89,7 +99,7 @@ namespace Tests {
 
 		[Fact]
 		public void Serializing1MillionRowsOfPublicTypeCompletesIn10Seconds() {
-			Model item = new Model {
+			Model item = new() {
 				Bool = true,
 				Byte = 0x66,
 				SByte = -100,
@@ -111,7 +121,7 @@ namespace Tests {
 
 		[Fact]
 		public void Deserializing1MillionRowsOfPublicTypeCompletesIn20Seconds() {
-			Model item = new Model {
+			Model item = new() {
 				Bool = true,
 				Byte = 0x66,
 				SByte = -100,
@@ -135,7 +145,10 @@ namespace Tests {
 
 		[Fact]
 		public void CsvCanBeDeserializedToPublicType() {
-			string csv = "\"Bool\",\"Byte\",\"SByte\",\"Short\",\"UShort\",\"Int\",\"UInt\",\"Long\",\"ULong\",\"Float\",\"Double\",\"Decimal\",\"String\",\"DateTime\",\"Uri\",\"StatusCode\"\r\nTrue,102,-100,-200,200,-3000,3000,-40000,40000,1E+14,1.7837193718273812E+19,989898989898,\"CSV Serializer\",\"08/23/2019 00:00:00\",\"http://localhost:5000/\",OK";
+			string csv = """
+				"Bool","Byte","SByte","Short","UShort","Int","UInt","Long","ULong","Float","Double","Decimal","String","DateTime","Uri","StatusCode"
+				True,102,-100,-200,200,-3000,3000,-40000,40000,1E+14,1.7837193718273812E+19,989898989898,"CSV Serializer","08/23/2019 00:00:00","http://localhost:5000/",OK
+				""";
 			Model[] items = CsvSerializer.Deserialize<Model>(csv, hasHeaders: true);
 			items.Length.Should().Be(1);
 			Model item = items.Single();
@@ -180,9 +193,11 @@ namespace Tests {
 
 		[Fact]
 		public void CanDeserializeCsvFromExcel() {
-			string csv = @"No;Name;Price;Weight;CreatedDate;IsSuspended
-10;Deflector, Dust (For Rear Differential);200000;20,5;13/12/2019;FALSE
-13;""Deflector; Tire; Filter"";150000;15,5;20/11/2019;TRUE";
+			string csv = """
+				No;Name;Price;Weight;CreatedDate;IsSuspended
+				10;Deflector, Dust (For Rear Differential);200000;20,5;13/12/2019;FALSE
+				13;"Deflector; Tire; Filter";150000;15,5;20/11/2019;TRUE
+				""";
 			ExcelModel[] models = CsvSerializer.Deserialize<ExcelModel>(csv, hasHeaders: true, delimiter: ';', provider: CultureInfo.GetCultureInfo("id-ID"));
 			models.Count().Should().Be(2);
 		}
@@ -190,7 +205,7 @@ namespace Tests {
 
 	public class ExcelModel {
 		public int No { get; set; }
-		public string Name { get; set; }
+		public required string Name { get; set; }
 		public decimal Price { get; set; }
 		public double Weight { get; set; }
 		[CsvColumn("CreatedDate", DateFormat = "dd/MM/yyyy")]
@@ -217,7 +232,7 @@ namespace Tests {
 		public HttpStatusCode? StatusCode { get; set; }
 	}
 
-	class PrivateModel {
+	internal sealed class PrivateModel {
 		public string? Name { get; set; }
 	}
 
