@@ -113,7 +113,7 @@ namespace Tests {
 		}
 
 		public sealed record EscapeTest {
-			public string? Name { get; init; }
+			public string? Name { get; set; }
 		}
 		[Fact]
 		public void DoubleQuotesAreUnescapedOnDeserializing() {
@@ -128,8 +128,8 @@ namespace Tests {
 		}
 
 		public sealed record CommaTest {
-			public string? Name { get; init; }
-			public string? LastName { get; init; }
+			public string? Name { get; set; }
+			public string? LastName { get; set; }
 		}
 		[Fact]
 		public void CommasInStringDontSplitString() {
@@ -147,20 +147,20 @@ namespace Tests {
 		}
 
 		public sealed record ModelWithNullableValues {
-			public bool? Bool { get; init; }
-			public byte? Byte { get; init; }
-			public sbyte? SByte { get; init; }
-			public short? Short { get; init; }
-			public ushort? UShort { get; init; }
-			public int? Int { get; init; }
-			public uint? UInt { get; init; }
-			public long? Long { get; init; }
-			public ulong? ULong { get; init; }
-			public float? Float { get; init; }
-			public double? Double { get; init; }
-			public decimal? Decimal { get; init; }
-			public string? String { get; init; }
-			public DateTime? DateTime { get; init; }
+			public bool? Bool { get; set; }
+			public byte? Byte { get; set; }
+			public sbyte? SByte { get; set; }
+			public short? Short { get; set; }
+			public ushort? UShort { get; set; }
+			public int? Int { get; set; }
+			public uint? UInt { get; set; }
+			public long? Long { get; set; }
+			public ulong? ULong { get; set; }
+			public float? Float { get; set; }
+			public double? Double { get; set; }
+			public decimal? Decimal { get; set; }
+			public string? String { get; set; }
+			public DateTime? DateTime { get; set; }
 		}
 	}
 }

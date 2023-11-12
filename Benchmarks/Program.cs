@@ -1,10 +1,10 @@
-﻿using BenchmarkDotNet.Attributes;
-using BenchmarkDotNet.Running;
-using System;
+﻿using System;
 using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
+using BenchmarkDotNet.Attributes;
+using BenchmarkDotNet.Running;
 
 namespace Benchmarks {
 	public static class Program {
@@ -14,7 +14,40 @@ namespace Benchmarks {
 	}
 
 	[RPlotExporter, RankColumn, MemoryDiagnoser]
+	[SimpleJob(launchCount: 1, warmupCount: 3, iterationCount: 10)]
 	public class Serialize {
+		private static readonly Csv.ISerializer V1Serializer = new Csv.Internal.NaiveImpl.NaiveSerializer<Model>();
+
+		private static readonly RecordParser.Parsers.IVariableLengthWriter<Model> RecordParserWriter = new RecordParser.Builders.Writer.VariableLengthWriterSequentialBuilder<Model>()
+			.Map(x => x.Bool)
+			.Skip(1)
+			.Map(x => x.Byte)
+			.Map(x => x.SByte)
+			.Skip(1)
+			.Map(x => x.Short)
+			.Skip(1)
+			.Map(x => x.UShort)
+			.Skip(1)
+			.Map(x => x.Int)
+			.Skip(1)
+			.Map(x => x.UInt)
+			.Skip(1)
+			.Map(x => x.Long)
+			.Skip(1)
+			.Map(x => x.ULong)
+			.Skip(1)
+			.Map(x => x.Float)
+			.Skip(1)
+			.Map(x => x.Double)
+			.Skip(1)
+			.Map(x => x.Decimal)
+			.Skip(1)
+			.Map(x => x.String)
+			.Skip(1)
+			.Map(x => x.DateTime)
+			.Skip(1)
+			.Build(",");
+
 		private Model[] _data;
 
 		[Params(1000, 10000, 100000)]
@@ -42,7 +75,18 @@ namespace Benchmarks {
 		}
 
 		[Benchmark]
-		public string CsvSerializerSerialize() => Csv.CsvSerializer.Serialize(_data);
+		public string CsvSerializerV1Serialize() {
+			StringBuilder stringBuilder = new();
+			foreach (Model item in _data) {
+				V1Serializer.SerializeItem(null, ',', stringBuilder, item);
+			}
+			return stringBuilder.ToString().TrimEnd();
+		}
+
+		[Benchmark]
+		public string CsvSerializerV2Serialize() {
+			return Csv.CsvSerializer.Serialize(_data);
+		}
 
 		[Benchmark]
 		public string CsvHelperSerialize() {
@@ -54,12 +98,6 @@ namespace Benchmarks {
 		}
 
 		[Benchmark]
-		public byte[] MessagePackSerialize() => MessagePack.MessagePackSerializer.Serialize(_data);
-
-		[Benchmark]
-		public string MessagePackSerializeToBase64() => Convert.ToBase64String(MessagePack.MessagePackSerializer.Serialize(_data));
-
-		[Benchmark]
 		public string MessagePackSerializeToJson() => MessagePack.MessagePackSerializer.SerializeToJson(_data);
 
 		[Benchmark]
@@ -69,7 +107,43 @@ namespace Benchmarks {
 		public byte[] Utf8JsonSerialize() => Utf8Json.JsonSerializer.Serialize(_data);
 
 		[Benchmark]
+		public string RecordParserWrite() {
+			Span<char> buffer = stackalloc char[2048];
+			StringBuilder stringBuilder = new();
+			foreach (Model item in _data) {
+				RecordParserWriter.TryFormat(item, buffer, out int charsWritten);
+				string s = new(buffer.Slice(0, charsWritten));
+				stringBuilder.AppendLine(s);
+			}
+			return stringBuilder.ToString().TrimEnd();
+		}
+
+		[Benchmark(Baseline = true)]
 		public string SystemTextJsonSerialize() => System.Text.Json.JsonSerializer.Serialize(_data);
+
+		[Benchmark]
+		public string StringJoin() => string.Join("\r\n",
+			from item in _data
+			select string.Join(',',
+				from v in new object[] {
+					item.Bool,
+					item.Byte,
+					item.SByte,
+					item.Short,
+					item.UShort,
+					item.Int,
+					item.UInt,
+					item.Long,
+					item.ULong,
+					item.Float,
+					item.Double,
+					item.Decimal,
+					item.String,
+					item.DateTime
+				}
+				select v.ToString()
+			)
+		);
 	}
 
 	[MessagePack.MessagePackObject]

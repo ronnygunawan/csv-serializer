@@ -28,6 +28,7 @@ namespace Tests {
 				Uri = new Uri("http://localhost:5000/"),
 				StatusCode = HttpStatusCode.OK
 			};
+
 			string csv = CsvSerializer.Serialize(new[] { item }, withHeaders: true);
 			csv.Should().Be("""
 				"Bool","Byte","SByte","Short","UShort","Int","UInt","Long","ULong","Float","Double","Decimal","String","DateTime","Uri","StatusCode"
@@ -37,7 +38,7 @@ namespace Tests {
 
 		[Fact]
 		public void PublicTypesAreSerializedUsingDynamicSerializer() {
-			Model item = new Model {
+			Model item = new() {
 				Bool = true,
 				Byte = 0x66,
 				SByte = -100,
@@ -64,7 +65,7 @@ namespace Tests {
 
 		[Fact]
 		public void PrivateTypesAreSerializedUsingNaiveSerializer() {
-			PrivateModel item = new PrivateModel {
+			PrivateModel item = new() {
 				Name = "CSV Serializer"
 			};
 			string csv = CsvSerializer.Serialize(new[] { item }, withHeaders: true);
@@ -98,7 +99,7 @@ namespace Tests {
 
 		[Fact]
 		public void Serializing1MillionRowsOfPublicTypeCompletesIn10Seconds() {
-			Model item = new Model {
+			Model item = new() {
 				Bool = true,
 				Byte = 0x66,
 				SByte = -100,
@@ -120,7 +121,7 @@ namespace Tests {
 
 		[Fact]
 		public void Deserializing1MillionRowsOfPublicTypeCompletesIn20Seconds() {
-			Model item = new Model {
+			Model item = new() {
 				Bool = true,
 				Byte = 0x66,
 				SByte = -100,
