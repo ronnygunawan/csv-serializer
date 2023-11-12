@@ -10,7 +10,7 @@ namespace Tests {
 		public void NullValuesAreSerializedIntoEmptyColumn() {
 			typeof(ModelWithNullableValues).IsPublic.Should().BeFalse();
 
-			ModelWithNullableValues obj = new ModelWithNullableValues {
+			ModelWithNullableValues obj = new() {
 				Bool = null,
 				Byte = null,
 				SByte = null,
@@ -27,7 +27,10 @@ namespace Tests {
 				DateTime = null
 			};
 			string csv = CsvSerializer.Serialize(new[] { obj }, withHeaders: true);
-			csv.Should().Be("\"Bool\",\"Byte\",\"SByte\",\"Short\",\"UShort\",\"Int\",\"UInt\",\"Long\",\"ULong\",\"Float\",\"Double\",\"Decimal\",\"String\",\"DateTime\"\r\n,,,,,,,,,,,,,");
+			csv.Should().Be("""
+				"Bool","Byte","SByte","Short","UShort","Int","UInt","Long","ULong","Float","Double","Decimal","String","DateTime"
+				,,,,,,,,,,,,,
+				""");
 
 			obj = new ModelWithNullableValues {
 				Bool = true,
@@ -46,7 +49,10 @@ namespace Tests {
 				DateTime = new DateTime(2019, 8, 23)
 			};
 			csv = CsvSerializer.Serialize(new[] { obj }, withHeaders: true);
-			csv.Should().Be("\"Bool\",\"Byte\",\"SByte\",\"Short\",\"UShort\",\"Int\",\"UInt\",\"Long\",\"ULong\",\"Float\",\"Double\",\"Decimal\",\"String\",\"DateTime\"\r\nTrue,102,-100,-200,200,-3000,3000,-40000,40000,1E+14,1.7837193718273812E+19,989898989898,\"CSV Serializer\",\"8/23/2019 12:00:00 AM\"");
+			csv.Should().Be("""
+				"Bool","Byte","SByte","Short","UShort","Int","UInt","Long","ULong","Float","Double","Decimal","String","DateTime"
+				True,102,-100,-200,200,-3000,3000,-40000,40000,1E+14,1.7837193718273812E+19,989898989898,"CSV Serializer","8/23/2019 12:00:00 AM"
+				""");
 		}
 
 		[Fact]
@@ -72,7 +78,10 @@ namespace Tests {
 			item.String.Should().BeEmpty();
 			item.DateTime.Should().BeNull();
 
-			csv = "\"Bool\",\"Byte\",\"SByte\",\"Short\",\"UShort\",\"Int\",\"UInt\",\"Long\",\"ULong\",\"Float\",\"Double\",\"Decimal\",\"String\",\"DateTime\"\r\nTrue,102,-100,-200,200,-3000,3000,-40000,40000,1E+14,1.7837193718273812E+19,989898989898,\"CSV Serializer\",\"08/23/2019 00:00:00\"";
+			csv = """
+				"Bool","Byte","SByte","Short","UShort","Int","UInt","Long","ULong","Float","Double","Decimal","String","DateTime"
+				True,102,-100,-200,200,-3000,3000,-40000,40000,1E+14,1.7837193718273812E+19,989898989898,"CSV Serializer","08/23/2019 00:00:00"
+				""";
 			items = CsvSerializer.Deserialize<ModelWithNullableValues>(csv, hasHeaders: true);
 			items.Length.Should().Be(1);
 			item = items.Single();
@@ -98,30 +107,37 @@ namespace Tests {
 				Name = "Tony \"Iron Man\" Stark"
 			};
 			string csv = CsvSerializer.Serialize(new[] { obj });
-			csv.Should().Be("\"Tony \"\"Iron Man\"\" Stark\"");
+			csv.Should().Be("""
+				"Tony ""Iron Man"" Stark"
+				""");
 		}
 
-		class EscapeTest {
-			public string? Name { get; set; }
+		public sealed record EscapeTest {
+			public string? Name { get; init; }
 		}
 		[Fact]
 		public void DoubleQuotesAreUnescapedOnDeserializing() {
 			typeof(EscapeTest).IsPublic.Should().BeFalse();
-			string csv = "\"Tony \"\"Iron Man\"\" Stark\"";
+			string csv = """
+				"Tony ""Iron Man"" Stark"
+				""";
 			EscapeTest[] items = CsvSerializer.Deserialize<EscapeTest>(csv);
 			items.Length.Should().Be(1);
 			EscapeTest item = items[0];
 			item.Name.Should().Be("Tony \"Iron Man\" Stark");
 		}
 
-		class CommaTest {
-			public string? Name { get; set; }
-			public string? LastName { get; set; }
+		public sealed record CommaTest {
+			public string? Name { get; init; }
+			public string? LastName { get; init; }
 		}
 		[Fact]
 		public void CommasInStringDontSplitString() {
 			typeof(CommaTest).IsPublic.Should().BeFalse();
-			string csv = "\"Stark, Tony\",\"Stark\"\r\n\"Banner, Bruce\",\"Banner\"";
+			string csv = """
+				"Stark, Tony","Stark"
+				"Banner, Bruce","Banner"
+				""";
 			CommaTest[] items = CsvSerializer.Deserialize<CommaTest>(csv);
 			items.Length.Should().Be(2);
 			items[0].Name.Should().Be("Stark, Tony");
@@ -130,21 +146,21 @@ namespace Tests {
 			items[1].LastName.Should().Be("Banner");
 		}
 
-		class ModelWithNullableValues {
-			public bool? Bool { get; set; }
-			public byte? Byte { get; set; }
-			public sbyte? SByte { get; set; }
-			public short? Short { get; set; }
-			public ushort? UShort { get; set; }
-			public int? Int { get; set; }
-			public uint? UInt { get; set; }
-			public long? Long { get; set; }
-			public ulong? ULong { get; set; }
-			public float? Float { get; set; }
-			public double? Double { get; set; }
-			public decimal? Decimal { get; set; }
-			public string? String { get; set; }
-			public DateTime? DateTime { get; set; }
+		public sealed record ModelWithNullableValues {
+			public bool? Bool { get; init; }
+			public byte? Byte { get; init; }
+			public sbyte? SByte { get; init; }
+			public short? Short { get; init; }
+			public ushort? UShort { get; init; }
+			public int? Int { get; init; }
+			public uint? UInt { get; init; }
+			public long? Long { get; init; }
+			public ulong? ULong { get; init; }
+			public float? Float { get; init; }
+			public double? Double { get; init; }
+			public decimal? Decimal { get; init; }
+			public string? String { get; init; }
+			public DateTime? DateTime { get; init; }
 		}
 	}
 }

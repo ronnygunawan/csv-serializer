@@ -1,27 +1,28 @@
 ﻿using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Running;
 using System;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
 
 namespace Benchmarks {
-	class Program {
-		static void Main(string[] args) {
+	public static class Program {
+		public static void Main(string[] args) {
 			BenchmarkRunner.Run<Serialize>();
 		}
 	}
 
-	[RPlotExporter, RankColumn]
+	[RPlotExporter, RankColumn, MemoryDiagnoser]
 	public class Serialize {
 		private Model[] _data;
 
 		[Params(1000, 10000, 100000)]
 		public int N;
-		
+
 		[GlobalSetup]
 		public void Setup() {
-			Model item = new Model {
+			Model item = new() {
 				Bool = true,
 				Byte = 0x66,
 				SByte = -100,
@@ -45,9 +46,9 @@ namespace Benchmarks {
 
 		[Benchmark]
 		public string CsvHelperSerialize() {
-			using MemoryStream memoryStream = new MemoryStream();
-			using StreamWriter streamWriter = new StreamWriter(memoryStream);
-			using CsvHelper.CsvWriter csvWriter = new CsvHelper.CsvWriter(streamWriter);
+			using MemoryStream memoryStream = new();
+			using StreamWriter streamWriter = new(memoryStream);
+			using CsvHelper.CsvWriter csvWriter = new(streamWriter, CultureInfo.InvariantCulture);
 			csvWriter.WriteRecords(_data);
 			return Encoding.UTF8.GetString(memoryStream.ToArray());
 		}
@@ -59,13 +60,16 @@ namespace Benchmarks {
 		public string MessagePackSerializeToBase64() => Convert.ToBase64String(MessagePack.MessagePackSerializer.Serialize(_data));
 
 		[Benchmark]
-		public string MessagePackSerializeToJson() => MessagePack.MessagePackSerializer.ToJson(_data);
+		public string MessagePackSerializeToJson() => MessagePack.MessagePackSerializer.SerializeToJson(_data);
 
 		[Benchmark]
 		public string NewtonsoftJsonSerializeObject() => Newtonsoft.Json.JsonConvert.SerializeObject(_data);
 
 		[Benchmark]
 		public byte[] Utf8JsonSerialize() => Utf8Json.JsonSerializer.Serialize(_data);
+
+		[Benchmark]
+		public string SystemTextJsonSerialize() => System.Text.Json.JsonSerializer.Serialize(_data);
 	}
 
 	[MessagePack.MessagePackObject]
