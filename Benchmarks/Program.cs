@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -9,7 +10,8 @@ using BenchmarkDotNet.Running;
 namespace Benchmarks {
 	public static class Program {
 		public static void Main(string[] args) {
-			BenchmarkRunner.Run<Serialize>();
+			// BenchmarkRunner.Run<Serialize>();
+			BenchmarkRunner.Run<Deserialize>();
 		}
 	}
 
@@ -22,6 +24,7 @@ namespace Benchmarks {
 			.Map(x => x.Bool)
 			.Skip(1)
 			.Map(x => x.Byte)
+			.Skip(1)
 			.Map(x => x.SByte)
 			.Skip(1)
 			.Map(x => x.Short)
@@ -144,6 +147,84 @@ namespace Benchmarks {
 				select v.ToString()
 			)
 		);
+	}
+
+	[RPlotExporter, RankColumn, MemoryDiagnoser]
+	[SimpleJob(launchCount: 1, warmupCount: 3, iterationCount: 10)]
+	public class Deserialize {
+		private static readonly Csv.IDeserializer V1Deserializer = new Csv.Internal.NaiveImpl.NaiveDeserializer<Model>();
+
+		private static readonly RecordParser.Parsers.IVariableLengthReader<Model> RecordParserReader = new RecordParser.Builders.Reader.VariableLengthReaderBuilder<Model>()
+			.Map(x => x.Bool, 0)
+			.Map(x => x.Byte, 1)
+			.Map(x => x.SByte, 2)
+			.Map(x => x.Short, 3)
+			.Map(x => x.UShort, 4)
+			.Map(x => x.Int, 5)
+			.Map(x => x.UInt, 6)
+			.Map(x => x.Long, 7)
+			.Map(x => x.ULong, 8)
+			.Map(x => x.Float, 9)
+			.Map(x => x.Double, 10)
+			.Map(x => x.Decimal, 11)
+			.Map(x => x.String, 12)
+			.Map(x => x.DateTime, 13)
+			.Build(",");
+
+		private string _csv;
+
+		[Params(1000, 10000, 100000)]
+		public int N;
+
+		[GlobalSetup]
+		public void Setup() {
+			Model item = new() {
+				Bool = true,
+				Byte = 0x66,
+				SByte = -100,
+				Short = -200,
+				UShort = 200,
+				Int = -3000,
+				UInt = 3000,
+				Long = -40000L,
+				ULong = 40000UL,
+				Float = 100000000000000.0f,
+				Double = 17837193718273812973.0,
+				Decimal = 989898989898m,
+				String = "CSV Serializer",
+				DateTime = new DateTime(2019, 8, 23)
+			};
+			Model[] data = Enumerable.Repeat(item, N).ToArray();
+			_csv = Csv.CsvSerializer.Serialize(data, withHeaders: true);
+		}
+
+		[Benchmark]
+		public List<Model> CsvSerializerV1Deserialize() {
+			return V1Deserializer.Deserialize(CultureInfo.InvariantCulture, ',', skipHeader: true, _csv.AsMemory()).Cast<Model>().ToList();
+		}
+
+		[Benchmark]
+		public Model[] CsvSerializerV2Deserialize() {
+			return Csv.CsvSerializer.Deserialize<Model>(_csv, hasHeaders: true);
+		}
+
+		[Benchmark]
+		public List<Model> CsvHelperDeserialize() {
+			using MemoryStream memoryStream = new(Encoding.UTF8.GetBytes(_csv));
+			using StreamReader streamReader = new(memoryStream);
+			using CsvHelper.CsvReader csvReader = new(streamReader, CultureInfo.InvariantCulture);
+			return csvReader.GetRecords<Model>().ToList();
+		}
+
+		[Benchmark]
+		public List<Model> RecordParserRead() {
+			List<Model> items = new();
+			foreach (string line in _csv.Split("\r\n").Skip(1)) {
+				Model item = RecordParserReader.Parse(line.AsSpan());
+				items.Add(item);
+			}
+			return items;
+		}
 	}
 
 	[MessagePack.MessagePackObject]
