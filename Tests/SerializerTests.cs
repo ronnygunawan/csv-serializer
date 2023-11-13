@@ -4,6 +4,7 @@ using System;
 using System.Globalization;
 using System.Linq;
 using System.Net;
+using Tests.Utilities;
 using Xunit;
 
 namespace Tests {
@@ -29,8 +30,8 @@ namespace Tests {
 				StatusCode = HttpStatusCode.OK
 			};
 
-			string csv = CsvSerializer.Serialize(new[] { item }, withHeaders: true);
-			csv.Should().Be("""
+			string csv = CsvSerializer.Serialize(new[] { item }, withHeaders: true, provider: CultureInfo.GetCultureInfo("en-US"));
+			csv.Should().BeSimilarTo("""
 				"Bool","Byte","SByte","Short","UShort","Int","UInt","Long","ULong","Float","Double","Decimal","String","DateTime","Uri","StatusCode"
 				True,102,-100,-200,200,-3000,3000,-40000,40000,1E+14,1.7837193718273812E+19,989898989898,"CSV Serializer","8/23/2019 12:00:00 AM","http://localhost:5000/",OK
 				""");
@@ -56,8 +57,8 @@ namespace Tests {
 				Uri = new Uri("http://localhost:5000/"),
 				StatusCode = HttpStatusCode.OK
 			};
-			string csv = CsvSerializer.Serialize(new[] { item }, withHeaders: true);
-			csv.Should().Be("""
+			string csv = CsvSerializer.Serialize(new[] { item }, withHeaders: true, provider: CultureInfo.GetCultureInfo("en-US"));
+			csv.Should().BeSimilarTo("""
 				"Bool","Byte","SByte","Short","UShort","Int","UInt","Long","ULong","Float","Double","Decimal","String","DateTime","Uri","StatusCode"
 				True,102,-100,-200,200,-3000,3000,-40000,40000,1E+14,1.7837193718273812E+19,989898989898,"CSV Serializer","8/23/2019 12:00:00 AM","http://localhost:5000/",OK
 				""");
@@ -69,7 +70,7 @@ namespace Tests {
 				Name = "CSV Serializer"
 			};
 			string csv = CsvSerializer.Serialize(new[] { item }, withHeaders: true);
-			csv.Should().Be("""
+			csv.Should().BeSimilarTo("""
 				"Name"
 				"CSV Serializer"
 				""");
@@ -149,7 +150,7 @@ namespace Tests {
 				"Bool","Byte","SByte","Short","UShort","Int","UInt","Long","ULong","Float","Double","Decimal","String","DateTime","Uri","StatusCode"
 				True,102,-100,-200,200,-3000,3000,-40000,40000,1E+14,1.7837193718273812E+19,989898989898,"CSV Serializer","08/23/2019 00:00:00","http://localhost:5000/",OK
 				""";
-			Model[] items = CsvSerializer.Deserialize<Model>(csv, hasHeaders: true);
+			Model[] items = CsvSerializer.Deserialize<Model>(csv, hasHeaders: true, provider: CultureInfo.InvariantCulture);
 			items.Length.Should().Be(1);
 			Model item = items.Single();
 			item.Bool.Should().BeTrue();

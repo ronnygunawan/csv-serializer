@@ -74,6 +74,130 @@ namespace Csv.Internals {
 					encoding: Encoding.UTF8
 				)
 			);
+
+			context.AddSource(
+				hintName: "NativeStringSplitter.g.cs",
+				sourceText: SourceText.From(
+					text: """
+					#nullable enable
+					using System;
+
+					namespace Csv.Internal.NativeImpl {
+						internal static class NativeStringSplitter {
+							private enum ParserState {
+								InStartingWhiteSpace,
+								InUnquotedValue,
+								InQuotedValue,
+								InEscapeSequence,
+								InTrailingWhiteSpace
+							}
+
+							public static void ReadNextLine(ref ReadOnlyMemory<char> csv, ref Span<ReadOnlyMemory<char>> columns, char separator = ',') {
+								ReadOnlySpan<char> span = csv.Span;
+								int startOfLiteral = 0;
+								int endOfLiteral = 0;
+								int col = 0;
+								ParserState state = ParserState.InStartingWhiteSpace;
+								for (int i = 0, length = csv.Length; i <= length; i++) {
+									if (i == length) {
+										switch (state) {
+											case ParserState.InStartingWhiteSpace:
+											case ParserState.InUnquotedValue:
+											case ParserState.InEscapeSequence:
+												columns[col] = csv[startOfLiteral..i];
+												csv = csv.Slice(csv.Length - 1, 0);
+												return;
+											case ParserState.InQuotedValue:
+												throw new CsvFormatException(csv.ToString(), "End of file in quoted literal.");
+											case ParserState.InTrailingWhiteSpace:
+												columns[col] = csv.Slice(startOfLiteral, endOfLiteral - startOfLiteral + 1);
+												csv = csv.Slice(csv.Length - 1, 0);
+												return;
+										}
+									} else {
+										switch (span[i]) {
+											case '"':
+												switch (state) {
+													case ParserState.InStartingWhiteSpace:
+														startOfLiteral = i;
+														state = ParserState.InQuotedValue;
+														break;
+													case ParserState.InUnquotedValue:
+														int endOfLine = span.IndexOf('\n');
+														string line = endOfLine == -1 ? csv.ToString() : csv[..endOfLine].ToString();
+														throw new CsvFormatException(line, $"Invalid character at position {i}: \"");
+													case ParserState.InQuotedValue:
+														state = ParserState.InEscapeSequence;
+														break;
+													case ParserState.InEscapeSequence:
+														state = ParserState.InQuotedValue;
+														break;
+													case ParserState.InTrailingWhiteSpace:
+														endOfLine = span.IndexOf('\n');
+														line = endOfLine == -1 ? csv.ToString() : csv[..endOfLine].ToString();
+														throw new CsvFormatException(line, $"Invalid character at position {i}: \"");
+												}
+												break;
+											case char c when c == separator:
+												switch (state) {
+													case ParserState.InStartingWhiteSpace:
+													case ParserState.InUnquotedValue:
+													case ParserState.InEscapeSequence:
+														columns[col++] = csv[startOfLiteral..i];
+														startOfLiteral = i + 1;
+														state = ParserState.InStartingWhiteSpace;
+														break;
+													case ParserState.InTrailingWhiteSpace:
+														columns[col++] = csv.Slice(startOfLiteral, endOfLiteral - startOfLiteral + 1);
+														startOfLiteral = i + 1;
+														state = ParserState.InStartingWhiteSpace;
+														break;
+												}
+												break;
+											case '\n':
+												switch (state) {
+													case ParserState.InStartingWhiteSpace:
+													case ParserState.InUnquotedValue:
+													case ParserState.InEscapeSequence:
+														columns[col] = csv[startOfLiteral..i];
+														csv = csv[(i + 1)..];
+														return;
+													case ParserState.InTrailingWhiteSpace:
+														columns[col] = csv.Slice(startOfLiteral, endOfLiteral - startOfLiteral + 1);
+														csv = csv[(i + 1)..];
+														return;
+												}
+												break;
+											case char c:
+												switch (state) {
+													case ParserState.InStartingWhiteSpace:
+														state = ParserState.InUnquotedValue;
+														break;
+													case ParserState.InEscapeSequence:
+														endOfLiteral = i - 1;
+														state = ParserState.InTrailingWhiteSpace;
+														break;
+													case ParserState.InTrailingWhiteSpace:
+														if (!char.IsWhiteSpace(c)) {
+															int endOfLine = span.IndexOf('\n');
+															string line = endOfLine == -1 ? csv.ToString() : csv[..endOfLine].ToString();
+															throw new CsvFormatException(line, $"Invalid character at position {i}: {c}");
+														}
+														break;
+												}
+												break;
+										}
+									}
+								}
+								throw new InvalidOperationException("Parser internal error.");
+							}
+						}
+					}
+					
+					""",
+					encoding: Encoding.UTF8
+				)
+			);
 		}
 
 		private static (
@@ -1292,16 +1416,17 @@ namespace Csv.Internals {
 						internal sealed class {{deserializerName}} : IDeserializer {
 							public List<object> Deserialize(IFormatProvider? provider, char delimiter, bool skipHeader, ReadOnlyMemory<char> csv) {
 								List<object> items = new();
+								Span<ReadOnlyMemory<char>> columns = new ReadOnlyMemory<char>[{{propertySymbols.Count}}];
 								bool firstRow = true;
 								while (csv.Length > 0) {
-									List<ReadOnlyMemory<char>> columns = StringSplitter.ReadNextLine(ref csv, delimiter);
+									NativeStringSplitter.ReadNextLine(ref csv, ref columns, delimiter);
 									if (firstRow) {
 										firstRow = false;
 										if (skipHeader) {
 											continue;
 										}
 									}
-									if (columns.Count != {{propertySymbols.Count}}) {
+									if (columns.Length != {{propertySymbols.Count}}) {
 										int endOfLine = csv.Span.IndexOf('\n');
 										string line = endOfLine == -1 ? csv.ToString() : csv.Slice(0, endOfLine).ToString();
 										throw new CsvFormatException(typeof({{fullTypeName}}), line, "Row must consists of {{propertySymbols.Count}} columns.");

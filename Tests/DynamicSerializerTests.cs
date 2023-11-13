@@ -1,7 +1,9 @@
 ﻿using Csv;
 using FluentAssertions;
 using System;
+using System.Globalization;
 using System.Linq;
+using Tests.Utilities;
 using Xunit;
 
 namespace Tests {
@@ -26,8 +28,8 @@ namespace Tests {
 				String = null,
 				DateTime = null
 			};
-			string csv = CsvSerializer.Serialize(new[] { obj }, withHeaders: true);
-			csv.Should().Be("""
+			string csv = CsvSerializer.Serialize(new[] { obj }, withHeaders: true, provider: CultureInfo.GetCultureInfo("en-US"));
+			csv.Should().BeSimilarTo("""
 				"Bool","Byte","SByte","Short","UShort","Int","UInt","Long","ULong","Float","Double","Decimal","String","DateTime"
 				,,,,,,,,,,,,,
 				""");
@@ -48,8 +50,8 @@ namespace Tests {
 				String = "CSV Serializer",
 				DateTime = new DateTime(2019, 8, 23)
 			};
-			csv = CsvSerializer.Serialize(new[] { obj }, withHeaders: true);
-			csv.Should().Be("""
+			csv = CsvSerializer.Serialize(new[] { obj }, withHeaders: true, provider: CultureInfo.GetCultureInfo("en-US"));
+			csv.Should().BeSimilarTo("""
 				"Bool","Byte","SByte","Short","UShort","Int","UInt","Long","ULong","Float","Double","Decimal","String","DateTime"
 				True,102,-100,-200,200,-3000,3000,-40000,40000,1E+14,1.7837193718273812E+19,989898989898,"CSV Serializer","8/23/2019 12:00:00 AM"
 				""");
@@ -60,7 +62,7 @@ namespace Tests {
 			typeof(ModelWithNullableValues).IsPublic.Should().BeTrue();
 
 			string csv = ",,,,,,,,,,,,,";
-			ModelWithNullableValues[] items = CsvSerializer.Deserialize<ModelWithNullableValues>(csv);
+			ModelWithNullableValues[] items = CsvSerializer.Deserialize<ModelWithNullableValues>(csv, provider: CultureInfo.GetCultureInfo("en-US"));
 			items.Length.Should().Be(1);
 			ModelWithNullableValues item = items[0];
 			item.Bool.Should().BeNull();
@@ -82,7 +84,7 @@ namespace Tests {
 				"Bool","Byte","SByte","Short","UShort","Int","UInt","Long","ULong","Float","Double","Decimal","String","DateTime"
 				True,102,-100,-200,200,-3000,3000,-40000,40000,1E+14,1.7837193718273812E+19,989898989898,"CSV Serializer","08/23/2019 00:00:00"
 				""";
-			items = CsvSerializer.Deserialize<ModelWithNullableValues>(csv, hasHeaders: true);
+			items = CsvSerializer.Deserialize<ModelWithNullableValues>(csv, hasHeaders: true, provider: CultureInfo.GetCultureInfo("en-US"));
 			items.Length.Should().Be(1);
 			item = items.Single();
 			item.Bool.Should().BeTrue();
