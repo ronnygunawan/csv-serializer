@@ -43,7 +43,8 @@ namespace Csv.Internals {
 				} typeArguments
 				|| typeArguments[0] is not {
 					Name.Length: > 0,
-					DeclaringSyntaxReferences.Length: > 0
+					DeclaringSyntaxReferences.Length: > 0,
+					TypeKind: TypeKind.Class or TypeKind.Struct
 				}) {
 					return;
 				}
@@ -87,7 +88,8 @@ namespace Csv.Internals {
 				} typeArguments
 				|| typeArguments[0] is not {
 					Name.Length: > 0,
-					DeclaringSyntaxReferences.Length: > 0
+					DeclaringSyntaxReferences.Length: > 0,
+					TypeKind: TypeKind.Class or TypeKind.Struct
 				}) {
 					return;
 				}
