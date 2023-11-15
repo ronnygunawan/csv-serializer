@@ -1,6 +1,7 @@
 using Csv;
 using FluentAssertions;
 using System;
+using System.Configuration;
 using System.Globalization;
 using System.Linq;
 using System.Net;
@@ -201,6 +202,36 @@ namespace Tests {
 				""";
 			ExcelModel[] models = CsvSerializer.Deserialize<ExcelModel>(csv, hasHeaders: true, delimiter: ';', provider: CultureInfo.GetCultureInfo("id-ID"));
 			models.Count().Should().Be(2);
+		}
+
+		[Fact]
+		public void TypeArgumentsAreSerializedUsingNaiveSerializer() {
+			string Serialize<T>(T item) {
+				return CsvSerializer.Serialize(new[] { item }, withHeaders: true, provider: CultureInfo.GetCultureInfo("en-US"));
+			}
+			Model item = new() {
+				Bool = true,
+				Byte = 0x66,
+				SByte = -100,
+				Short = -200,
+				UShort = 200,
+				Int = -3000,
+				UInt = 3000,
+				Long = -40000L,
+				ULong = 40000UL,
+				Float = 100000000000000.0f,
+				Double = 17837193718273812973.0,
+				Decimal = 989898989898m,
+				String = "CSV Serializer",
+				DateTime = new DateTime(2019, 8, 23),
+				Uri = new Uri("http://localhost:5000/"),
+				StatusCode = HttpStatusCode.OK
+			};
+			string csv = Serialize(item);
+			csv.Should().BeSimilarTo("""
+				"Bool","Byte","SByte","Short","UShort","Int","UInt","Long","ULong","Float","Double","Decimal","String","DateTime","Uri","StatusCode"
+				True,102,-100,-200,200,-3000,3000,-40000,40000,1E+14,1.7837193718273812E+19,989898989898,"CSV Serializer","8/23/2019 12:00:00 AM","http://localhost:5000/",OK
+				""");
 		}
 	}
 
