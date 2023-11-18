@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Microsoft.CodeAnalysis;
@@ -92,7 +91,7 @@ namespace Csv.Internals {
 								InTrailingWhiteSpace
 							}
 
-							public static void ReadNextLine(ref ReadOnlyMemory<char> csv, ref Span<ReadOnlyMemory<char>> columns, char separator = ',') {
+							public static int ReadNextLine(ref ReadOnlyMemory<char> csv, ref Span<ReadOnlyMemory<char>> columns, char separator = ',') {
 								ReadOnlySpan<char> span = csv.Span;
 								int startOfLiteral = 0;
 								int endOfLiteral = 0;
@@ -106,13 +105,13 @@ namespace Csv.Internals {
 											case ParserState.InEscapeSequence:
 												columns[col] = csv[startOfLiteral..i];
 												csv = csv.Slice(csv.Length - 1, 0);
-												return;
+												return col + 1;
 											case ParserState.InQuotedValue:
 												throw new CsvFormatException(csv.ToString(), "End of file in quoted literal.");
 											case ParserState.InTrailingWhiteSpace:
 												columns[col] = csv.Slice(startOfLiteral, endOfLiteral - startOfLiteral + 1);
 												csv = csv.Slice(csv.Length - 1, 0);
-												return;
+												return col + 1;
 										}
 									} else {
 										switch (span[i]) {
@@ -161,11 +160,11 @@ namespace Csv.Internals {
 													case ParserState.InEscapeSequence:
 														columns[col] = csv[startOfLiteral..i];
 														csv = csv[(i + 1)..];
-														return;
+														return col + 1;
 													case ParserState.InTrailingWhiteSpace:
 														columns[col] = csv.Slice(startOfLiteral, endOfLiteral - startOfLiteral + 1);
 														csv = csv[(i + 1)..];
-														return;
+														return col + 1;
 												}
 												break;
 											case char c:
@@ -1419,17 +1418,23 @@ namespace Csv.Internals {
 								Span<ReadOnlyMemory<char>> columns = new ReadOnlyMemory<char>[{{propertySymbols.Count}}];
 								bool firstRow = true;
 								while (csv.Length > 0) {
-									NativeStringSplitter.ReadNextLine(ref csv, ref columns, delimiter);
+									try {
+										int columnsRead = NativeStringSplitter.ReadNextLine(ref csv, ref columns, delimiter);
+										if (columnsRead != {{propertySymbols.Count}}) {
+											int endOfLine = csv.Span.IndexOf('\n');
+											string line = endOfLine == -1 ? csv.ToString() : csv.Slice(0, endOfLine).ToString();
+											throw new CsvFormatException(typeof({{fullTypeName}}), line, "Row must consists of {{propertySymbols.Count}} columns.");
+										}
+									} catch (IndexOutOfRangeException) {
+										int endOfLine = csv.Span.IndexOf('\n');
+										string line = endOfLine == -1 ? csv.ToString() : csv.Slice(0, endOfLine).ToString();
+										throw new CsvFormatException(typeof({{fullTypeName}}), line, "Row must consists of {{propertySymbols.Count}} columns.");
+									}
 									if (firstRow) {
 										firstRow = false;
 										if (skipHeader) {
 											continue;
 										}
-									}
-									if (columns.Length != {{propertySymbols.Count}}) {
-										int endOfLine = csv.Span.IndexOf('\n');
-										string line = endOfLine == -1 ? csv.ToString() : csv.Slice(0, endOfLine).ToString();
-										throw new CsvFormatException(typeof({{fullTypeName}}), line, "Row must consists of {{propertySymbols.Count}} columns.");
 									}
 									{{fullTypeName}} item = Activator.CreateInstance<{{fullTypeName}}>();
 									if (provider is null) {

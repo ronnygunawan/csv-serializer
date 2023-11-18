@@ -1,4 +1,6 @@
-﻿using System.Diagnostics;
+﻿#if DEBUG
+using System.Diagnostics;
+#endif
 using Csv.Internals;
 using Microsoft.CodeAnalysis;
 

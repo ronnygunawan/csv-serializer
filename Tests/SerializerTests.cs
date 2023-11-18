@@ -183,8 +183,8 @@ namespace Tests {
 		[Fact]
 		public void HeaderNameCanBeRenamedUsingAttribute() {
 			ModelWithColumnNames[] items = {
-				new ModelWithColumnNames { ItemName = "Coconut", WeightInGrams = 900 },
-				new ModelWithColumnNames { ItemName = "Jackfruit", WeightInGrams = 1200 }
+				new() { ItemName = "Coconut", WeightInGrams = 900 },
+				new() { ItemName = "Jackfruit", WeightInGrams = 1200 }
 			};
 			string csv = CsvSerializer.Serialize(items, withHeaders: true);
 			string[] lines = csv.Split("\r\n");
@@ -232,6 +232,26 @@ namespace Tests {
 				"Bool","Byte","SByte","Short","UShort","Int","UInt","Long","ULong","Float","Double","Decimal","String","DateTime","Uri","StatusCode"
 				True,102,-100,-200,200,-3000,3000,-40000,40000,1E+14,1.7837193718273812E+19,989898989898,"CSV Serializer","8/23/2019 12:00:00 AM","http://localhost:5000/",OK
 				""");
+		}
+
+		[Fact]
+		public void CannotDeserializeRowWithExtraColumns() {
+			string csv = """
+				"Bool","Byte","SByte","Short","UShort","Int","UInt","Long","ULong","Float","Double","Decimal","String","DateTime","Uri","StatusCode"
+				True,102,-100,-200,200,-3000,3000,-40000,40000,1E+14,1.7837193718273812E+19,989898989898,"CSV Serializer","08/23/2019 00:00:00","http://localhost:5000/",OK,foo,bar
+				""";
+			new Action(() => CsvSerializer.Deserialize<Model>(csv, hasHeaders: true, provider: CultureInfo.InvariantCulture))
+				.Should().Throw<CsvFormatException>("Row must consists of 16 columns.");
+		}
+
+		[Fact]
+		public void CannotDeserializeRowWithMissingColumns() {
+			string csv = """
+				"Bool","Byte","SByte","Short","UShort","Int","UInt","Long","ULong","Float","Double","Decimal","String","DateTime","Uri","StatusCode"
+				True,102,-100,-200,200,-3000,3000,-40000,40000,1E+14,1.7837193718273812E+19,989898989898,"CSV Serializer","08/23/2019 00:00:00","http://localhost:5000/"
+				""";
+			new Action(() => CsvSerializer.Deserialize<Model>(csv, hasHeaders: true, provider: CultureInfo.InvariantCulture))
+				.Should().Throw<CsvFormatException>("Row must consists of 16 columns.");
 		}
 	}
 
