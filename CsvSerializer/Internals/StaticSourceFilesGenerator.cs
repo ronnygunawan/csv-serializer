@@ -13,6 +13,7 @@ namespace Csv.Internals {
 						using System;
 						using System.Collections.Generic;
 						using System.Globalization;
+						using System.IO;
 						using System.Linq;
 						using System.Text;
 
@@ -35,10 +36,31 @@ namespace Csv.Internals {
 									return stringBuilder.ToString().TrimEnd();
 								}
 
+								public static void Serialize<T>(
+									StreamWriter streamWriter,
+									IEnumerable<T> items,
+									bool withHeaders = false,
+									char delimiter = ',',
+									IFormatProvider? provider = null
+								) where T : notnull {
+									ISerializer serializer = SerializerFactory.GetOrCreateSerializer<T>();
+									if (withHeaders) {
+										serializer.SerializeHeader(delimiter, streamWriter);
+									}
+									foreach (T item in items) {
+										serializer.SerializeItem(provider, delimiter, streamWriter, item);
+									}
+								}
+
 								public static T[] Deserialize<T>(string csv, bool hasHeaders = false, char delimiter = ',', IFormatProvider? provider = null) where T : notnull {
 									IDeserializer deserializer = SerializerFactory.GetOrCreateDeserializer<T>();
 									List<object> items = deserializer.Deserialize(provider, delimiter, hasHeaders, csv.AsMemory());
 									return items.Cast<T>().ToArray();
+								}
+
+								public static IEnumerable<T> Deserialize<T>(StreamReader csvReader, bool hasHeaders = false, char delimiter = ',', IFormatProvider? provider = null) where T : notnull {
+									IDeserializer deserializer = SerializerFactory.GetOrCreateDeserializer<T>();
+									return deserializer.Deserialize(provider, delimiter, hasHeaders, csvReader).Cast<T>();
 								}
 							}
 						}
@@ -174,12 +196,16 @@ namespace Csv.Internals {
 					text: """
 						#nullable enable
 						using System;
+						using System.IO;
 						using System.Text;
 
 						namespace Csv {
 							internal interface ISerializer {
 								void SerializeHeader(char delimiter, StringBuilder stringBuilder);
+								void SerializeHeader(char delimiter, StreamWriter streamWriter);
 								void SerializeItem(IFormatProvider? provider, char delimiter, StringBuilder stringBuilder, object item);
+								void SerializeItem(IFormatProvider? provider, char delimiter, StreamWriter streamWriter, object item);
+
 							}
 						}
 						
@@ -197,10 +223,12 @@ namespace Csv.Internals {
 						#nullable enable
 						using System;
 						using System.Collections.Generic;
+						using System.IO;
 
 						namespace Csv {
 							internal interface IDeserializer {
 								List<object> Deserialize(IFormatProvider? provider, char delimiter, bool skipHeader, ReadOnlyMemory<char> csv);
+								IEnumerable<object> Deserialize(IFormatProvider? provider, char delimiter, bool skipHeader, StreamReader csvReader);
 							}
 						}
 						
@@ -366,6 +394,7 @@ namespace Csv.Internals {
 					text: """
 						#nullable enable
 						using System;
+						using System.IO;
 						using System.Reflection;
 						using System.Text;
 
@@ -452,6 +481,20 @@ namespace Csv.Internals {
 									stringBuilder.Append("\r\n");
 								}
 
+								public void SerializeHeader(char delimiter, StreamWriter streamWriter) {
+									bool firstProperty = true;
+									for (int i = 0; i < _properties.Length; i++) {
+										if (!firstProperty) {
+											streamWriter.Write(delimiter);
+										}
+										streamWriter.Write('"');
+										streamWriter.Write((_columnAttributes[i]?.Name ?? _properties[i].Name).Replace("\"", "\"\""));
+										streamWriter.Write('"');
+										firstProperty = false;
+									}
+									streamWriter.Write("\r\n");
+								}
+
 								public void SerializeItem(IFormatProvider? provider, char delimiter, StringBuilder stringBuilder, object item) {
 									bool firstProperty = true;
 									for (int i = 0; i < _properties.Length; i++) {
@@ -502,6 +545,57 @@ namespace Csv.Internals {
 									}
 									stringBuilder.Append("\r\n");
 								}
+
+								public void SerializeItem(IFormatProvider? provider, char delimiter, StreamWriter streamWriter, object item) {
+									bool firstProperty = true;
+									for (int i = 0; i < _properties.Length; i++) {
+										if (!firstProperty) {
+											streamWriter.Write(delimiter);
+										}
+										switch (_serializeAs[i]) {
+											case SerializeAs.Number:
+												string? str = Convert.ToString(_properties[i].GetValue(item), provider);
+												if (str is string && str.Contains(delimiter)) {
+													streamWriter.Write(string.Format(provider, "\"{0}\"", str));
+												} else {
+													streamWriter.Write(string.Format(provider, "{0}", str));
+												}
+												break;
+											case SerializeAs.String:
+												if (((string?)_properties[i].GetValue(item))?.Replace("\"", "\"\"") is string stringValue) {
+													streamWriter.Write('"');
+													streamWriter.Write(stringValue);
+													streamWriter.Write('"');
+												}
+												break;
+											case SerializeAs.DateTime:
+												if (((DateTime?)_properties[i].GetValue(item)) is DateTime dateTimeValue) {
+													streamWriter.Write('"');
+													if (_columnAttributes[i]?.DateFormat is string dateFormat) {
+														streamWriter.Write(dateTimeValue.ToString(dateFormat, provider));
+													} else {
+														streamWriter.Write(dateTimeValue.ToString(provider));
+													}
+													streamWriter.Write('"');
+												}
+												break;
+											case SerializeAs.Uri:
+												if (((Uri?)_properties[i].GetValue(item)) is Uri uri && uri.ToString().Replace("\"", "\"\"") is string uriString) {
+													streamWriter.Write('"');
+													streamWriter.Write(uriString);
+													streamWriter.Write('"');
+												}
+												break;
+											case SerializeAs.Enum:
+												streamWriter.Write(string.Format(provider, "{0}", _properties[i].GetValue(item)));
+												break;
+											default:
+												throw new NotImplementedException();
+										}
+										firstProperty = false;
+									}
+									streamWriter.Write("\r\n");
+								}
 							}
 						}
 						
@@ -520,6 +614,7 @@ namespace Csv.Internals {
 						using System;
 						using System.Collections.Generic;
 						using System.Globalization;
+						using System.IO;
 						using System.Reflection;
 
 						namespace Csv.Internal.NaiveImpl {
@@ -871,6 +966,195 @@ namespace Csv.Internals {
 										items.Add(item);
 									}
 									return items;
+								}
+
+								public IEnumerable<object> Deserialize(IFormatProvider? provider, char delimiter, bool skipHeader, StreamReader csvReader) {
+									bool firstRow = true;
+									while (!csvReader.EndOfStream) {
+										string line = csvReader.ReadLine()!;
+										ReadOnlyMemory<char> lineMemory = line.AsMemory();
+										List<ReadOnlyMemory<char>> columns = StringSplitter.ReadNextLine(ref lineMemory, delimiter);
+										if (firstRow && skipHeader) {
+											firstRow = false;
+											continue;
+										}
+										if (_properties.Length != columns.Count) {
+											throw new CsvFormatException(typeof(T), line, $"Row must consists of {_properties.Length} columns.");
+										}
+										T item = Activator.CreateInstance<T>();
+										for (int i = 0; i < _properties.Length; i++) {
+											switch (_deserializeAs[i]) {
+												case DeserializeAs.SByte:
+													if (columns[i].Length >= 2 && columns[i].Span[0] == '"' && sbyte.TryParse(columns[i].Span[1..^1], NumberStyles.Integer, provider, out sbyte vSByte)) {
+														_properties[i].SetValue(item, vSByte);
+													} else if (sbyte.TryParse(columns[i].Span, NumberStyles.Integer, provider, out vSByte)) {
+														_properties[i].SetValue(item, vSByte);
+													} else if (!_isNullable[i] || columns[i].Length > 0) {
+														throw new CsvFormatException(typeof(T), _properties[i].Name, columns[i].ToString(), "Input string was not in correct sbyte format.");
+													}
+													break;
+												case DeserializeAs.Byte:
+													if (columns[i].Length >= 2 && columns[i].Span[0] == '"' && byte.TryParse(columns[i].Span[1..^1], NumberStyles.Integer, provider, out byte vByte)) {
+														_properties[i].SetValue(item, vByte);
+													} else if (byte.TryParse(columns[i].Span, NumberStyles.Integer, provider, out vByte)) {
+														_properties[i].SetValue(item, vByte);
+													} else if (!_isNullable[i] || columns[i].Length > 0) {
+														throw new CsvFormatException(typeof(T), _properties[i].Name, columns[i].ToString(), "Input string was not in correct byte format.");
+													}
+													break;
+												case DeserializeAs.Int16:
+													if (columns[i].Length >= 2 && columns[i].Span[0] == '"' && short.TryParse(columns[i].Span[1..^1], NumberStyles.Integer, provider, out short vInt16)) {
+														_properties[i].SetValue(item, vInt16);
+													} else if (short.TryParse(columns[i].Span, NumberStyles.Integer, provider, out vInt16)) {
+														_properties[i].SetValue(item, vInt16);
+													} else if (!_isNullable[i] || columns[i].Length > 0) {
+														throw new CsvFormatException(typeof(T), _properties[i].Name, columns[i].ToString(), "Input string was not in correct Int16 format.");
+													}
+													break;
+												case DeserializeAs.UInt16:
+													if (columns[i].Length >= 2 && columns[i].Span[0] == '"' && ushort.TryParse(columns[i].Span[1..^1], NumberStyles.Integer, provider, out ushort vUInt16)) {
+														_properties[i].SetValue(item, vUInt16);
+													} else if (ushort.TryParse(columns[i].Span, NumberStyles.Integer, provider, out vUInt16)) {
+														_properties[i].SetValue(item, vUInt16);
+													} else if (!_isNullable[i] || columns[i].Length > 0) {
+														throw new CsvFormatException(typeof(T), _properties[i].Name, columns[i].ToString(), "Input string was not in correct UInt16 format.");
+													}
+													break;
+												case DeserializeAs.Int32:
+													if (columns[i].Length >= 2 && columns[i].Span[0] == '"' && int.TryParse(columns[i].Span[1..^1], NumberStyles.Integer, provider, out int vInt32)) {
+														_properties[i].SetValue(item, vInt32);
+													} else if (int.TryParse(columns[i].Span, NumberStyles.Integer, provider, out vInt32)) {
+														_properties[i].SetValue(item, vInt32);
+													} else if (!_isNullable[i] || columns[i].Length > 0) {
+														throw new CsvFormatException(typeof(T), _properties[i].Name, columns[i].ToString(), "Input string was not in correct Int32 format.");
+													}
+													break;
+												case DeserializeAs.UInt32:
+													if (columns[i].Length >= 2 && columns[i].Span[0] == '"' && uint.TryParse(columns[i].Span[1..^1], NumberStyles.Integer, provider, out uint vUInt32)) {
+														_properties[i].SetValue(item, vUInt32);
+													} else if (uint.TryParse(columns[i].Span, NumberStyles.Integer, provider, out vUInt32)) {
+														_properties[i].SetValue(item, vUInt32);
+													} else if (!_isNullable[i] || columns[i].Length > 0) {
+														throw new CsvFormatException(typeof(T), _properties[i].Name, columns[i].ToString(), "Input string was not in correct UInt32 format.");
+													}
+													break;
+												case DeserializeAs.Int64:
+													if (columns[i].Length >= 2 && columns[i].Span[0] == '"' && long.TryParse(columns[i].Span[1..^1], NumberStyles.Integer, provider, out long vInt64)) {
+														_properties[i].SetValue(item, vInt64);
+													} else if (long.TryParse(columns[i].Span, NumberStyles.Integer, provider, out vInt64)) {
+														_properties[i].SetValue(item, vInt64);
+													} else if (!_isNullable[i] || columns[i].Length > 0) {
+														throw new CsvFormatException(typeof(T), _properties[i].Name, columns[i].ToString(), "Input string was not in correct Int64 format.");
+													}
+													break;
+												case DeserializeAs.UInt64:
+													if (columns[i].Length >= 2 && columns[i].Span[0] == '"' && ulong.TryParse(columns[i].Span[1..^1], NumberStyles.Integer, provider, out ulong vUInt64)) {
+														_properties[i].SetValue(item, vUInt64);
+													} else if (ulong.TryParse(columns[i].Span, NumberStyles.Integer, provider, out vUInt64)) {
+														_properties[i].SetValue(item, vUInt64);
+													} else if (!_isNullable[i] || columns[i].Length > 0) {
+														throw new CsvFormatException(typeof(T), _properties[i].Name, columns[i].ToString(), "Input string was not in correct UInt64 format.");
+													}
+													break;
+												case DeserializeAs.Single:
+													if (columns[i].Length >= 2 && columns[i].Span[0] == '"' && float.TryParse(columns[i].Span[1..^1], NumberStyles.Float, provider, out float vSingle)) {
+														_properties[i].SetValue(item, vSingle);
+													} else if (float.TryParse(columns[i].Span, NumberStyles.Float, provider, out vSingle)) {
+														_properties[i].SetValue(item, vSingle);
+													} else if (!_isNullable[i] || columns[i].Length > 0) {
+														throw new CsvFormatException(typeof(T), _properties[i].Name, columns[i].ToString(), "Input string was not in correct floating point format.");
+													}
+													break;
+												case DeserializeAs.Double:
+													if (columns[i].Length >= 2 && columns[i].Span[0] == '"' && double.TryParse(columns[i].Span[1..^1], NumberStyles.Float, provider, out double vDouble)) {
+														_properties[i].SetValue(item, vDouble);
+													} else if (double.TryParse(columns[i].Span, NumberStyles.Float, provider, out vDouble)) {
+														_properties[i].SetValue(item, vDouble);
+													} else if (!_isNullable[i] || columns[i].Length > 0) {
+														throw new CsvFormatException(typeof(T), _properties[i].Name, columns[i].ToString(), "Input string was not in correct floating point format.");
+													}
+													break;
+												case DeserializeAs.Decimal:
+													if (columns[i].Length >= 2 && columns[i].Span[0] == '"' && decimal.TryParse(columns[i].Span[1..^1], NumberStyles.Number, provider, out decimal vDecimal)) {
+														_properties[i].SetValue(item, vDecimal);
+													} else if (decimal.TryParse(columns[i].Span, NumberStyles.Number, provider, out vDecimal)) {
+														_properties[i].SetValue(item, vDecimal);
+													} else if (!_isNullable[i] || columns[i].Length > 0) {
+														throw new CsvFormatException(typeof(T), _properties[i].Name, columns[i].ToString(), "Input string was not in correct decimal format.");
+													}
+													break;
+												case DeserializeAs.Boolean:
+													if (columns[i].Length >= 2 && columns[i].Span[0] == '"' && bool.TryParse(columns[i].Span[1..^1], out bool vBoolean)) {
+														_properties[i].SetValue(item, vBoolean);
+													} else if (bool.TryParse(columns[i].Span, out vBoolean)) {
+														_properties[i].SetValue(item, vBoolean);
+													} else if (!_isNullable[i] || columns[i].Length > 0) {
+														throw new CsvFormatException(typeof(T), _properties[i].Name, columns[i].ToString(), "Input string was not in correct Boolean format.");
+													}
+													break;
+												case DeserializeAs.String:
+													string s = columns[i].ToString().Trim();
+													if (s.StartsWith('"')
+														&& s.EndsWith('"')) {
+														s = s[1..^1];
+													}
+													s = s.Replace("\"\"", "\"").TrimEnd('\r');
+													_properties[i].SetValue(item, s);
+													break;
+												case DeserializeAs.DateTime:
+													s = columns[i].ToString().Trim();
+													if (s.StartsWith('"')
+														&& s.EndsWith('"')) {
+														s = s[1..^1];
+													}
+													DateTime vDateTime;
+													if (_columnAttributes[i]?.DateFormat switch {
+														string dateFormat => DateTime.TryParseExact(s, dateFormat, null, DateTimeStyles.AssumeLocal, out vDateTime),
+														_ => DateTime.TryParse(s, null, DateTimeStyles.AssumeLocal, out vDateTime)
+													}) {
+														_properties[i].SetValue(item, vDateTime);
+													} else if (!_isNullable[i] || !string.IsNullOrWhiteSpace(s)) {
+														if (_columnAttributes[i]?.DateFormat is string dateFormat) {
+															throw new CsvFormatException(typeof(T), _properties[i].Name, columns[i].ToString(), $"Input string was not in correct DateTime format. Expected format was '{dateFormat}'.");
+														} else {
+															throw new CsvFormatException(typeof(T), _properties[i].Name, columns[i].ToString(), "Input string was not in correct DateTime format.");
+														}
+													} else {
+														_properties[i].SetValue(item, null);
+													}
+													break;
+												case DeserializeAs.Uri:
+													s = columns[i].ToString().Trim();
+													if (s.StartsWith('"')
+														&& s.EndsWith('"')) {
+														s = s[1..^1];
+													}
+													s = s.Replace("\"\"", "\"").TrimEnd('\r');
+													if (string.IsNullOrWhiteSpace(s)) {
+														_properties[i].SetValue(item, null);
+													} else {
+														_properties[i].SetValue(item, new Uri(s));
+													}
+													break;
+												case DeserializeAs.Enum:
+													Type enumType;
+													if (_isNullable[i]) {
+														enumType = Nullable.GetUnderlyingType(_properties[i].PropertyType)!;
+													} else {
+														enumType = _properties[i].PropertyType;
+													}
+													if (Enum.TryParse(enumType, columns[i].ToString(), out object? vEnum) && vEnum != null) {
+														_properties[i].SetValue(item, vEnum);
+													} else if (!_isNullable[i] || columns[i].Length > 0) {
+														throw new CsvFormatException(typeof(T), _properties[i].Name, columns[i].ToString(), $"Input string was not a valid {_properties[i].PropertyType.Name} value.");
+													}
+													break;
+												default:
+													throw new NotImplementedException();
+											}
+										}
+										yield return item;
+									}
 								}
 							}
 						}

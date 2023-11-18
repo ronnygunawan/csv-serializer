@@ -7,7 +7,7 @@ using Tests.Utilities;
 using Xunit;
 
 namespace Tests {
-	public class DynamicSerializerTests {
+	public class NativeSerializerTests {
 		[Fact]
 		public void NullValuesAreSerializedToEmptyColumn() {
 			typeof(ModelWithNullableValues).IsPublic.Should().BeTrue();

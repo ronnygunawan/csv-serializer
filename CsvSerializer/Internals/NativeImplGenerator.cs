@@ -218,10 +218,15 @@ namespace Csv.Internals {
 				.ToList();
 
 			StringBuilder serializeHeaderBuilder = new();
+			StringBuilder writeHeaderBuilder = new();
 			StringBuilder serializeItemWithProviderBuilder = new();
+			StringBuilder writeItemWithProviderBuilder = new();
 			StringBuilder serializeItemWithoutProviderBuilder = new();
+			StringBuilder writeItemWithoutProviderBuilder = new();
 			StringBuilder deserializeWithProviderBuilder = new();
+			StringBuilder readWithProviderBuilder = new();
 			StringBuilder deserializeWithoutProviderBuilder = new();
+			StringBuilder readWithoutProviderBuilder = new();
 
 			int col = 0;
 			bool strDeclared = false;
@@ -231,11 +236,20 @@ namespace Csv.Internals {
 					serializeHeaderBuilder.AppendLine("""
 								stringBuilder.Append(delimiter);
 					""");
+					writeHeaderBuilder.AppendLine("""
+								streamWriter.Write(delimiter);
+					""");
 					serializeItemWithProviderBuilder.AppendLine("""
 									stringBuilder.Append(delimiter);
 					""");
+					writeItemWithProviderBuilder.AppendLine("""
+									streamWriter.Write(delimiter);
+					""");
 					serializeItemWithoutProviderBuilder.AppendLine("""
 									stringBuilder.Append(delimiter);
+					""");
+					writeItemWithoutProviderBuilder.AppendLine("""
+									streamWriter.Write(delimiter);
 					""");
 				}
 
@@ -260,6 +274,11 @@ namespace Csv.Internals {
 				serializeHeaderBuilder.AppendLine($$"""
 							stringBuilder.Append('"').Append("{{columnName}}").Append('"');
 				""");
+				writeHeaderBuilder.AppendLine($$"""
+							streamWriter.Write('"');
+							streamWriter.Write("{{columnName}}");
+							streamWriter.Write('"');
+				""");
 
 				// Item serializers
 				ITypeSymbol propertyTypeSymbol = propertySymbol.Type;
@@ -276,7 +295,13 @@ namespace Csv.Internals {
 							serializeItemWithProviderBuilder.AppendLine("""
 											string? str;
 							""");
+							writeItemWithProviderBuilder.AppendLine("""
+											string? str;
+							""");
 							serializeItemWithoutProviderBuilder.AppendLine("""
+											string? str;
+							""");
+							writeItemWithoutProviderBuilder.AppendLine("""
 											string? str;
 							""");
 							strDeclared = true;
@@ -285,9 +310,17 @@ namespace Csv.Internals {
 									str = i.{{propertySymbol.Name}}.ToString(provider);
 									stringBuilder.Append(str);
 						""");
+						writeItemWithProviderBuilder.AppendLine($$"""
+									str = i.{{propertySymbol.Name}}.ToString(provider);
+									streamWriter.Write(str);
+						""");
 						serializeItemWithoutProviderBuilder.AppendLine($$"""
 									str = i.{{propertySymbol.Name}}.ToString();
 									stringBuilder.Append(str);
+						""");
+						writeItemWithoutProviderBuilder.AppendLine($$"""
+									str = i.{{propertySymbol.Name}}.ToString();
+									streamWriter.Write(str);
 						""");
 						break;
 					case { SpecialType: SpecialType.System_Single }:
@@ -297,7 +330,13 @@ namespace Csv.Internals {
 							serializeItemWithProviderBuilder.AppendLine("""
 											string? str;
 							""");
+							writeItemWithProviderBuilder.AppendLine("""
+											string? str;
+							""");
 							serializeItemWithoutProviderBuilder.AppendLine("""
+											string? str;
+							""");
+							writeItemWithoutProviderBuilder.AppendLine("""
 											string? str;
 							""");
 							strDeclared = true;
@@ -310,12 +349,32 @@ namespace Csv.Internals {
 											stringBuilder.Append(str);
 										}
 						""");
+						writeItemWithProviderBuilder.AppendLine($$"""
+										str = i.{{propertySymbol.Name}}.ToString(provider);
+										if (str.Contains(delimiter)) {
+											streamWriter.Write('"');
+											streamWriter.Write(str);
+											streamWriter.Write('"');
+										} else {
+											streamWriter.Write(str);
+										}
+						""");
 						serializeItemWithoutProviderBuilder.AppendLine($$"""
 										str = i.{{propertySymbol.Name}}.ToString();
 										if (str.Contains(delimiter)) {
 											stringBuilder.Append('"').Append(str).Append('"');
 										} else {
 											stringBuilder.Append(str);
+										}
+						""");
+						writeItemWithoutProviderBuilder.AppendLine($$"""
+										str = i.{{propertySymbol.Name}}.ToString();
+										if (str.Contains(delimiter)) {
+											streamWriter.Write('"');
+											streamWriter.Write(str);
+											streamWriter.Write('"');
+										} else {
+											streamWriter.Write(str);
 										}
 						""");
 						break;
@@ -1376,6 +1435,7 @@ namespace Csv.Internals {
 					text: $$"""
 					#nullable enable
 					using System;
+					using System.IO;
 					using System.Text;
 
 					namespace Csv.Internal.NativeImpl {
@@ -1383,6 +1443,11 @@ namespace Csv.Internals {
 							public void SerializeHeader(char delimiter, StringBuilder stringBuilder) {
 								{{serializeHeaderBuilder.ToString().Trim()}}
 								stringBuilder.Append("\r\n");
+							}
+
+							public void SerializeHeader(char delimiter, StreamWriter streamWriter) {
+								{{writeHeaderBuilder.ToString().Trim()}}
+								streamWriter.Write("\r\n");
 							}
 
 							public void SerializeItem(IFormatProvider? provider, char delimiter, StringBuilder stringBuilder, object item) {
@@ -1393,6 +1458,16 @@ namespace Csv.Internals {
 									{{serializeItemWithProviderBuilder.ToString().Trim()}}
 								}
 								stringBuilder.Append("\r\n");
+							}
+
+							public void SerializeItem(IFormatProvider? provider, char delimiter, StreamWriter streamWriter, object item) {
+								{{fullTypeName}} i = ({{fullTypeName}})item;
+								if (provider is null) {
+									{{writeItemWithoutProviderBuilder.ToString().Trim()}}
+								} else {
+									{{writeItemWithProviderBuilder.ToString().Trim()}}
+								}
+								streamWriter.Write("\r\n");
 							}
 						}
 					}
@@ -1410,6 +1485,7 @@ namespace Csv.Internals {
 					using System;
 					using System.Collections.Generic;
 					using System.Globalization;
+					using System.IO;
 
 					namespace Csv.Internal.NativeImpl {
 						internal sealed class {{deserializerName}} : IDeserializer {
@@ -1445,6 +1521,43 @@ namespace Csv.Internals {
 									items.Add(item);
 								}
 								return items;
+							}
+
+							public IEnumerable<object> Deserialize(IFormatProvider? provider, char delimiter, bool skipHeader, StreamReader csvReader) {
+								bool firstRow = true;
+								while (!csvReader.EndOfStream) {
+									string line = csvReader.ReadLine()!;
+									if (_(line, ref firstRow, out {{fullTypeName}}? item)) {
+										yield return line;
+									}
+
+									bool _(string line, ref bool firstRow, out {{fullTypeName}}? item) {
+										Span<ReadOnlyMemory<char>> columns = new ReadOnlyMemory<char>[{{propertySymbols.Count}}];
+										ReadOnlyMemory<char> lineMemory = line.AsMemory();
+										try {
+											int columnsRead = NativeStringSplitter.ReadNextLine(ref lineMemory, ref columns, delimiter);
+											if (columnsRead != {{propertySymbols.Count}}) {
+												throw new CsvFormatException(typeof({{fullTypeName}}), line, "Row must consists of {{propertySymbols.Count}} columns.");
+											}
+										} catch (IndexOutOfRangeException) {
+											throw new CsvFormatException(typeof({{fullTypeName}}), line, "Row must consists of {{propertySymbols.Count}} columns.");
+										}
+										if (firstRow) {
+											firstRow = false;
+											if (skipHeader) {
+												item = null;
+												return false;
+											}
+										}
+										item = Activator.CreateInstance<{{fullTypeName}}>();
+										if (provider is null) {
+											{{readWithoutProviderBuilder.ToString().Trim()}}
+										} else {
+											{{readWithProviderBuilder.ToString().Trim()}}
+										}
+										return true;
+									}
+								}
 							}
 						}
 					}
