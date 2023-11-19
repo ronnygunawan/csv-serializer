@@ -1,7 +1,6 @@
 using Csv;
 using FluentAssertions;
 using System;
-using System.Configuration;
 using System.Globalization;
 using System.Linq;
 using System.Net;
@@ -206,7 +205,7 @@ namespace Tests {
 
 		[Fact]
 		public void TypeArgumentsAreSerializedUsingNaiveSerializer() {
-			string Serialize<T>(T item) {
+			string Serialize<T>(T item) where T : notnull {
 				return CsvSerializer.Serialize(new[] { item }, withHeaders: true, provider: CultureInfo.GetCultureInfo("en-US"));
 			}
 			Model item = new() {

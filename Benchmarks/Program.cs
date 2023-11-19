@@ -92,6 +92,16 @@ namespace Benchmarks {
 		}
 
 		[Benchmark]
+		public string CsvSerializerStreamingSerialize() {
+			using MemoryStream memoryStream = new();
+			using StreamWriter streamWriter = new(memoryStream, Encoding.UTF8);
+			Csv.CsvSerializer.Serialize(streamWriter, _data);
+			memoryStream.Position = 0;
+			using StreamReader streamReader = new(memoryStream, Encoding.UTF8);
+			return streamReader.ReadToEnd();
+		}
+
+		[Benchmark]
 		public string CsvHelperSerialize() {
 			using MemoryStream memoryStream = new();
 			using StreamWriter streamWriter = new(memoryStream);
@@ -209,21 +219,25 @@ namespace Benchmarks {
 		}
 
 		[Benchmark]
-		public List<Model> CsvHelperDeserialize() {
+		public void CsvSerializerStreamingDeserialize() {
 			using MemoryStream memoryStream = new(Encoding.UTF8.GetBytes(_csv));
 			using StreamReader streamReader = new(memoryStream);
-			using CsvHelper.CsvReader csvReader = new(streamReader, CultureInfo.InvariantCulture);
-			return csvReader.GetRecords<Model>().ToList();
+			foreach (Model _ in Csv.CsvSerializer.Deserialize<Model>(streamReader, hasHeaders: true)) { }
 		}
 
 		[Benchmark]
-		public List<Model> RecordParserRead() {
-			List<Model> items = new();
+		public void CsvHelperDeserialize() {
+			using MemoryStream memoryStream = new(Encoding.UTF8.GetBytes(_csv));
+			using StreamReader streamReader = new(memoryStream);
+			using CsvHelper.CsvReader csvReader = new(streamReader, CultureInfo.InvariantCulture);
+			foreach (Model _ in csvReader.GetRecords<Model>()) { }
+		}
+
+		[Benchmark]
+		public void RecordParserRead() {
 			foreach (string line in _csv.Split("\r\n").Skip(1)) {
-				Model item = RecordParserReader.Parse(line.AsSpan());
-				items.Add(item);
+				_ = RecordParserReader.Parse(line.AsSpan());
 			}
-			return items;
 		}
 	}
 
