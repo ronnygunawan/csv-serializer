@@ -493,6 +493,7 @@ namespace Csv.Internals {
 										firstProperty = false;
 									}
 									streamWriter.Write("\r\n");
+									streamWriter.Flush();
 								}
 
 								public void SerializeItem(IFormatProvider? provider, char delimiter, StringBuilder stringBuilder, object item) {
@@ -595,6 +596,7 @@ namespace Csv.Internals {
 										firstProperty = false;
 									}
 									streamWriter.Write("\r\n");
+									streamWriter.Flush();
 								}
 							}
 						}

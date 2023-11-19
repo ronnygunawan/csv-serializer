@@ -224,9 +224,7 @@ namespace Csv.Internals {
 			StringBuilder serializeItemWithoutProviderBuilder = new();
 			StringBuilder writeItemWithoutProviderBuilder = new();
 			StringBuilder deserializeWithProviderBuilder = new();
-			StringBuilder readWithProviderBuilder = new();
 			StringBuilder deserializeWithoutProviderBuilder = new();
-			StringBuilder readWithoutProviderBuilder = new();
 
 			int col = 0;
 			bool strDeclared = false;
@@ -386,11 +384,25 @@ namespace Csv.Internals {
 											stringBuilder.Append("False");
 										}
 						""");
+						writeItemWithProviderBuilder.AppendLine($$"""
+										if (i.{{propertySymbol.Name}}) {
+											streamWriter.Write("True");
+										} else {
+											streamWriter.Write("False");
+										}
+						""");
 						serializeItemWithoutProviderBuilder.AppendLine($$"""
 										if (i.{{propertySymbol.Name}}) {
 											stringBuilder.Append("True");
 										} else {
 											stringBuilder.Append("False");
+										}
+						""");
+						writeItemWithoutProviderBuilder.AppendLine($$"""
+										if (i.{{propertySymbol.Name}}) {
+											streamWriter.Write("True");
+										} else {
+											streamWriter.Write("False");
 										}
 						""");
 						break;
@@ -402,6 +414,13 @@ namespace Csv.Internals {
 											stringBuilder.Append('"');
 										}
 						""");
+						writeItemWithProviderBuilder.AppendLine($$"""
+										if (i.{{propertySymbol.Name}} is not null) {
+											streamWriter.Write('"');
+											streamWriter.Write(i.{{propertySymbol.Name}}.Replace("\"", "\"\""));
+											streamWriter.Write('"');
+										}
+						""");
 						serializeItemWithoutProviderBuilder.AppendLine($$"""
 										if (i.{{propertySymbol.Name}} is not null) {
 											stringBuilder.Append('"');
@@ -409,13 +428,26 @@ namespace Csv.Internals {
 											stringBuilder.Append('"');
 										}
 						""");
+						writeItemWithoutProviderBuilder.AppendLine($$"""
+										if (i.{{propertySymbol.Name}} is not null) {
+											streamWriter.Write('"');
+											streamWriter.Write(i.{{propertySymbol.Name}}.Replace("\"", "\"\""));
+											streamWriter.Write('"');
+										}
+						""");
 						break;
 					case { TypeKind: TypeKind.Enum }:
 						serializeItemWithProviderBuilder.AppendLine($$"""
 										stringBuilder.Append(i.{{propertySymbol.Name}}.ToString());
 						""");
+						writeItemWithProviderBuilder.AppendLine($$"""
+										streamWriter.Write(i.{{propertySymbol.Name}}.ToString());
+						""");
 						serializeItemWithoutProviderBuilder.AppendLine($$"""
 										stringBuilder.Append(i.{{propertySymbol.Name}}.ToString());
+						""");
+						writeItemWithoutProviderBuilder.AppendLine($$"""
+										streamWriter.Write(i.{{propertySymbol.Name}}.ToString());
 						""");
 						break;
 					case { SpecialType: SpecialType.System_DateTime }:
@@ -425,10 +457,20 @@ namespace Csv.Internals {
 											stringBuilder.Append(i.{{propertySymbol.Name}}.ToString("{{dateFormat.Replace("\\", "\\\\")}}", provider).Replace("\"", "\"\""));
 											stringBuilder.Append('"');
 							""");
+							writeItemWithProviderBuilder.AppendLine($$"""
+											streamWriter.Write('"');
+											streamWriter.Write(i.{{propertySymbol.Name}}.ToString("{{dateFormat.Replace("\\", "\\\\")}}", provider).Replace("\"", "\"\""));
+											streamWriter.Write('"');
+							""");
 							serializeItemWithoutProviderBuilder.AppendLine($$"""
 											stringBuilder.Append('"');
 											stringBuilder.Append(i.{{propertySymbol.Name}}.ToString("{{dateFormat.Replace("\\", "\\\\")}}").Replace("\"", "\"\""));
 											stringBuilder.Append('"');
+							""");
+							writeItemWithoutProviderBuilder.AppendLine($$"""
+											streamWriter.Write('"');
+											streamWriter.Write(i.{{propertySymbol.Name}}.ToString("{{dateFormat.Replace("\\", "\\\\")}}").Replace("\"", "\"\""));
+											streamWriter.Write('"');
 							""");
 						} else {
 							serializeItemWithProviderBuilder.AppendLine($$"""
@@ -436,10 +478,20 @@ namespace Csv.Internals {
 											stringBuilder.Append(i.{{propertySymbol.Name}}.ToString(provider).Replace("\"", "\"\""));
 											stringBuilder.Append('"');
 							""");
+							writeItemWithProviderBuilder.AppendLine($$"""
+											streamWriter.Write('"');
+											streamWriter.Write(i.{{propertySymbol.Name}}.ToString(provider).Replace("\"", "\"\""));
+											streamWriter.Write('"');
+							""");
 							serializeItemWithoutProviderBuilder.AppendLine($$"""
 											stringBuilder.Append('"');
 											stringBuilder.Append(i.{{propertySymbol.Name}}.ToString().Replace("\"", "\"\""));
 											stringBuilder.Append('"');
+							""");
+							writeItemWithoutProviderBuilder.AppendLine($$"""
+											streamWriter.Write('"');
+											streamWriter.Write(i.{{propertySymbol.Name}}.ToString().Replace("\"", "\"\""));
+											streamWriter.Write('"');
 							""");
 						}
 						break;
@@ -451,11 +503,25 @@ namespace Csv.Internals {
 											stringBuilder.Append('"');
 										}
 						""");
+						writeItemWithProviderBuilder.AppendLine($$"""
+										if (i.{{propertySymbol.Name}} is not null) {
+											streamWriter.Write('"');
+											streamWriter.Write(i.{{propertySymbol.Name}}.ToString().Replace("\"", "\"\""));
+											streamWriter.Write('"');
+										}
+						""");
 						serializeItemWithoutProviderBuilder.AppendLine($$"""
 										if (i.{{propertySymbol.Name}} is not null) {
 											stringBuilder.Append('"');
 											stringBuilder.Append(i.{{propertySymbol.Name}}.ToString().Replace("\"", "\"\""));
 											stringBuilder.Append('"');
+										}
+						""");
+						writeItemWithoutProviderBuilder.AppendLine($$"""
+										if (i.{{propertySymbol.Name}} is not null) {
+											streamWriter.Write('"');
+											streamWriter.Write(i.{{propertySymbol.Name}}.ToString().Replace("\"", "\"\""));
+											streamWriter.Write('"');
 										}
 						""");
 						break;
@@ -477,7 +543,13 @@ namespace Csv.Internals {
 									serializeItemWithProviderBuilder.AppendLine("""
 													string? str;
 									""");
+									writeItemWithProviderBuilder.AppendLine("""
+													string? str;
+									""");
 									serializeItemWithoutProviderBuilder.AppendLine("""
+													string? str;
+									""");
+									writeItemWithoutProviderBuilder.AppendLine("""
 													string? str;
 									""");
 									strDeclared = true;
@@ -488,10 +560,22 @@ namespace Csv.Internals {
 													stringBuilder.Append(str);
 												}
 								""");
+								writeItemWithProviderBuilder.AppendLine($$"""
+												str = i.{{propertySymbol.Name}}?.ToString(provider);
+												if (str is not null) {
+													streamWriter.Write(str);
+												}
+								""");
 								serializeItemWithoutProviderBuilder.AppendLine($$"""
 												str = i.{{propertySymbol.Name}}?.ToString();
 												if (str is not null) {
 													stringBuilder.Append(str);
+												}
+								""");
+								writeItemWithoutProviderBuilder.AppendLine($$"""
+												str = i.{{propertySymbol.Name}}?.ToString();
+												if (str is not null) {
+													streamWriter.Write(str);
 												}
 								""");
 								break;
@@ -502,7 +586,13 @@ namespace Csv.Internals {
 									serializeItemWithProviderBuilder.AppendLine("""
 													string? str;
 									""");
+									writeItemWithProviderBuilder.AppendLine("""
+													string? str;
+									""");
 									serializeItemWithoutProviderBuilder.AppendLine("""
+													string? str;
+									""");
+									writeItemWithoutProviderBuilder.AppendLine("""
 													string? str;
 									""");
 									strDeclared = true;
@@ -517,6 +607,18 @@ namespace Csv.Internals {
 													}
 												}
 								""");
+								writeItemWithProviderBuilder.AppendLine($$"""
+												str = i.{{propertySymbol.Name}}?.ToString(provider);
+												if (str is not null) {
+													if (str.Contains(delimiter)) {
+														streamWriter.Write('"');
+														streamWriter.Write(str);
+														streamWriter.Write('"');
+													} else {
+														streamWriter.Write(str);
+													}
+												}
+								""");
 								serializeItemWithoutProviderBuilder.AppendLine($$"""
 												str = i.{{propertySymbol.Name}}?.ToString();
 												if (str is not null) {
@@ -524,6 +626,18 @@ namespace Csv.Internals {
 														stringBuilder.Append('"').Append(str).Append('"');
 													} else {
 														stringBuilder.Append(str);
+													}
+												}
+								""");
+								writeItemWithoutProviderBuilder.AppendLine($$"""
+												str = i.{{propertySymbol.Name}}?.ToString();
+												if (str is not null) {
+													if (str.Contains(delimiter)) {
+														streamWriter.Write('"');
+														streamWriter.Write(str);
+														streamWriter.Write('"');
+													} else {
+														streamWriter.Write(str);
 													}
 												}
 								""");
@@ -536,11 +650,25 @@ namespace Csv.Internals {
 													stringBuilder.Append("False");
 												}
 								""");
+								writeItemWithProviderBuilder.AppendLine($$"""
+												if (i.{{propertySymbol.Name}} == true) {
+													streamWriter.Write("True");
+												} else if (i.{{propertySymbol.Name}} == false) {
+													streamWriter.Write("False");
+												}
+								""");
 								serializeItemWithoutProviderBuilder.AppendLine($$"""
 												if (i.{{propertySymbol.Name}} == true) {
 													stringBuilder.Append("True");
 												} else if (i.{{propertySymbol.Name}} == false) {
 													stringBuilder.Append("False");
+												}
+								""");
+								writeItemWithoutProviderBuilder.AppendLine($$"""
+												if (i.{{propertySymbol.Name}} == true) {
+													streamWriter.Write("True");
+												} else if (i.{{propertySymbol.Name}} == false) {
+													streamWriter.Write("False");
 												}
 								""");
 								break;
@@ -552,11 +680,25 @@ namespace Csv.Internals {
 													stringBuilder.Append('"');
 												}
 								""");
+								writeItemWithProviderBuilder.AppendLine($$"""
+												if (i.{{propertySymbol.Name}} is not null) {
+													streamWriter.Write('"');
+													streamWriter.Write(i.{{propertySymbol.Name}}.Replace("\"", "\"\""));
+													streamWriter.Write('"');
+												}
+								""");
 								serializeItemWithoutProviderBuilder.AppendLine($$"""
 												if (i.{{propertySymbol.Name}} is not null) {
 													stringBuilder.Append('"');
 													stringBuilder.Append(i.{{propertySymbol.Name}}.Replace("\"", "\"\""));
 													stringBuilder.Append('"');
+												}
+								""");
+								writeItemWithoutProviderBuilder.AppendLine($$"""
+												if (i.{{propertySymbol.Name}} is not null) {
+													streamWriter.Write('"');
+													streamWriter.Write(i.{{propertySymbol.Name}}.Replace("\"", "\"\""));
+													streamWriter.Write('"');
 												}
 								""");
 								break;
@@ -566,9 +708,19 @@ namespace Csv.Internals {
 													stringBuilder.Append(i.{{propertySymbol.Name}}.Value.ToString());
 												}
 								""");
+								writeItemWithProviderBuilder.AppendLine($$"""
+												if (i.{{propertySymbol.Name}}.HasValue) {
+													streamWriter.Write(i.{{propertySymbol.Name}}.Value.ToString());
+												}
+								""");
 								serializeItemWithoutProviderBuilder.AppendLine($$"""
 												if (i.{{propertySymbol.Name}}.HasValue) {
 													stringBuilder.Append(i.{{propertySymbol.Name}}.Value.ToString());
+												}
+								""");
+								writeItemWithoutProviderBuilder.AppendLine($$"""
+												if (i.{{propertySymbol.Name}}.HasValue) {
+													streamWriter.Write(i.{{propertySymbol.Name}}.Value.ToString());
 												}
 								""");
 								break;
@@ -581,11 +733,25 @@ namespace Csv.Internals {
 														stringBuilder.Append('"');
 													}
 									""");
+									writeItemWithProviderBuilder.AppendLine($$"""
+													if (i.{{propertySymbol.Name}}.HasValue) {
+														streamWriter.Write('"');
+														streamWriter.Write(i.{{propertySymbol.Name}}.Value.ToString("{{dateFormat.Replace("\\", "\\\\")}}", provider).Replace("\"", "\"\""));
+														streamWriter.Write('"');
+													}
+									""");
 									serializeItemWithoutProviderBuilder.AppendLine($$"""
 													if (i.{{propertySymbol.Name}}.HasValue) {
 														stringBuilder.Append('"');
 														stringBuilder.Append(i.{{propertySymbol.Name}}.Value.ToString("{{dateFormat.Replace("\\", "\\\\")}}").Replace("\"", "\"\""));
 														stringBuilder.Append('"');
+													}
+									""");
+									writeItemWithoutProviderBuilder.AppendLine($$"""
+													if (i.{{propertySymbol.Name}}.HasValue) {
+														streamWriter.Write('"');
+														streamWriter.Write(i.{{propertySymbol.Name}}.Value.ToString("{{dateFormat.Replace("\\", "\\\\")}}").Replace("\"", "\"\""));
+														streamWriter.Write('"');
 													}
 									""");
 								} else {
@@ -596,11 +762,25 @@ namespace Csv.Internals {
 														stringBuilder.Append('"');
 													}
 									""");
+									writeItemWithProviderBuilder.AppendLine($$"""
+													if (i.{{propertySymbol.Name}}.HasValue) {
+														streamWriter.Write('"');
+														streamWriter.Write(i.{{propertySymbol.Name}}.Value.ToString(provider).Replace("\"", "\"\""));
+														streamWriter.Write('"');
+													}
+									""");
 									serializeItemWithoutProviderBuilder.AppendLine($$"""
 													if (i.{{propertySymbol.Name}}.HasValue) {
 														stringBuilder.Append('"');
 														stringBuilder.Append(i.{{propertySymbol.Name}}.Value.ToString().Replace("\"", "\"\""));
 														stringBuilder.Append('"');
+													}
+									""");
+									writeItemWithoutProviderBuilder.AppendLine($$"""
+													if (i.{{propertySymbol.Name}}.HasValue) {
+														streamWriter.Write('"');
+														streamWriter.Write(i.{{propertySymbol.Name}}.Value.ToString().Replace("\"", "\"\""));
+														streamWriter.Write('"');
 													}
 									""");
 								}
@@ -1448,6 +1628,7 @@ namespace Csv.Internals {
 							public void SerializeHeader(char delimiter, StreamWriter streamWriter) {
 								{{writeHeaderBuilder.ToString().Trim()}}
 								streamWriter.Write("\r\n");
+								streamWriter.Flush();
 							}
 
 							public void SerializeItem(IFormatProvider? provider, char delimiter, StringBuilder stringBuilder, object item) {
@@ -1468,6 +1649,7 @@ namespace Csv.Internals {
 									{{writeItemWithProviderBuilder.ToString().Trim()}}
 								}
 								streamWriter.Write("\r\n");
+								streamWriter.Flush();
 							}
 						}
 					}
@@ -1528,7 +1710,7 @@ namespace Csv.Internals {
 								while (!csvReader.EndOfStream) {
 									string line = csvReader.ReadLine()!;
 									if (_(line, ref firstRow, out {{fullTypeName}}? item)) {
-										yield return line;
+										yield return item;
 									}
 
 									bool _(string line, ref bool firstRow, out {{fullTypeName}}? item) {
@@ -1551,9 +1733,9 @@ namespace Csv.Internals {
 										}
 										item = Activator.CreateInstance<{{fullTypeName}}>();
 										if (provider is null) {
-											{{readWithoutProviderBuilder.ToString().Trim()}}
+											{{deserializeWithoutProviderBuilder.ToString().Trim()}}
 										} else {
-											{{readWithProviderBuilder.ToString().Trim()}}
+											{{deserializeWithProviderBuilder.ToString().Trim()}}
 										}
 										return true;
 									}
