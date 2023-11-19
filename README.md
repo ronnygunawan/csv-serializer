@@ -1,12 +1,14 @@
+# CsvSerializer: The Fastest CSV Serializer & Deserializer for .NET
+
 [![NuGet](https://img.shields.io/nuget/v/RG.CsvSerializer.svg)](https://www.nuget.org/packages/RG.CsvSerializer/)
 
-# Installation
+## Installation
 Package Manager Console:
 ```
 Install-Package RG.CsvSerializer
 ```
 
-# Usage
+## Usage
 ```csharp
 using Csv;
 
@@ -45,7 +47,7 @@ Deserializing from stream:
 IEnumerable<Item> items = CsvSerializer.Deserialize(streamReader, hasHeaders: true, separator: ';');
 ```
 
-# Supported Property Types
+## Supported Property Types
 ```csharp
 bool
 bool?
