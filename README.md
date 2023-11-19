@@ -1,4 +1,4 @@
-# CsvSerializer: The Fastest CSV Serializer & Deserializer for .NET
+# CsvSerializer: The Fastest CSV Serializer for .NET
 
 [![NuGet](https://img.shields.io/nuget/v/RG.CsvSerializer.svg)](https://www.nuget.org/packages/RG.CsvSerializer/)
 
