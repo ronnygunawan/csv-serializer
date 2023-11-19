@@ -44,7 +44,7 @@ CsvSerializer.Serialize(streamWriter, items, withHeaders: true);
 
 Deserializing from stream:
 ```csharp
-IEnumerable<Item> items = CsvSerializer.Deserialize(streamReader, hasHeaders: true, separator: ';');
+IEnumerable<Item> items = CsvSerializer.Deserialize<Item>(streamReader, hasHeaders: true);
 ```
 
 ## Supported Property Types
