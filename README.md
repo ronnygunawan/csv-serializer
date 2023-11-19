@@ -35,6 +35,16 @@ class Product {
 }
 ```
 
+Serializing to stream:
+```csharp
+CsvSerializer.Serialize(streamWriter, items, withHeaders: true);
+```
+
+Deserializing from stream:
+```csharp
+IEnumerable<Item> items = CsvSerializer.Deserialize(streamReader, hasHeaders: true, separator: ';');
+```
+
 # Supported Property Types
 ```csharp
 bool
