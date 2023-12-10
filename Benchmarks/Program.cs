@@ -10,8 +10,9 @@ using BenchmarkDotNet.Running;
 namespace Benchmarks {
 	public static class Program {
 		public static void Main(string[] args) {
+			BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run();
 			// BenchmarkRunner.Run<Serialize>();
-			BenchmarkRunner.Run<Deserialize>();
+			// BenchmarkRunner.Run<Deserialize>();
 		}
 	}
 
