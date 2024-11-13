@@ -88,6 +88,9 @@ namespace Csv.Internals {
 									Name = name;
 								}
 							}
+
+							[AttributeUsage(AttributeTargets.Property)]
+							public sealed class CsvIgnoreAttribute : Attribute { }
 						}
 						
 						""",

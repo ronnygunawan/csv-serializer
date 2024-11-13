@@ -214,7 +214,9 @@ namespace Csv.Internals {
 
 			List<IPropertySymbol> propertySymbols = typeSymbol.GetMembers()
 				.OfType<IPropertySymbol>()
-				.Where(prop => prop.DeclaredAccessibility == Accessibility.Public && !prop.IsStatic)
+				.Where(prop => prop.DeclaredAccessibility == Accessibility.Public
+					&& !prop.IsStatic
+					&& !prop.GetAttributes().Any(attr => attr.AttributeClass?.Name == "CsvIgnoreAttribute"))
 				.ToList();
 
 			StringBuilder serializeHeaderBuilder = new();
