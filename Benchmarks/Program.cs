@@ -4,8 +4,14 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
+using BenchmarkDotNet.Order;
 using BenchmarkDotNet.Running;
+using Csv;
+using FastSerialization;
+using Microsoft.Extensions.Primitives;
+using RecordParser.Extensions;
 
 namespace Benchmarks {
 	public static class Program {
@@ -22,33 +28,19 @@ namespace Benchmarks {
 
 		private static readonly RecordParser.Parsers.IVariableLengthWriter<Model> RecordParserWriter = new RecordParser.Builders.Writer.VariableLengthWriterSequentialBuilder<Model>()
 			.Map(x => x.Bool)
-			.Skip(1)
 			.Map(x => x.Byte)
-			.Skip(1)
 			.Map(x => x.SByte)
-			.Skip(1)
 			.Map(x => x.Short)
-			.Skip(1)
 			.Map(x => x.UShort)
-			.Skip(1)
 			.Map(x => x.Int)
-			.Skip(1)
 			.Map(x => x.UInt)
-			.Skip(1)
 			.Map(x => x.Long)
-			.Skip(1)
 			.Map(x => x.ULong)
-			.Skip(1)
 			.Map(x => x.Float)
-			.Skip(1)
 			.Map(x => x.Double)
-			.Skip(1)
 			.Map(x => x.Decimal)
-			.Skip(1)
 			.Map(x => x.String)
-			.Skip(1)
 			.Map(x => x.DateTime)
-			.Skip(1)
 			.Build(",");
 
 		private Model[] _data;
@@ -120,15 +112,56 @@ namespace Benchmarks {
 		public byte[] Utf8JsonSerialize() => Utf8Json.JsonSerializer.Serialize(_data);
 
 		[Benchmark]
+		public string RecordParserWriteNative() {
+			return RecordParserWriteParallel(1);
+		}
+
+		[Benchmark]
+		public string RecordParserWriteNativeX4() {
+			return RecordParserWriteParallel(4);
+		}
+
+		private string RecordParserWriteParallel(int degreeOfParallelism) {
+			using MemoryStream memoryStream = new();
+			using StreamWriter streamWriter = new(memoryStream);
+
+			ParallelismOptions parallelOptions = new () {
+				Enabled = degreeOfParallelism > 1,
+				EnsureOriginalOrdering = true,
+				MaxDegreeOfParallelism = degreeOfParallelism,
+			};
+
+			streamWriter.WriteRecords(_data, RecordParserWriter.TryFormat, parallelOptions);
+			return Encoding.UTF8.GetString(memoryStream.ToArray());
+		}
+
+		[Benchmark]
 		public string RecordParserWrite() {
 			Span<char> buffer = stackalloc char[2048];
 			StringBuilder stringBuilder = new();
 			foreach (Model item in _data) {
 				RecordParserWriter.TryFormat(item, buffer, out int charsWritten);
-				string s = new(buffer.Slice(0, charsWritten));
-				stringBuilder.AppendLine(s);
+				stringBuilder.Append(buffer.Slice(0, charsWritten));
+				stringBuilder.AppendLine();
 			}
-			return stringBuilder.ToString().TrimEnd();
+
+			return TrimEnd(stringBuilder).ToString();
+
+			// https://stackoverflow.com/a/24769702/4854924
+			static StringBuilder TrimEnd(StringBuilder sb) {
+				if (sb == null || sb.Length == 0) return sb;
+
+				int i = sb.Length - 1;
+
+				for (; i >= 0; i--)
+					if (!char.IsWhiteSpace(sb[i]))
+						break;
+
+				if (i < sb.Length - 1)
+					sb.Length = i + 1;
+
+				return sb;
+			}
 		}
 
 		[Benchmark(Baseline = true)]
@@ -234,9 +267,48 @@ namespace Benchmarks {
 		}
 
 		[Benchmark]
+		public void RecordParserReadNative() {
+			RecordParserReadParallel(1);
+		}
+
+		[Benchmark]
+		public void RecordParserReadNativeX4() {
+			RecordParserReadParallel(4);
+		}
+
+		private void RecordParserReadParallel(int degreeOfParallelism) {
+			using StringReader stringReader = new(_csv);
+			VariableLengthReaderOptions readerOptions = new() {
+				HasHeader = true,
+				ContainsQuotedFields = false,
+				ParallelismOptions = new() {
+					Enabled = degreeOfParallelism > 1,
+					EnsureOriginalOrdering = false,
+				}
+			};
+
+			foreach (Model _ in stringReader.ReadRecords(RecordParserReader, readerOptions)) { }
+		}
+
+		[Benchmark]
 		public void RecordParserRead() {
-			foreach (string line in _csv.Split("\r\n").Skip(1)) {
-				_ = RecordParserReader.Parse(line.AsSpan());
+			foreach (ReadOnlyMemory<char> line in GetLines(_csv, "\r\n").Skip(1)) {
+				_ = RecordParserReader.Parse(line.Span);
+			}
+
+			static IEnumerable<ReadOnlyMemory<char>> GetLines(string text, string newLine) {
+				if (text.Length == 0)
+					yield break;
+
+				ReadOnlyMemory<char> memory = text.AsMemory();
+				int index;
+
+				while ((index = memory.Span.IndexOf(newLine)) != -1) {
+					yield return memory.Slice(0, index);
+					memory = memory.Slice(index + newLine.Length);
+				}
+
+				yield return memory;
 			}
 		}
 	}
