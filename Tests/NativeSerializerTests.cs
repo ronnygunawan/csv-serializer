@@ -7,7 +7,7 @@ using Tests.Utilities;
 using Xunit;
 
 namespace Tests {
-	public class NativeSerializerTests {
+	public sealed class NativeSerializerTests {
 		[Fact]
 		public void NullValuesAreSerializedToEmptyColumn() {
 			typeof(ModelWithNullableValues).IsPublic.Should().BeTrue();
@@ -28,7 +28,7 @@ namespace Tests {
 				String = null,
 				DateTime = null
 			};
-			string csv = CsvSerializer.Serialize(new[] { obj }, withHeaders: true, provider: CultureInfo.GetCultureInfo("en-US"));
+			string csv = CsvSerializer.Serialize([obj], withHeaders: true, provider: CultureInfo.GetCultureInfo("en-US"));
 			csv.Should().BeSimilarTo("""
 				"Bool","Byte","SByte","Short","UShort","Int","UInt","Long","ULong","Float","Double","Decimal","String","DateTime"
 				,,,,,,,,,,,,,
@@ -50,7 +50,7 @@ namespace Tests {
 				String = "CSV Serializer",
 				DateTime = new DateTime(2019, 8, 23)
 			};
-			csv = CsvSerializer.Serialize(new[] { obj }, withHeaders: true, provider: CultureInfo.GetCultureInfo("en-US"));
+			csv = CsvSerializer.Serialize([obj], withHeaders: true, provider: CultureInfo.GetCultureInfo("en-US"));
 			csv.Should().BeSimilarTo("""
 				"Bool","Byte","SByte","Short","UShort","Int","UInt","Long","ULong","Float","Double","Decimal","String","DateTime"
 				True,102,-100,-200,200,-3000,3000,-40000,40000,1E+14,1.7837193718273812E+19,989898989898,"CSV Serializer","8/23/2019 12:00:00 AM"
@@ -109,7 +109,7 @@ namespace Tests {
 			EscapeTest obj = new() {
 				Name = "Tony \"Iron Man\" Stark"
 			};
-			string csv = CsvSerializer.Serialize(new[] { obj });
+			string csv = CsvSerializer.Serialize([obj]);
 			csv.Should().Be("""
 				"Tony ""Iron Man"" Stark"
 				""");

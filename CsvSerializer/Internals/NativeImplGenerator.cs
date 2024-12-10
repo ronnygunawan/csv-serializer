@@ -18,21 +18,20 @@ namespace Csv.Internals {
 			foreach (KeyValuePair<ITypeSymbol, List<Location>> kvp in invocationLocationsByTypeSymbol) {
 				try {
 					// Add native implementations for typeSymbol
-					(string fullTypeName, string serializerName, string deserializerName) = context.AddNativeImplementations(
-						typeSymbol: kvp.Key,
-						invocationLocations: kvp.Value
-					);
+					(string fullTypeName, string serializerName, string deserializerName) =
+						context.AddNativeImplementations(
+							typeSymbol: kvp.Key,
+							invocationLocations: kvp.Value
+						);
 
 					// Add native implementations registrations
-					nativeImplRegistration.Append($$"""
-								SERIALIZER_BY_TYPE.Add(typeof({{fullTypeName}}), new Csv.Internal.NativeImpl.{{serializerName}}());
-								DESERIALIZER_BY_TYPE.Add(typeof({{fullTypeName}}), new Csv.Internal.NativeImpl.{{deserializerName}}());
+					nativeImplRegistration.Append($"""
+									SERIALIZER_BY_TYPE.Add(typeof({fullTypeName}), new Csv.Internal.NativeImpl.{serializerName}());
+									DESERIALIZER_BY_TYPE.Add(typeof({fullTypeName}), new Csv.Internal.NativeImpl.{deserializerName}());
 
-					"""
+						"""
 					);
-				} catch (DiagnosticReportedException) {
-					continue;
-				}
+				} catch (DiagnosticReportedException) { }
 			}
 
 			context.AddSource(
@@ -43,12 +42,12 @@ namespace Csv.Internals {
 					using System;
 					using System.Collections.Generic;
 					using Csv.Internal.NaiveImpl;
-					
+
 					namespace Csv {
 						internal static class SerializerFactory {
 							private static readonly Dictionary<Type, ISerializer> SERIALIZER_BY_TYPE = new();
 							private static readonly Dictionary<Type, IDeserializer> DESERIALIZER_BY_TYPE = new();
-
+					
 							static SerializerFactory() {
 								{{nativeImplRegistration.ToString().Trim()}}
 							}
@@ -68,7 +67,7 @@ namespace Csv.Internals {
 							}
 						}
 					}
-					
+
 					""",
 					encoding: Encoding.UTF8
 				)
@@ -90,7 +89,7 @@ namespace Csv.Internals {
 								InEscapeSequence,
 								InTrailingWhiteSpace
 							}
-
+					
 							public static int ReadNextLine(ref ReadOnlyMemory<char> csv, ref Span<ReadOnlyMemory<char>> columns, char separator = ',') {
 								ReadOnlySpan<char> span = csv.Span;
 								int startOfLiteral = 0;
@@ -192,7 +191,7 @@ namespace Csv.Internals {
 							}
 						}
 					}
-					
+
 					""",
 					encoding: Encoding.UTF8
 				)
@@ -234,28 +233,29 @@ namespace Csv.Internals {
 				// Delimiters
 				if (col > 0) {
 					serializeHeaderBuilder.AppendLine("""
-								stringBuilder.Append(delimiter);
-					""");
+									stringBuilder.Append(delimiter);
+						""");
 					writeHeaderBuilder.AppendLine("""
-								streamWriter.Write(delimiter);
-					""");
+									streamWriter.Write(delimiter);
+						""");
 					serializeItemWithProviderBuilder.AppendLine("""
-									stringBuilder.Append(delimiter);
-					""");
+										stringBuilder.Append(delimiter);
+						""");
 					writeItemWithProviderBuilder.AppendLine("""
-									streamWriter.Write(delimiter);
-					""");
+										streamWriter.Write(delimiter);
+						""");
 					serializeItemWithoutProviderBuilder.AppendLine("""
-									stringBuilder.Append(delimiter);
-					""");
+										stringBuilder.Append(delimiter);
+						""");
 					writeItemWithoutProviderBuilder.AppendLine("""
-									streamWriter.Write(delimiter);
-					""");
+										streamWriter.Write(delimiter);
+						""");
 				}
 
 				// Header serializers
 				string? columnName = propertySymbol.GetAttributes()
-					.Where(attr => attr.AttributeClass?.Name == "CsvColumnAttribute" && attr.ConstructorArguments.Length >= 1)
+					.Where(attr =>
+						attr.AttributeClass?.Name == "CsvColumnAttribute" && attr.ConstructorArguments.Length >= 1)
 					.Select(attr => attr.ConstructorArguments[0])
 					.Where(arg => arg.Kind == TypedConstantKind.Primitive)
 					.Select(arg => arg.Value)
@@ -263,22 +263,23 @@ namespace Csv.Internals {
 					.FirstOrDefault();
 				string? dateFormat = propertySymbol.GetAttributes()
 					.Where(attr => attr.AttributeClass?.Name == "CsvColumnAttribute")
-					.SelectMany(attr => attr.NamedArguments.Where(arg => arg.Key == "DateFormat").Select(arg => arg.Value))
+					.SelectMany(attr =>
+						attr.NamedArguments.Where(arg => arg.Key == "DateFormat").Select(arg => arg.Value))
 					.Where(arg => arg.Kind == TypedConstantKind.Primitive)
 					.Select(arg => arg.Value)
 					.OfType<string>()
 					.FirstOrDefault();
 
-				columnName ??= propertySymbol.Name ?? "";
+				columnName ??= propertySymbol.Name;
 
-				serializeHeaderBuilder.AppendLine($$"""
-							stringBuilder.Append('"').Append("{{columnName}}").Append('"');
-				""");
-				writeHeaderBuilder.AppendLine($$"""
-							streamWriter.Write('"');
-							streamWriter.Write("{{columnName}}");
-							streamWriter.Write('"');
-				""");
+				serializeHeaderBuilder.AppendLine($"""
+								stringBuilder.Append('"').Append("{columnName}").Append('"');
+					""");
+				writeHeaderBuilder.AppendLine($"""
+								streamWriter.Write('"');
+								streamWriter.Write("{columnName}");
+								streamWriter.Write('"');
+					""");
 
 				// Item serializers
 				ITypeSymbol propertyTypeSymbol = propertySymbol.Type;
@@ -293,244 +294,250 @@ namespace Csv.Internals {
 					case { SpecialType: SpecialType.System_UInt64 }:
 						if (!strDeclared) {
 							serializeItemWithProviderBuilder.AppendLine("""
-											string? str;
-							""");
+												string? str;
+								""");
 							writeItemWithProviderBuilder.AppendLine("""
-											string? str;
-							""");
+												string? str;
+								""");
 							serializeItemWithoutProviderBuilder.AppendLine("""
-											string? str;
-							""");
+												string? str;
+								""");
 							writeItemWithoutProviderBuilder.AppendLine("""
-											string? str;
-							""");
+												string? str;
+								""");
 							strDeclared = true;
 						}
-						serializeItemWithProviderBuilder.AppendLine($$"""
-									str = i.{{propertySymbol.Name}}.ToString(provider);
-									stringBuilder.Append(str);
-						""");
-						writeItemWithProviderBuilder.AppendLine($$"""
-									str = i.{{propertySymbol.Name}}.ToString(provider);
-									streamWriter.Write(str);
-						""");
-						serializeItemWithoutProviderBuilder.AppendLine($$"""
-									str = i.{{propertySymbol.Name}}.ToString();
-									stringBuilder.Append(str);
-						""");
-						writeItemWithoutProviderBuilder.AppendLine($$"""
-									str = i.{{propertySymbol.Name}}.ToString();
-									streamWriter.Write(str);
-						""");
+
+						serializeItemWithProviderBuilder.AppendLine($"""
+										str = i.{propertySymbol.Name}.ToString(provider);
+										stringBuilder.Append(str);
+							""");
+						writeItemWithProviderBuilder.AppendLine($"""
+										str = i.{propertySymbol.Name}.ToString(provider);
+										streamWriter.Write(str);
+							""");
+						serializeItemWithoutProviderBuilder.AppendLine($"""
+										str = i.{propertySymbol.Name}.ToString();
+										stringBuilder.Append(str);
+							""");
+						writeItemWithoutProviderBuilder.AppendLine($"""
+										str = i.{propertySymbol.Name}.ToString();
+										streamWriter.Write(str);
+							""");
 						break;
 					case { SpecialType: SpecialType.System_Single }:
 					case { SpecialType: SpecialType.System_Double }:
 					case { SpecialType: SpecialType.System_Decimal }:
 						if (!strDeclared) {
 							serializeItemWithProviderBuilder.AppendLine("""
-											string? str;
-							""");
+												string? str;
+								""");
 							writeItemWithProviderBuilder.AppendLine("""
-											string? str;
-							""");
+												string? str;
+								""");
 							serializeItemWithoutProviderBuilder.AppendLine("""
-											string? str;
-							""");
+												string? str;
+								""");
 							writeItemWithoutProviderBuilder.AppendLine("""
-											string? str;
-							""");
+												string? str;
+								""");
 							strDeclared = true;
 						}
+
 						serializeItemWithProviderBuilder.AppendLine($$"""
-										str = i.{{propertySymbol.Name}}.ToString(provider);
-										if (str.Contains(delimiter)) {
-											stringBuilder.Append('"').Append(str).Append('"');
-										} else {
-											stringBuilder.Append(str);
-										}
-						""");
+											str = i.{{propertySymbol.Name}}.ToString(provider);
+											if (str.Contains(delimiter)) {
+												stringBuilder.Append('"').Append(str).Append('"');
+											} else {
+												stringBuilder.Append(str);
+											}
+							""");
 						writeItemWithProviderBuilder.AppendLine($$"""
-										str = i.{{propertySymbol.Name}}.ToString(provider);
-										if (str.Contains(delimiter)) {
-											streamWriter.Write('"');
-											streamWriter.Write(str);
-											streamWriter.Write('"');
-										} else {
-											streamWriter.Write(str);
-										}
-						""");
+											str = i.{{propertySymbol.Name}}.ToString(provider);
+											if (str.Contains(delimiter)) {
+												streamWriter.Write('"');
+												streamWriter.Write(str);
+												streamWriter.Write('"');
+											} else {
+												streamWriter.Write(str);
+											}
+							""");
 						serializeItemWithoutProviderBuilder.AppendLine($$"""
-										str = i.{{propertySymbol.Name}}.ToString();
-										if (str.Contains(delimiter)) {
-											stringBuilder.Append('"').Append(str).Append('"');
-										} else {
-											stringBuilder.Append(str);
-										}
-						""");
+											str = i.{{propertySymbol.Name}}.ToString();
+											if (str.Contains(delimiter)) {
+												stringBuilder.Append('"').Append(str).Append('"');
+											} else {
+												stringBuilder.Append(str);
+											}
+							""");
 						writeItemWithoutProviderBuilder.AppendLine($$"""
-										str = i.{{propertySymbol.Name}}.ToString();
-										if (str.Contains(delimiter)) {
-											streamWriter.Write('"');
-											streamWriter.Write(str);
-											streamWriter.Write('"');
-										} else {
-											streamWriter.Write(str);
-										}
-						""");
+											str = i.{{propertySymbol.Name}}.ToString();
+											if (str.Contains(delimiter)) {
+												streamWriter.Write('"');
+												streamWriter.Write(str);
+												streamWriter.Write('"');
+											} else {
+												streamWriter.Write(str);
+											}
+							""");
 						break;
 					case { SpecialType: SpecialType.System_Boolean }:
 						serializeItemWithProviderBuilder.AppendLine($$"""
-										if (i.{{propertySymbol.Name}}) {
-											stringBuilder.Append("True");
-										} else {
-											stringBuilder.Append("False");
-										}
-						""");
+											if (i.{{propertySymbol.Name}}) {
+												stringBuilder.Append("True");
+											} else {
+												stringBuilder.Append("False");
+											}
+							""");
 						writeItemWithProviderBuilder.AppendLine($$"""
-										if (i.{{propertySymbol.Name}}) {
-											streamWriter.Write("True");
-										} else {
-											streamWriter.Write("False");
-										}
-						""");
+											if (i.{{propertySymbol.Name}}) {
+												streamWriter.Write("True");
+											} else {
+												streamWriter.Write("False");
+											}
+							""");
 						serializeItemWithoutProviderBuilder.AppendLine($$"""
-										if (i.{{propertySymbol.Name}}) {
-											stringBuilder.Append("True");
-										} else {
-											stringBuilder.Append("False");
-										}
-						""");
+											if (i.{{propertySymbol.Name}}) {
+												stringBuilder.Append("True");
+											} else {
+												stringBuilder.Append("False");
+											}
+							""");
 						writeItemWithoutProviderBuilder.AppendLine($$"""
-										if (i.{{propertySymbol.Name}}) {
-											streamWriter.Write("True");
-										} else {
-											streamWriter.Write("False");
-										}
-						""");
+											if (i.{{propertySymbol.Name}}) {
+												streamWriter.Write("True");
+											} else {
+												streamWriter.Write("False");
+											}
+							""");
 						break;
 					case { SpecialType: SpecialType.System_String }:
 						serializeItemWithProviderBuilder.AppendLine($$"""
-										if (i.{{propertySymbol.Name}} is not null) {
-											stringBuilder.Append('"');
-											stringBuilder.Append(i.{{propertySymbol.Name}}.Replace("\"", "\"\""));
-											stringBuilder.Append('"');
-										}
-						""");
+											if (i.{{propertySymbol.Name}} is not null) {
+												stringBuilder.Append('"');
+												stringBuilder.Append(i.{{propertySymbol.Name}}.Replace("\"", "\"\""));
+												stringBuilder.Append('"');
+											}
+							""");
 						writeItemWithProviderBuilder.AppendLine($$"""
-										if (i.{{propertySymbol.Name}} is not null) {
-											streamWriter.Write('"');
-											streamWriter.Write(i.{{propertySymbol.Name}}.Replace("\"", "\"\""));
-											streamWriter.Write('"');
-										}
-						""");
+											if (i.{{propertySymbol.Name}} is not null) {
+												streamWriter.Write('"');
+												streamWriter.Write(i.{{propertySymbol.Name}}.Replace("\"", "\"\""));
+												streamWriter.Write('"');
+											}
+							""");
 						serializeItemWithoutProviderBuilder.AppendLine($$"""
-										if (i.{{propertySymbol.Name}} is not null) {
-											stringBuilder.Append('"');
-											stringBuilder.Append(i.{{propertySymbol.Name}}.Replace("\"", "\"\""));
-											stringBuilder.Append('"');
-										}
-						""");
+											if (i.{{propertySymbol.Name}} is not null) {
+												stringBuilder.Append('"');
+												stringBuilder.Append(i.{{propertySymbol.Name}}.Replace("\"", "\"\""));
+												stringBuilder.Append('"');
+											}
+							""");
 						writeItemWithoutProviderBuilder.AppendLine($$"""
-										if (i.{{propertySymbol.Name}} is not null) {
-											streamWriter.Write('"');
-											streamWriter.Write(i.{{propertySymbol.Name}}.Replace("\"", "\"\""));
-											streamWriter.Write('"');
-										}
-						""");
+											if (i.{{propertySymbol.Name}} is not null) {
+												streamWriter.Write('"');
+												streamWriter.Write(i.{{propertySymbol.Name}}.Replace("\"", "\"\""));
+												streamWriter.Write('"');
+											}
+							""");
 						break;
 					case { TypeKind: TypeKind.Enum }:
-						serializeItemWithProviderBuilder.AppendLine($$"""
-										stringBuilder.Append(i.{{propertySymbol.Name}}.ToString());
-						""");
-						writeItemWithProviderBuilder.AppendLine($$"""
-										streamWriter.Write(i.{{propertySymbol.Name}}.ToString());
-						""");
-						serializeItemWithoutProviderBuilder.AppendLine($$"""
-										stringBuilder.Append(i.{{propertySymbol.Name}}.ToString());
-						""");
-						writeItemWithoutProviderBuilder.AppendLine($$"""
-										streamWriter.Write(i.{{propertySymbol.Name}}.ToString());
-						""");
+						serializeItemWithProviderBuilder.AppendLine($"""
+											stringBuilder.Append(i.{propertySymbol.Name}.ToString());
+							""");
+						writeItemWithProviderBuilder.AppendLine($"""
+											streamWriter.Write(i.{propertySymbol.Name}.ToString());
+							""");
+						serializeItemWithoutProviderBuilder.AppendLine($"""
+											stringBuilder.Append(i.{propertySymbol.Name}.ToString());
+							""");
+						writeItemWithoutProviderBuilder.AppendLine($"""
+											streamWriter.Write(i.{propertySymbol.Name}.ToString());
+							""");
 						break;
 					case { SpecialType: SpecialType.System_DateTime }:
 						if (dateFormat is not null) {
-							serializeItemWithProviderBuilder.AppendLine($$"""
-											stringBuilder.Append('"');
-											stringBuilder.Append(i.{{propertySymbol.Name}}.ToString("{{dateFormat.Replace("\\", "\\\\")}}", provider).Replace("\"", "\"\""));
-											stringBuilder.Append('"');
-							""");
-							writeItemWithProviderBuilder.AppendLine($$"""
-											streamWriter.Write('"');
-											streamWriter.Write(i.{{propertySymbol.Name}}.ToString("{{dateFormat.Replace("\\", "\\\\")}}", provider).Replace("\"", "\"\""));
-											streamWriter.Write('"');
-							""");
-							serializeItemWithoutProviderBuilder.AppendLine($$"""
-											stringBuilder.Append('"');
-											stringBuilder.Append(i.{{propertySymbol.Name}}.ToString("{{dateFormat.Replace("\\", "\\\\")}}").Replace("\"", "\"\""));
-											stringBuilder.Append('"');
-							""");
-							writeItemWithoutProviderBuilder.AppendLine($$"""
-											streamWriter.Write('"');
-											streamWriter.Write(i.{{propertySymbol.Name}}.ToString("{{dateFormat.Replace("\\", "\\\\")}}").Replace("\"", "\"\""));
-											streamWriter.Write('"');
-							""");
+							serializeItemWithProviderBuilder.AppendLine($"""
+												stringBuilder.Append('"');
+												stringBuilder.Append(i.{propertySymbol.Name}.ToString("{dateFormat.Replace("\\", "\\\\")}", provider).Replace("\"", "\"\""));
+												stringBuilder.Append('"');
+								""");
+							writeItemWithProviderBuilder.AppendLine($"""
+												streamWriter.Write('"');
+												streamWriter.Write(i.{propertySymbol.Name}.ToString("{dateFormat.Replace("\\", "\\\\")}", provider).Replace("\"", "\"\""));
+												streamWriter.Write('"');
+								""");
+							serializeItemWithoutProviderBuilder.AppendLine($"""
+												stringBuilder.Append('"');
+												stringBuilder.Append(i.{propertySymbol.Name}.ToString("{dateFormat.Replace("\\", "\\\\")}").Replace("\"", "\"\""));
+												stringBuilder.Append('"');
+								""");
+							writeItemWithoutProviderBuilder.AppendLine($"""
+												streamWriter.Write('"');
+												streamWriter.Write(i.{propertySymbol.Name}.ToString("{dateFormat.Replace("\\", "\\\\")}").Replace("\"", "\"\""));
+												streamWriter.Write('"');
+								""");
 						} else {
-							serializeItemWithProviderBuilder.AppendLine($$"""
-											stringBuilder.Append('"');
-											stringBuilder.Append(i.{{propertySymbol.Name}}.ToString(provider).Replace("\"", "\"\""));
-											stringBuilder.Append('"');
-							""");
-							writeItemWithProviderBuilder.AppendLine($$"""
-											streamWriter.Write('"');
-											streamWriter.Write(i.{{propertySymbol.Name}}.ToString(provider).Replace("\"", "\"\""));
-											streamWriter.Write('"');
-							""");
-							serializeItemWithoutProviderBuilder.AppendLine($$"""
-											stringBuilder.Append('"');
-											stringBuilder.Append(i.{{propertySymbol.Name}}.ToString().Replace("\"", "\"\""));
-											stringBuilder.Append('"');
-							""");
-							writeItemWithoutProviderBuilder.AppendLine($$"""
-											streamWriter.Write('"');
-											streamWriter.Write(i.{{propertySymbol.Name}}.ToString().Replace("\"", "\"\""));
-											streamWriter.Write('"');
-							""");
+							serializeItemWithProviderBuilder.AppendLine($"""
+												stringBuilder.Append('"');
+												stringBuilder.Append(i.{propertySymbol.Name}.ToString(provider).Replace("\"", "\"\""));
+												stringBuilder.Append('"');
+								""");
+							writeItemWithProviderBuilder.AppendLine($"""
+												streamWriter.Write('"');
+												streamWriter.Write(i.{propertySymbol.Name}.ToString(provider).Replace("\"", "\"\""));
+												streamWriter.Write('"');
+								""");
+							serializeItemWithoutProviderBuilder.AppendLine($"""
+												stringBuilder.Append('"');
+												stringBuilder.Append(i.{propertySymbol.Name}.ToString().Replace("\"", "\"\""));
+												stringBuilder.Append('"');
+								""");
+							writeItemWithoutProviderBuilder.AppendLine($"""
+												streamWriter.Write('"');
+												streamWriter.Write(i.{propertySymbol.Name}.ToString().Replace("\"", "\"\""));
+												streamWriter.Write('"');
+								""");
 						}
+
 						break;
 					case { Name: "Uri", ContainingNamespace.Name: "System" }:
 						serializeItemWithProviderBuilder.AppendLine($$"""
-										if (i.{{propertySymbol.Name}} is not null) {
-											stringBuilder.Append('"');
-											stringBuilder.Append(i.{{propertySymbol.Name}}.ToString().Replace("\"", "\"\""));
-											stringBuilder.Append('"');
-										}
-						""");
+											if (i.{{propertySymbol.Name}} is not null) {
+												stringBuilder.Append('"');
+												stringBuilder.Append(i.{{propertySymbol.Name}}.ToString().Replace("\"", "\"\""));
+												stringBuilder.Append('"');
+											}
+							""");
 						writeItemWithProviderBuilder.AppendLine($$"""
-										if (i.{{propertySymbol.Name}} is not null) {
-											streamWriter.Write('"');
-											streamWriter.Write(i.{{propertySymbol.Name}}.ToString().Replace("\"", "\"\""));
-											streamWriter.Write('"');
-										}
-						""");
+											if (i.{{propertySymbol.Name}} is not null) {
+												streamWriter.Write('"');
+												streamWriter.Write(i.{{propertySymbol.Name}}.ToString().Replace("\"", "\"\""));
+												streamWriter.Write('"');
+											}
+							""");
 						serializeItemWithoutProviderBuilder.AppendLine($$"""
-										if (i.{{propertySymbol.Name}} is not null) {
-											stringBuilder.Append('"');
-											stringBuilder.Append(i.{{propertySymbol.Name}}.ToString().Replace("\"", "\"\""));
-											stringBuilder.Append('"');
-										}
-						""");
+											if (i.{{propertySymbol.Name}} is not null) {
+												stringBuilder.Append('"');
+												stringBuilder.Append(i.{{propertySymbol.Name}}.ToString().Replace("\"", "\"\""));
+												stringBuilder.Append('"');
+											}
+							""");
 						writeItemWithoutProviderBuilder.AppendLine($$"""
-										if (i.{{propertySymbol.Name}} is not null) {
-											streamWriter.Write('"');
-											streamWriter.Write(i.{{propertySymbol.Name}}.ToString().Replace("\"", "\"\""));
-											streamWriter.Write('"');
-										}
-						""");
+											if (i.{{propertySymbol.Name}} is not null) {
+												streamWriter.Write('"');
+												streamWriter.Write(i.{{propertySymbol.Name}}.ToString().Replace("\"", "\"\""));
+												streamWriter.Write('"');
+											}
+							""");
 						break;
 					case { IsValueType: true, NullableAnnotation: NullableAnnotation.Annotated }:
-						if (propertyTypeSymbol is not INamedTypeSymbol { TypeArguments: { Length: 1 } typeArguments }) {
+						if (propertyTypeSymbol is not INamedTypeSymbol {
+							TypeArguments: { Length: 1 } typeArguments
+						}) {
 							break;
 						}
+
 						ITypeSymbol underlyingTypeSymbol = typeArguments[0];
 						switch (underlyingTypeSymbol) {
 							case { SpecialType: SpecialType.System_SByte }:
@@ -543,249 +550,252 @@ namespace Csv.Internals {
 							case { SpecialType: SpecialType.System_UInt64 }:
 								if (!strDeclared) {
 									serializeItemWithProviderBuilder.AppendLine("""
-													string? str;
-									""");
+														string? str;
+										""");
 									writeItemWithProviderBuilder.AppendLine("""
-													string? str;
-									""");
+														string? str;
+										""");
 									serializeItemWithoutProviderBuilder.AppendLine("""
-													string? str;
-									""");
+														string? str;
+										""");
 									writeItemWithoutProviderBuilder.AppendLine("""
-													string? str;
-									""");
+														string? str;
+										""");
 									strDeclared = true;
 								}
+
 								serializeItemWithProviderBuilder.AppendLine($$"""
-												str = i.{{propertySymbol.Name}}?.ToString(provider);
-												if (str is not null) {
-													stringBuilder.Append(str);
-												}
-								""");
+													str = i.{{propertySymbol.Name}}?.ToString(provider);
+													if (str is not null) {
+														stringBuilder.Append(str);
+													}
+									""");
 								writeItemWithProviderBuilder.AppendLine($$"""
-												str = i.{{propertySymbol.Name}}?.ToString(provider);
-												if (str is not null) {
-													streamWriter.Write(str);
-												}
-								""");
+													str = i.{{propertySymbol.Name}}?.ToString(provider);
+													if (str is not null) {
+														streamWriter.Write(str);
+													}
+									""");
 								serializeItemWithoutProviderBuilder.AppendLine($$"""
-												str = i.{{propertySymbol.Name}}?.ToString();
-												if (str is not null) {
-													stringBuilder.Append(str);
-												}
-								""");
+													str = i.{{propertySymbol.Name}}?.ToString();
+													if (str is not null) {
+														stringBuilder.Append(str);
+													}
+									""");
 								writeItemWithoutProviderBuilder.AppendLine($$"""
-												str = i.{{propertySymbol.Name}}?.ToString();
-												if (str is not null) {
-													streamWriter.Write(str);
-												}
-								""");
+													str = i.{{propertySymbol.Name}}?.ToString();
+													if (str is not null) {
+														streamWriter.Write(str);
+													}
+									""");
 								break;
 							case { SpecialType: SpecialType.System_Single }:
 							case { SpecialType: SpecialType.System_Double }:
 							case { SpecialType: SpecialType.System_Decimal }:
 								if (!strDeclared) {
 									serializeItemWithProviderBuilder.AppendLine("""
-													string? str;
-									""");
+														string? str;
+										""");
 									writeItemWithProviderBuilder.AppendLine("""
-													string? str;
-									""");
+														string? str;
+										""");
 									serializeItemWithoutProviderBuilder.AppendLine("""
-													string? str;
-									""");
+														string? str;
+										""");
 									writeItemWithoutProviderBuilder.AppendLine("""
-													string? str;
-									""");
+														string? str;
+										""");
 									strDeclared = true;
 								}
+
 								serializeItemWithProviderBuilder.AppendLine($$"""
-												str = i.{{propertySymbol.Name}}?.ToString(provider);
-												if (str is not null) {
-													if (str.Contains(delimiter)) {
-														stringBuilder.Append('"').Append(str).Append('"');
-													} else {
-														stringBuilder.Append(str);
+													str = i.{{propertySymbol.Name}}?.ToString(provider);
+													if (str is not null) {
+														if (str.Contains(delimiter)) {
+															stringBuilder.Append('"').Append(str).Append('"');
+														} else {
+															stringBuilder.Append(str);
+														}
 													}
-												}
-								""");
+									""");
 								writeItemWithProviderBuilder.AppendLine($$"""
-												str = i.{{propertySymbol.Name}}?.ToString(provider);
-												if (str is not null) {
-													if (str.Contains(delimiter)) {
-														streamWriter.Write('"');
-														streamWriter.Write(str);
-														streamWriter.Write('"');
-													} else {
-														streamWriter.Write(str);
+													str = i.{{propertySymbol.Name}}?.ToString(provider);
+													if (str is not null) {
+														if (str.Contains(delimiter)) {
+															streamWriter.Write('"');
+															streamWriter.Write(str);
+															streamWriter.Write('"');
+														} else {
+															streamWriter.Write(str);
+														}
 													}
-												}
-								""");
+									""");
 								serializeItemWithoutProviderBuilder.AppendLine($$"""
-												str = i.{{propertySymbol.Name}}?.ToString();
-												if (str is not null) {
-													if (str.Contains(delimiter)) {
-														stringBuilder.Append('"').Append(str).Append('"');
-													} else {
-														stringBuilder.Append(str);
+													str = i.{{propertySymbol.Name}}?.ToString();
+													if (str is not null) {
+														if (str.Contains(delimiter)) {
+															stringBuilder.Append('"').Append(str).Append('"');
+														} else {
+															stringBuilder.Append(str);
+														}
 													}
-												}
-								""");
+									""");
 								writeItemWithoutProviderBuilder.AppendLine($$"""
-												str = i.{{propertySymbol.Name}}?.ToString();
-												if (str is not null) {
-													if (str.Contains(delimiter)) {
-														streamWriter.Write('"');
-														streamWriter.Write(str);
-														streamWriter.Write('"');
-													} else {
-														streamWriter.Write(str);
+													str = i.{{propertySymbol.Name}}?.ToString();
+													if (str is not null) {
+														if (str.Contains(delimiter)) {
+															streamWriter.Write('"');
+															streamWriter.Write(str);
+															streamWriter.Write('"');
+														} else {
+															streamWriter.Write(str);
+														}
 													}
-												}
-								""");
+									""");
 								break;
 							case { SpecialType: SpecialType.System_Boolean }:
 								serializeItemWithProviderBuilder.AppendLine($$"""
-												if (i.{{propertySymbol.Name}} == true) {
-													stringBuilder.Append("True");
-												} else if (i.{{propertySymbol.Name}} == false) {
-													stringBuilder.Append("False");
-												}
-								""");
+													if (i.{{propertySymbol.Name}} == true) {
+														stringBuilder.Append("True");
+													} else if (i.{{propertySymbol.Name}} == false) {
+														stringBuilder.Append("False");
+													}
+									""");
 								writeItemWithProviderBuilder.AppendLine($$"""
-												if (i.{{propertySymbol.Name}} == true) {
-													streamWriter.Write("True");
-												} else if (i.{{propertySymbol.Name}} == false) {
-													streamWriter.Write("False");
-												}
-								""");
+													if (i.{{propertySymbol.Name}} == true) {
+														streamWriter.Write("True");
+													} else if (i.{{propertySymbol.Name}} == false) {
+														streamWriter.Write("False");
+													}
+									""");
 								serializeItemWithoutProviderBuilder.AppendLine($$"""
-												if (i.{{propertySymbol.Name}} == true) {
-													stringBuilder.Append("True");
-												} else if (i.{{propertySymbol.Name}} == false) {
-													stringBuilder.Append("False");
-												}
-								""");
+													if (i.{{propertySymbol.Name}} == true) {
+														stringBuilder.Append("True");
+													} else if (i.{{propertySymbol.Name}} == false) {
+														stringBuilder.Append("False");
+													}
+									""");
 								writeItemWithoutProviderBuilder.AppendLine($$"""
-												if (i.{{propertySymbol.Name}} == true) {
-													streamWriter.Write("True");
-												} else if (i.{{propertySymbol.Name}} == false) {
-													streamWriter.Write("False");
-												}
-								""");
+													if (i.{{propertySymbol.Name}} == true) {
+														streamWriter.Write("True");
+													} else if (i.{{propertySymbol.Name}} == false) {
+														streamWriter.Write("False");
+													}
+									""");
 								break;
 							case { SpecialType: SpecialType.System_String }:
 								serializeItemWithProviderBuilder.AppendLine($$"""
-												if (i.{{propertySymbol.Name}} is not null) {
-													stringBuilder.Append('"');
-													stringBuilder.Append(i.{{propertySymbol.Name}}.Replace("\"", "\"\""));
-													stringBuilder.Append('"');
-												}
-								""");
+													if (i.{{propertySymbol.Name}} is not null) {
+														stringBuilder.Append('"');
+														stringBuilder.Append(i.{{propertySymbol.Name}}.Replace("\"", "\"\""));
+														stringBuilder.Append('"');
+													}
+									""");
 								writeItemWithProviderBuilder.AppendLine($$"""
-												if (i.{{propertySymbol.Name}} is not null) {
-													streamWriter.Write('"');
-													streamWriter.Write(i.{{propertySymbol.Name}}.Replace("\"", "\"\""));
-													streamWriter.Write('"');
-												}
-								""");
+													if (i.{{propertySymbol.Name}} is not null) {
+														streamWriter.Write('"');
+														streamWriter.Write(i.{{propertySymbol.Name}}.Replace("\"", "\"\""));
+														streamWriter.Write('"');
+													}
+									""");
 								serializeItemWithoutProviderBuilder.AppendLine($$"""
-												if (i.{{propertySymbol.Name}} is not null) {
-													stringBuilder.Append('"');
-													stringBuilder.Append(i.{{propertySymbol.Name}}.Replace("\"", "\"\""));
-													stringBuilder.Append('"');
-												}
-								""");
+													if (i.{{propertySymbol.Name}} is not null) {
+														stringBuilder.Append('"');
+														stringBuilder.Append(i.{{propertySymbol.Name}}.Replace("\"", "\"\""));
+														stringBuilder.Append('"');
+													}
+									""");
 								writeItemWithoutProviderBuilder.AppendLine($$"""
-												if (i.{{propertySymbol.Name}} is not null) {
-													streamWriter.Write('"');
-													streamWriter.Write(i.{{propertySymbol.Name}}.Replace("\"", "\"\""));
-													streamWriter.Write('"');
-												}
-								""");
+													if (i.{{propertySymbol.Name}} is not null) {
+														streamWriter.Write('"');
+														streamWriter.Write(i.{{propertySymbol.Name}}.Replace("\"", "\"\""));
+														streamWriter.Write('"');
+													}
+									""");
 								break;
 							case { TypeKind: TypeKind.Enum }:
 								serializeItemWithProviderBuilder.AppendLine($$"""
-												if (i.{{propertySymbol.Name}}.HasValue) {
-													stringBuilder.Append(i.{{propertySymbol.Name}}.Value.ToString());
-												}
-								""");
+													if (i.{{propertySymbol.Name}}.HasValue) {
+														stringBuilder.Append(i.{{propertySymbol.Name}}.Value.ToString());
+													}
+									""");
 								writeItemWithProviderBuilder.AppendLine($$"""
-												if (i.{{propertySymbol.Name}}.HasValue) {
-													streamWriter.Write(i.{{propertySymbol.Name}}.Value.ToString());
-												}
-								""");
+													if (i.{{propertySymbol.Name}}.HasValue) {
+														streamWriter.Write(i.{{propertySymbol.Name}}.Value.ToString());
+													}
+									""");
 								serializeItemWithoutProviderBuilder.AppendLine($$"""
-												if (i.{{propertySymbol.Name}}.HasValue) {
-													stringBuilder.Append(i.{{propertySymbol.Name}}.Value.ToString());
-												}
-								""");
+													if (i.{{propertySymbol.Name}}.HasValue) {
+														stringBuilder.Append(i.{{propertySymbol.Name}}.Value.ToString());
+													}
+									""");
 								writeItemWithoutProviderBuilder.AppendLine($$"""
-												if (i.{{propertySymbol.Name}}.HasValue) {
-													streamWriter.Write(i.{{propertySymbol.Name}}.Value.ToString());
-												}
-								""");
+													if (i.{{propertySymbol.Name}}.HasValue) {
+														streamWriter.Write(i.{{propertySymbol.Name}}.Value.ToString());
+													}
+									""");
 								break;
 							case { SpecialType: SpecialType.System_DateTime }:
 								if (dateFormat is not null) {
 									serializeItemWithProviderBuilder.AppendLine($$"""
-													if (i.{{propertySymbol.Name}}.HasValue) {
-														stringBuilder.Append('"');
-														stringBuilder.Append(i.{{propertySymbol.Name}}.Value.ToString("{{dateFormat.Replace("\\", "\\\\")}}", provider).Replace("\"", "\"\""));
-														stringBuilder.Append('"');
-													}
-									""");
+														if (i.{{propertySymbol.Name}}.HasValue) {
+															stringBuilder.Append('"');
+															stringBuilder.Append(i.{{propertySymbol.Name}}.Value.ToString("{{dateFormat.Replace("\\", "\\\\")}}", provider).Replace("\"", "\"\""));
+															stringBuilder.Append('"');
+														}
+										""");
 									writeItemWithProviderBuilder.AppendLine($$"""
-													if (i.{{propertySymbol.Name}}.HasValue) {
-														streamWriter.Write('"');
-														streamWriter.Write(i.{{propertySymbol.Name}}.Value.ToString("{{dateFormat.Replace("\\", "\\\\")}}", provider).Replace("\"", "\"\""));
-														streamWriter.Write('"');
-													}
-									""");
+														if (i.{{propertySymbol.Name}}.HasValue) {
+															streamWriter.Write('"');
+															streamWriter.Write(i.{{propertySymbol.Name}}.Value.ToString("{{dateFormat.Replace("\\", "\\\\")}}", provider).Replace("\"", "\"\""));
+															streamWriter.Write('"');
+														}
+										""");
 									serializeItemWithoutProviderBuilder.AppendLine($$"""
-													if (i.{{propertySymbol.Name}}.HasValue) {
-														stringBuilder.Append('"');
-														stringBuilder.Append(i.{{propertySymbol.Name}}.Value.ToString("{{dateFormat.Replace("\\", "\\\\")}}").Replace("\"", "\"\""));
-														stringBuilder.Append('"');
-													}
-									""");
+														if (i.{{propertySymbol.Name}}.HasValue) {
+															stringBuilder.Append('"');
+															stringBuilder.Append(i.{{propertySymbol.Name}}.Value.ToString("{{dateFormat.Replace("\\", "\\\\")}}").Replace("\"", "\"\""));
+															stringBuilder.Append('"');
+														}
+										""");
 									writeItemWithoutProviderBuilder.AppendLine($$"""
-													if (i.{{propertySymbol.Name}}.HasValue) {
-														streamWriter.Write('"');
-														streamWriter.Write(i.{{propertySymbol.Name}}.Value.ToString("{{dateFormat.Replace("\\", "\\\\")}}").Replace("\"", "\"\""));
-														streamWriter.Write('"');
-													}
-									""");
+														if (i.{{propertySymbol.Name}}.HasValue) {
+															streamWriter.Write('"');
+															streamWriter.Write(i.{{propertySymbol.Name}}.Value.ToString("{{dateFormat.Replace("\\", "\\\\")}}").Replace("\"", "\"\""));
+															streamWriter.Write('"');
+														}
+										""");
 								} else {
 									serializeItemWithProviderBuilder.AppendLine($$"""
-													if (i.{{propertySymbol.Name}}.HasValue) {
-														stringBuilder.Append('"');
-														stringBuilder.Append(i.{{propertySymbol.Name}}.Value.ToString(provider).Replace("\"", "\"\""));
-														stringBuilder.Append('"');
-													}
-									""");
+														if (i.{{propertySymbol.Name}}.HasValue) {
+															stringBuilder.Append('"');
+															stringBuilder.Append(i.{{propertySymbol.Name}}.Value.ToString(provider).Replace("\"", "\"\""));
+															stringBuilder.Append('"');
+														}
+										""");
 									writeItemWithProviderBuilder.AppendLine($$"""
-													if (i.{{propertySymbol.Name}}.HasValue) {
-														streamWriter.Write('"');
-														streamWriter.Write(i.{{propertySymbol.Name}}.Value.ToString(provider).Replace("\"", "\"\""));
-														streamWriter.Write('"');
-													}
-									""");
+														if (i.{{propertySymbol.Name}}.HasValue) {
+															streamWriter.Write('"');
+															streamWriter.Write(i.{{propertySymbol.Name}}.Value.ToString(provider).Replace("\"", "\"\""));
+															streamWriter.Write('"');
+														}
+										""");
 									serializeItemWithoutProviderBuilder.AppendLine($$"""
-													if (i.{{propertySymbol.Name}}.HasValue) {
-														stringBuilder.Append('"');
-														stringBuilder.Append(i.{{propertySymbol.Name}}.Value.ToString().Replace("\"", "\"\""));
-														stringBuilder.Append('"');
-													}
-									""");
+														if (i.{{propertySymbol.Name}}.HasValue) {
+															stringBuilder.Append('"');
+															stringBuilder.Append(i.{{propertySymbol.Name}}.Value.ToString().Replace("\"", "\"\""));
+															stringBuilder.Append('"');
+														}
+										""");
 									writeItemWithoutProviderBuilder.AppendLine($$"""
-													if (i.{{propertySymbol.Name}}.HasValue) {
-														streamWriter.Write('"');
-														streamWriter.Write(i.{{propertySymbol.Name}}.Value.ToString().Replace("\"", "\"\""));
-														streamWriter.Write('"');
-													}
-									""");
+														if (i.{{propertySymbol.Name}}.HasValue) {
+															streamWriter.Write('"');
+															streamWriter.Write(i.{{propertySymbol.Name}}.Value.ToString().Replace("\"", "\"\""));
+															streamWriter.Write('"');
+														}
+										""");
 								}
+
 								break;
 							default:
 								foreach (Location invocationLocation in invocationLocations) {
@@ -804,8 +814,10 @@ namespace Csv.Internals {
 										)
 									);
 								}
+
 								throw new DiagnosticReportedException();
 						}
+
 						break;
 					default:
 						foreach (Location invocationLocation in invocationLocations) {
@@ -824,6 +836,7 @@ namespace Csv.Internals {
 								)
 							);
 						}
+
 						throw new DiagnosticReportedException();
 				}
 
@@ -831,263 +844,263 @@ namespace Csv.Internals {
 				switch (propertyTypeSymbol) {
 					case { SpecialType: SpecialType.System_SByte }:
 						deserializeWithProviderBuilder.AppendLine($$"""
-											if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && sbyte.TryParse(columns[{{col}}].Span[1..^1], NumberStyles.Integer, provider, out sbyte v{{propertySymbol.Name}})) {
-												item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-											} else if (sbyte.TryParse(columns[{{col}}].Span, NumberStyles.Integer, provider, out v{{propertySymbol.Name}})) {
-												item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-											} else {
-												throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct sbyte format.");
-											}
-						""");
+												if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && sbyte.TryParse(columns[{{col}}].Span[1..^1], NumberStyles.Integer, provider, out sbyte v{{propertySymbol.Name}})) {
+													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+												} else if (sbyte.TryParse(columns[{{col}}].Span, NumberStyles.Integer, provider, out v{{propertySymbol.Name}})) {
+													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+												} else {
+													throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct sbyte format.");
+												}
+							""");
 						deserializeWithoutProviderBuilder.AppendLine($$"""
-											if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && sbyte.TryParse(columns[{{col}}].Span[1..^1], out sbyte v{{propertySymbol.Name}})) {
-												item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-											} else if (sbyte.TryParse(columns[{{col}}].Span, out v{{propertySymbol.Name}})) {
-												item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-											} else {
-												throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct sbyte format.");
-											}
-						""");
+												if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && sbyte.TryParse(columns[{{col}}].Span[1..^1], out sbyte v{{propertySymbol.Name}})) {
+													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+												} else if (sbyte.TryParse(columns[{{col}}].Span, out v{{propertySymbol.Name}})) {
+													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+												} else {
+													throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct sbyte format.");
+												}
+							""");
 						break;
 					case { SpecialType: SpecialType.System_Byte }:
 						deserializeWithProviderBuilder.AppendLine($$"""
-											if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && byte.TryParse(columns[{{col}}].Span[1..^1], NumberStyles.Integer, provider, out byte v{{propertySymbol.Name}})) {
-												item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-											} else if (byte.TryParse(columns[{{col}}].Span, NumberStyles.Integer, provider, out v{{propertySymbol.Name}})) {
-												item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-											} else {
-												throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct byte format.");
-											}
-						""");
+												if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && byte.TryParse(columns[{{col}}].Span[1..^1], NumberStyles.Integer, provider, out byte v{{propertySymbol.Name}})) {
+													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+												} else if (byte.TryParse(columns[{{col}}].Span, NumberStyles.Integer, provider, out v{{propertySymbol.Name}})) {
+													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+												} else {
+													throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct byte format.");
+												}
+							""");
 						deserializeWithoutProviderBuilder.AppendLine($$"""
-											if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && byte.TryParse(columns[{{col}}].Span[1..^1], out byte v{{propertySymbol.Name}})) {
-												item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-											} else if (byte.TryParse(columns[{{col}}].Span, out v{{propertySymbol.Name}})) {
-												item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-											} else {
-												throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct byte format.");
-											}
-						""");
+												if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && byte.TryParse(columns[{{col}}].Span[1..^1], out byte v{{propertySymbol.Name}})) {
+													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+												} else if (byte.TryParse(columns[{{col}}].Span, out v{{propertySymbol.Name}})) {
+													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+												} else {
+													throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct byte format.");
+												}
+							""");
 						break;
 					case { SpecialType: SpecialType.System_Int16 }:
 						deserializeWithProviderBuilder.AppendLine($$"""
-											if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && short.TryParse(columns[{{col}}].Span[1..^1], NumberStyles.Integer, provider, out short v{{propertySymbol.Name}})) {
-												item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-											} else if (short.TryParse(columns[{{col}}].Span, NumberStyles.Integer, provider, out v{{propertySymbol.Name}})) {
-												item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-											} else {
-												throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct short format.");
-											}
-						""");
+												if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && short.TryParse(columns[{{col}}].Span[1..^1], NumberStyles.Integer, provider, out short v{{propertySymbol.Name}})) {
+													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+												} else if (short.TryParse(columns[{{col}}].Span, NumberStyles.Integer, provider, out v{{propertySymbol.Name}})) {
+													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+												} else {
+													throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct short format.");
+												}
+							""");
 						deserializeWithoutProviderBuilder.AppendLine($$"""
-											if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && short.TryParse(columns[{{col}}].Span[1..^1], out short v{{propertySymbol.Name}})) {
-												item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-											} else if (short.TryParse(columns[{{col}}].Span, out v{{propertySymbol.Name}})) {
-												item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-											} else {
-												throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct short format.");
-											}
-						""");
+												if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && short.TryParse(columns[{{col}}].Span[1..^1], out short v{{propertySymbol.Name}})) {
+													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+												} else if (short.TryParse(columns[{{col}}].Span, out v{{propertySymbol.Name}})) {
+													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+												} else {
+													throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct short format.");
+												}
+							""");
 						break;
 					case { SpecialType: SpecialType.System_UInt16 }:
 						deserializeWithProviderBuilder.AppendLine($$"""
-											if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && ushort.TryParse(columns[{{col}}].Span[1..^1], NumberStyles.Integer, provider, out ushort v{{propertySymbol.Name}})) {
-												item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-											} else if (ushort.TryParse(columns[{{col}}].Span, NumberStyles.Integer, provider, out v{{propertySymbol.Name}})) {
-												item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-											} else {
-												throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct ushort format.");
-											}
-						""");
+												if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && ushort.TryParse(columns[{{col}}].Span[1..^1], NumberStyles.Integer, provider, out ushort v{{propertySymbol.Name}})) {
+													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+												} else if (ushort.TryParse(columns[{{col}}].Span, NumberStyles.Integer, provider, out v{{propertySymbol.Name}})) {
+													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+												} else {
+													throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct ushort format.");
+												}
+							""");
 						deserializeWithoutProviderBuilder.AppendLine($$"""
-											if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && ushort.TryParse(columns[{{col}}].Span[1..^1], out ushort v{{propertySymbol.Name}})) {
-												item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-											} else if (ushort.TryParse(columns[{{col}}].Span, out v{{propertySymbol.Name}})) {
-												item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-											} else {
-												throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct ushort format.");
-											}
-						""");
+												if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && ushort.TryParse(columns[{{col}}].Span[1..^1], out ushort v{{propertySymbol.Name}})) {
+													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+												} else if (ushort.TryParse(columns[{{col}}].Span, out v{{propertySymbol.Name}})) {
+													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+												} else {
+													throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct ushort format.");
+												}
+							""");
 						break;
 					case { SpecialType: SpecialType.System_Int32 }:
 						deserializeWithProviderBuilder.AppendLine($$"""
-											if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && int.TryParse(columns[{{col}}].Span[1..^1], NumberStyles.Integer, provider, out int v{{propertySymbol.Name}})) {
-												item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-											} else if (int.TryParse(columns[{{col}}].Span, NumberStyles.Integer, provider, out v{{propertySymbol.Name}})) {
-												item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-											} else {
-												throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct int format.");
-											}
-						""");
+												if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && int.TryParse(columns[{{col}}].Span[1..^1], NumberStyles.Integer, provider, out int v{{propertySymbol.Name}})) {
+													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+												} else if (int.TryParse(columns[{{col}}].Span, NumberStyles.Integer, provider, out v{{propertySymbol.Name}})) {
+													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+												} else {
+													throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct int format.");
+												}
+							""");
 						deserializeWithoutProviderBuilder.AppendLine($$"""
-											if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && int.TryParse(columns[{{col}}].Span[1..^1], out int v{{propertySymbol.Name}})) {
-												item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-											} else if (int.TryParse(columns[{{col}}].Span, out v{{propertySymbol.Name}})) {
-												item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-											} else {
-												throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct int format.");
-											}
-						""");
+												if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && int.TryParse(columns[{{col}}].Span[1..^1], out int v{{propertySymbol.Name}})) {
+													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+												} else if (int.TryParse(columns[{{col}}].Span, out v{{propertySymbol.Name}})) {
+													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+												} else {
+													throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct int format.");
+												}
+							""");
 						break;
 					case { SpecialType: SpecialType.System_UInt32 }:
 						deserializeWithProviderBuilder.AppendLine($$"""
-											if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && uint.TryParse(columns[{{col}}].Span[1..^1], NumberStyles.Integer, provider, out uint v{{propertySymbol.Name}})) {
-												item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-											} else if (uint.TryParse(columns[{{col}}].Span, NumberStyles.Integer, provider, out v{{propertySymbol.Name}})) {
-												item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-											} else {
-												throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct uint format.");
-											}
-						""");
+												if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && uint.TryParse(columns[{{col}}].Span[1..^1], NumberStyles.Integer, provider, out uint v{{propertySymbol.Name}})) {
+													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+												} else if (uint.TryParse(columns[{{col}}].Span, NumberStyles.Integer, provider, out v{{propertySymbol.Name}})) {
+													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+												} else {
+													throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct uint format.");
+												}
+							""");
 						deserializeWithoutProviderBuilder.AppendLine($$"""
-											if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && uint.TryParse(columns[{{col}}].Span[1..^1], out uint v{{propertySymbol.Name}})) {
-												item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-											} else if (uint.TryParse(columns[{{col}}].Span, out v{{propertySymbol.Name}})) {
-												item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-											} else {
-												throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct uint format.");
-											}
-						""");
+												if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && uint.TryParse(columns[{{col}}].Span[1..^1], out uint v{{propertySymbol.Name}})) {
+													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+												} else if (uint.TryParse(columns[{{col}}].Span, out v{{propertySymbol.Name}})) {
+													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+												} else {
+													throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct uint format.");
+												}
+							""");
 						break;
 					case { SpecialType: SpecialType.System_Int64 }:
 						deserializeWithProviderBuilder.AppendLine($$"""
-											if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && long.TryParse(columns[{{col}}].Span[1..^1], NumberStyles.Integer, provider, out long v{{propertySymbol.Name}})) {
-												item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-											} else if (long.TryParse(columns[{{col}}].Span, NumberStyles.Integer, provider, out v{{propertySymbol.Name}})) {
-												item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-											} else {
-												throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct long format.");
-											}
-						""");
+												if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && long.TryParse(columns[{{col}}].Span[1..^1], NumberStyles.Integer, provider, out long v{{propertySymbol.Name}})) {
+													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+												} else if (long.TryParse(columns[{{col}}].Span, NumberStyles.Integer, provider, out v{{propertySymbol.Name}})) {
+													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+												} else {
+													throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct long format.");
+												}
+							""");
 						deserializeWithoutProviderBuilder.AppendLine($$"""
-											if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && long.TryParse(columns[{{col}}].Span[1..^1], out long v{{propertySymbol.Name}})) {
-												item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-											} else if (long.TryParse(columns[{{col}}].Span, out v{{propertySymbol.Name}})) {
-												item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-											} else {
-												throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct long format.");
-											}
-						""");
+												if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && long.TryParse(columns[{{col}}].Span[1..^1], out long v{{propertySymbol.Name}})) {
+													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+												} else if (long.TryParse(columns[{{col}}].Span, out v{{propertySymbol.Name}})) {
+													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+												} else {
+													throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct long format.");
+												}
+							""");
 						break;
 					case { SpecialType: SpecialType.System_UInt64 }:
 						deserializeWithProviderBuilder.AppendLine($$"""
-											if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && ulong.TryParse(columns[{{col}}].Span[1..^1], NumberStyles.Integer, provider, out ulong v{{propertySymbol.Name}})) {
-												item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-											} else if (ulong.TryParse(columns[{{col}}].Span, NumberStyles.Integer, provider, out v{{propertySymbol.Name}})) {
-												item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-											} else {
-												throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct ulong format.");
-											}
-						""");
+												if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && ulong.TryParse(columns[{{col}}].Span[1..^1], NumberStyles.Integer, provider, out ulong v{{propertySymbol.Name}})) {
+													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+												} else if (ulong.TryParse(columns[{{col}}].Span, NumberStyles.Integer, provider, out v{{propertySymbol.Name}})) {
+													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+												} else {
+													throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct ulong format.");
+												}
+							""");
 						deserializeWithoutProviderBuilder.AppendLine($$"""
-											if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && ulong.TryParse(columns[{{col}}].Span[1..^1], out ulong v{{propertySymbol.Name}})) {
-												item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-											} else if (ulong.TryParse(columns[{{col}}].Span, out v{{propertySymbol.Name}})) {
-												item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-											} else {
-												throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct ulong format.");
-											}
-						""");
+												if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && ulong.TryParse(columns[{{col}}].Span[1..^1], out ulong v{{propertySymbol.Name}})) {
+													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+												} else if (ulong.TryParse(columns[{{col}}].Span, out v{{propertySymbol.Name}})) {
+													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+												} else {
+													throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct ulong format.");
+												}
+							""");
 						break;
 					case { SpecialType: SpecialType.System_Single }:
 						deserializeWithProviderBuilder.AppendLine($$"""
-											if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && float.TryParse(columns[{{col}}].Span[1..^1], NumberStyles.Float, provider, out float v{{propertySymbol.Name}})) {
-												item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-											} else if (float.TryParse(columns[{{col}}].Span, NumberStyles.Float, provider, out v{{propertySymbol.Name}})) {
-												item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-											} else {
-												throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct float format.");
-											}
-						""");
+												if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && float.TryParse(columns[{{col}}].Span[1..^1], NumberStyles.Float, provider, out float v{{propertySymbol.Name}})) {
+													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+												} else if (float.TryParse(columns[{{col}}].Span, NumberStyles.Float, provider, out v{{propertySymbol.Name}})) {
+													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+												} else {
+													throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct float format.");
+												}
+							""");
 						deserializeWithoutProviderBuilder.AppendLine($$"""
-											if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && float.TryParse(columns[{{col}}].Span[1..^1], out float v{{propertySymbol.Name}})) {
-												item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-											} else if (float.TryParse(columns[{{col}}].Span, out v{{propertySymbol.Name}})) {
-												item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-											} else {
-												throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct float format.");
-											}
-						""");
+												if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && float.TryParse(columns[{{col}}].Span[1..^1], out float v{{propertySymbol.Name}})) {
+													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+												} else if (float.TryParse(columns[{{col}}].Span, out v{{propertySymbol.Name}})) {
+													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+												} else {
+													throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct float format.");
+												}
+							""");
 						break;
 					case { SpecialType: SpecialType.System_Double }:
 						deserializeWithProviderBuilder.AppendLine($$"""
-											if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && double.TryParse(columns[{{col}}].Span[1..^1], NumberStyles.Float, provider, out double v{{propertySymbol.Name}})) {
-												item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-											} else if (double.TryParse(columns[{{col}}].Span, NumberStyles.Float, provider, out v{{propertySymbol.Name}})) {
-												item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-											} else {
-												throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct double format.");
-											}
-						""");
+												if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && double.TryParse(columns[{{col}}].Span[1..^1], NumberStyles.Float, provider, out double v{{propertySymbol.Name}})) {
+													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+												} else if (double.TryParse(columns[{{col}}].Span, NumberStyles.Float, provider, out v{{propertySymbol.Name}})) {
+													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+												} else {
+													throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct double format.");
+												}
+							""");
 						deserializeWithoutProviderBuilder.AppendLine($$"""
-											if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && double.TryParse(columns[{{col}}].Span[1..^1], out double v{{propertySymbol.Name}})) {
-												item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-											} else if (double.TryParse(columns[{{col}}].Span, out v{{propertySymbol.Name}})) {
-												item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-											} else {
-												throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct double format.");
-											}
-						""");
+												if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && double.TryParse(columns[{{col}}].Span[1..^1], out double v{{propertySymbol.Name}})) {
+													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+												} else if (double.TryParse(columns[{{col}}].Span, out v{{propertySymbol.Name}})) {
+													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+												} else {
+													throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct double format.");
+												}
+							""");
 						break;
 					case { SpecialType: SpecialType.System_Decimal }:
 						deserializeWithProviderBuilder.AppendLine($$"""
-											if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && decimal.TryParse(columns[{{col}}].Span[1..^1], NumberStyles.Number, provider, out decimal v{{propertySymbol.Name}})) {
-												item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-											} else if (decimal.TryParse(columns[{{col}}].Span, NumberStyles.Number, provider, out v{{propertySymbol.Name}})) {
-												item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-											} else {
-												throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct decimal format.");
-											}
-						""");
+												if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && decimal.TryParse(columns[{{col}}].Span[1..^1], NumberStyles.Number, provider, out decimal v{{propertySymbol.Name}})) {
+													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+												} else if (decimal.TryParse(columns[{{col}}].Span, NumberStyles.Number, provider, out v{{propertySymbol.Name}})) {
+													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+												} else {
+													throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct decimal format.");
+												}
+							""");
 						deserializeWithoutProviderBuilder.AppendLine($$"""
-											if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && decimal.TryParse(columns[{{col}}].Span[1..^1], out decimal v{{propertySymbol.Name}})) {
-												item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-											} else if (decimal.TryParse(columns[{{col}}].Span, out v{{propertySymbol.Name}})) {
-												item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-											} else {
-												throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct decimal format.");
-											}
-						""");
+												if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && decimal.TryParse(columns[{{col}}].Span[1..^1], out decimal v{{propertySymbol.Name}})) {
+													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+												} else if (decimal.TryParse(columns[{{col}}].Span, out v{{propertySymbol.Name}})) {
+													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+												} else {
+													throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct decimal format.");
+												}
+							""");
 						break;
 					case { SpecialType: SpecialType.System_Boolean }:
 						deserializeWithProviderBuilder.AppendLine($$"""
-											if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && bool.TryParse(columns[{{col}}].Span[1..^1], out bool v{{propertySymbol.Name}})) {
-												item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-											} else if (bool.TryParse(columns[{{col}}].Span, out v{{propertySymbol.Name}})) {
-												item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-											} else {
-												throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct Boolean format.");
-											}
-						""");
+												if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && bool.TryParse(columns[{{col}}].Span[1..^1], out bool v{{propertySymbol.Name}})) {
+													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+												} else if (bool.TryParse(columns[{{col}}].Span, out v{{propertySymbol.Name}})) {
+													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+												} else {
+													throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct Boolean format.");
+												}
+							""");
 						deserializeWithoutProviderBuilder.AppendLine($$"""
-											if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && bool.TryParse(columns[{{col}}].Span[1..^1], out bool v{{propertySymbol.Name}})) {
-												item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-											} else if (bool.TryParse(columns[{{col}}].Span, out v{{propertySymbol.Name}})) {
-												item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-											} else {
-												throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct Boolean format.");
-											}
-						""");
+												if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && bool.TryParse(columns[{{col}}].Span[1..^1], out bool v{{propertySymbol.Name}})) {
+													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+												} else if (bool.TryParse(columns[{{col}}].Span, out v{{propertySymbol.Name}})) {
+													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+												} else {
+													throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct Boolean format.");
+												}
+							""");
 						break;
 					case { SpecialType: SpecialType.System_String }:
 						deserializeWithProviderBuilder.AppendLine($$"""
-											string v{{propertySymbol.Name}} = columns[{{col}}].ToString().Trim();
-											if (v{{propertySymbol.Name}}.StartsWith('"')
-												&& v{{propertySymbol.Name}}.EndsWith('"')) {
-												v{{propertySymbol.Name}} = v{{propertySymbol.Name}}[1..^1];
-											}
-											v{{propertySymbol.Name}} = v{{propertySymbol.Name}}.Replace("\"\"", "\"").TrimEnd('\r');
-											item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-						""");
+												string v{{propertySymbol.Name}} = columns[{{col}}].ToString().Trim();
+												if (v{{propertySymbol.Name}}.StartsWith('"')
+													&& v{{propertySymbol.Name}}.EndsWith('"')) {
+													v{{propertySymbol.Name}} = v{{propertySymbol.Name}}[1..^1];
+												}
+												v{{propertySymbol.Name}} = v{{propertySymbol.Name}}.Replace("\"\"", "\"").TrimEnd('\r');
+												item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+							""");
 						deserializeWithoutProviderBuilder.AppendLine($$"""
-											string v{{propertySymbol.Name}} = columns[{{col}}].ToString().Trim();
-											if (v{{propertySymbol.Name}}.StartsWith('"')
-												&& v{{propertySymbol.Name}}.EndsWith('"')) {
-												v{{propertySymbol.Name}} = v{{propertySymbol.Name}}[1..^1];
-											}
-											v{{propertySymbol.Name}} = v{{propertySymbol.Name}}.Replace("\"\"", "\"").TrimEnd('\r');
-											item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-						""");
+												string v{{propertySymbol.Name}} = columns[{{col}}].ToString().Trim();
+												if (v{{propertySymbol.Name}}.StartsWith('"')
+													&& v{{propertySymbol.Name}}.EndsWith('"')) {
+													v{{propertySymbol.Name}} = v{{propertySymbol.Name}}[1..^1];
+												}
+												v{{propertySymbol.Name}} = v{{propertySymbol.Name}}.Replace("\"\"", "\"").TrimEnd('\r');
+												item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+							""");
 						break;
 					case { TypeKind: TypeKind.Enum }: {
 							string fullEnumName = GetFullName(propertyTypeSymbol);
@@ -1110,377 +1123,379 @@ namespace Csv.Internals {
 					case { SpecialType: SpecialType.System_DateTime }:
 						if (dateFormat is not null) {
 							deserializeWithProviderBuilder.AppendLine($$"""
-												string s{{propertySymbol.Name}} = columns[{{col}}].ToString().Trim();
-												if (s{{propertySymbol.Name}}.StartsWith('"')
-													&& s{{propertySymbol.Name}}.EndsWith('"')) {
-													s{{propertySymbol.Name}} = s{{propertySymbol.Name}}[1..^1];
-												}
-												if (DateTime.TryParseExact(s{{propertySymbol.Name}}, "{{dateFormat.Replace("\\", "\\\\")}}", provider, DateTimeStyles.AssumeLocal, out DateTime v{{propertySymbol.Name}})) {
-													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-												} else {
-													throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct DateTime format. Expected format was '{{dateFormat}}'.");
-												}
-							""");
+													string s{{propertySymbol.Name}} = columns[{{col}}].ToString().Trim();
+													if (s{{propertySymbol.Name}}.StartsWith('"')
+														&& s{{propertySymbol.Name}}.EndsWith('"')) {
+														s{{propertySymbol.Name}} = s{{propertySymbol.Name}}[1..^1];
+													}
+													if (DateTime.TryParseExact(s{{propertySymbol.Name}}, "{{dateFormat.Replace("\\", "\\\\")}}", provider, DateTimeStyles.AssumeLocal, out DateTime v{{propertySymbol.Name}})) {
+														item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+													} else {
+														throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct DateTime format. Expected format was '{{dateFormat}}'.");
+													}
+								""");
 							deserializeWithoutProviderBuilder.AppendLine($$"""
-												string s{{propertySymbol.Name}} = columns[{{col}}].ToString().Trim();
-												if (s{{propertySymbol.Name}}.StartsWith('"')
-													&& s{{propertySymbol.Name}}.EndsWith('"')) {
-													s{{propertySymbol.Name}} = s{{propertySymbol.Name}}[1..^1];
-												}
-												if (DateTime.TryParseExact(s{{propertySymbol.Name}}, "{{dateFormat.Replace("\\", "\\\\")}}", null, DateTimeStyles.AssumeLocal, out DateTime v{{propertySymbol.Name}})) {
-													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-												} else {
-													throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct DateTime format. Expected format was '{{dateFormat}}'.");
-												}
-							""");
+													string s{{propertySymbol.Name}} = columns[{{col}}].ToString().Trim();
+													if (s{{propertySymbol.Name}}.StartsWith('"')
+														&& s{{propertySymbol.Name}}.EndsWith('"')) {
+														s{{propertySymbol.Name}} = s{{propertySymbol.Name}}[1..^1];
+													}
+													if (DateTime.TryParseExact(s{{propertySymbol.Name}}, "{{dateFormat.Replace("\\", "\\\\")}}", null, DateTimeStyles.AssumeLocal, out DateTime v{{propertySymbol.Name}})) {
+														item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+													} else {
+														throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct DateTime format. Expected format was '{{dateFormat}}'.");
+													}
+								""");
 						} else {
 							deserializeWithProviderBuilder.AppendLine($$"""
-												string s{{propertySymbol.Name}} = columns[{{col}}].ToString().Trim();
-												if (s{{propertySymbol.Name}}.StartsWith('"')
-													&& s{{propertySymbol.Name}}.EndsWith('"')) {
-													s{{propertySymbol.Name}} = s{{propertySymbol.Name}}[1..^1];
-												}
-												if (DateTime.TryParse(s{{propertySymbol.Name}}, provider, DateTimeStyles.AssumeLocal, out DateTime v{{propertySymbol.Name}})) {
-													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-												} else {
-													throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct DateTime format.");
-												}
-							""");
+													string s{{propertySymbol.Name}} = columns[{{col}}].ToString().Trim();
+													if (s{{propertySymbol.Name}}.StartsWith('"')
+														&& s{{propertySymbol.Name}}.EndsWith('"')) {
+														s{{propertySymbol.Name}} = s{{propertySymbol.Name}}[1..^1];
+													}
+													if (DateTime.TryParse(s{{propertySymbol.Name}}, provider, DateTimeStyles.AssumeLocal, out DateTime v{{propertySymbol.Name}})) {
+														item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+													} else {
+														throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct DateTime format.");
+													}
+								""");
 							deserializeWithoutProviderBuilder.AppendLine($$"""
-												string s{{propertySymbol.Name}} = columns[{{col}}].ToString().Trim();
-												if (s{{propertySymbol.Name}}.StartsWith('"')
-													&& s{{propertySymbol.Name}}.EndsWith('"')) {
-													s{{propertySymbol.Name}} = s{{propertySymbol.Name}}[1..^1];
-												}
-												if (DateTime.TryParse(s{{propertySymbol.Name}}, null, DateTimeStyles.AssumeLocal, out DateTime v{{propertySymbol.Name}})) {
-													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-												} else {
-													throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct DateTime format.");
-												}
-							""");
+													string s{{propertySymbol.Name}} = columns[{{col}}].ToString().Trim();
+													if (s{{propertySymbol.Name}}.StartsWith('"')
+														&& s{{propertySymbol.Name}}.EndsWith('"')) {
+														s{{propertySymbol.Name}} = s{{propertySymbol.Name}}[1..^1];
+													}
+													if (DateTime.TryParse(s{{propertySymbol.Name}}, null, DateTimeStyles.AssumeLocal, out DateTime v{{propertySymbol.Name}})) {
+														item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+													} else {
+														throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct DateTime format.");
+													}
+								""");
 						}
+
 						break;
 					case { Name: "Uri", ContainingNamespace.Name: "System" }:
 						deserializeWithProviderBuilder.AppendLine($$"""
-											string v{{propertySymbol.Name}} = columns[{{col}}].ToString().Trim();
-											if (v{{propertySymbol.Name}}.StartsWith('"')
-												&& v{{propertySymbol.Name}}.EndsWith('"')) {
-												v{{propertySymbol.Name}} = v{{propertySymbol.Name}}[1..^1];
-											}
-											v{{propertySymbol.Name}} = v{{propertySymbol.Name}}.Replace("\"\"", "\"").TrimEnd('\r');
-											if (string.IsNullOrWhiteSpace(v{{propertySymbol.Name}})) {
-												item.{{propertySymbol.Name}} = null;
-											} else {
-												item.{{propertySymbol.Name}} = new Uri(v{{propertySymbol.Name}});
-											}
-						""");
+												string v{{propertySymbol.Name}} = columns[{{col}}].ToString().Trim();
+												if (v{{propertySymbol.Name}}.StartsWith('"')
+													&& v{{propertySymbol.Name}}.EndsWith('"')) {
+													v{{propertySymbol.Name}} = v{{propertySymbol.Name}}[1..^1];
+												}
+												v{{propertySymbol.Name}} = v{{propertySymbol.Name}}.Replace("\"\"", "\"").TrimEnd('\r');
+												if (string.IsNullOrWhiteSpace(v{{propertySymbol.Name}})) {
+													item.{{propertySymbol.Name}} = null;
+												} else {
+													item.{{propertySymbol.Name}} = new Uri(v{{propertySymbol.Name}});
+												}
+							""");
 						deserializeWithoutProviderBuilder.AppendLine($$"""
-											string v{{propertySymbol.Name}} = columns[{{col}}].ToString().Trim();
-											if (v{{propertySymbol.Name}}.StartsWith('"')
-												&& v{{propertySymbol.Name}}.EndsWith('"')) {
-												v{{propertySymbol.Name}} = v{{propertySymbol.Name}}[1..^1];
-											}
-											v{{propertySymbol.Name}} = v{{propertySymbol.Name}}.Replace("\"\"", "\"").TrimEnd('\r');
-											if (string.IsNullOrWhiteSpace(v{{propertySymbol.Name}})) {
-												item.{{propertySymbol.Name}} = null;
-											} else {
-												item.{{propertySymbol.Name}} = new Uri(v{{propertySymbol.Name}});
-											}
-						""");
+												string v{{propertySymbol.Name}} = columns[{{col}}].ToString().Trim();
+												if (v{{propertySymbol.Name}}.StartsWith('"')
+													&& v{{propertySymbol.Name}}.EndsWith('"')) {
+													v{{propertySymbol.Name}} = v{{propertySymbol.Name}}[1..^1];
+												}
+												v{{propertySymbol.Name}} = v{{propertySymbol.Name}}.Replace("\"\"", "\"").TrimEnd('\r');
+												if (string.IsNullOrWhiteSpace(v{{propertySymbol.Name}})) {
+													item.{{propertySymbol.Name}} = null;
+												} else {
+													item.{{propertySymbol.Name}} = new Uri(v{{propertySymbol.Name}});
+												}
+							""");
 						break;
 					case { IsValueType: true, NullableAnnotation: NullableAnnotation.Annotated }:
 						if (propertyTypeSymbol is not INamedTypeSymbol { TypeArguments: { Length: 1 } typeArguments }) {
 							break;
 						}
+
 						ITypeSymbol underlyingTypeSymbol = typeArguments[0];
 						switch (underlyingTypeSymbol) {
 							case { SpecialType: SpecialType.System_SByte }:
 								deserializeWithProviderBuilder.AppendLine($$"""
-													if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && sbyte.TryParse(columns[{{col}}].Span[1..^1], NumberStyles.Integer, provider, out sbyte v{{propertySymbol.Name}})) {
-														item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-													} else if (sbyte.TryParse(columns[{{col}}].Span, NumberStyles.Integer, provider, out v{{propertySymbol.Name}})) {
-														item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-													} else if (columns[{{col}}].Length == 0) {
-														item.{{propertySymbol.Name}} = null;
-													} else {
-														throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct sbyte format.");
-													}
-								""");
+														if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && sbyte.TryParse(columns[{{col}}].Span[1..^1], NumberStyles.Integer, provider, out sbyte v{{propertySymbol.Name}})) {
+															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+														} else if (sbyte.TryParse(columns[{{col}}].Span, NumberStyles.Integer, provider, out v{{propertySymbol.Name}})) {
+															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+														} else if (columns[{{col}}].Length == 0) {
+															item.{{propertySymbol.Name}} = null;
+														} else {
+															throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct sbyte format.");
+														}
+									""");
 								deserializeWithoutProviderBuilder.AppendLine($$"""
-													if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && sbyte.TryParse(columns[{{col}}].Span[1..^1], out sbyte v{{propertySymbol.Name}})) {
-														item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-													} else if (sbyte.TryParse(columns[{{col}}].Span, out v{{propertySymbol.Name}})) {
-														item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-													} else if (columns[{{col}}].Length == 0) {
-														item.{{propertySymbol.Name}} = null;
-													} else {
-														throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct sbyte format.");
-													}
-								""");
+														if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && sbyte.TryParse(columns[{{col}}].Span[1..^1], out sbyte v{{propertySymbol.Name}})) {
+															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+														} else if (sbyte.TryParse(columns[{{col}}].Span, out v{{propertySymbol.Name}})) {
+															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+														} else if (columns[{{col}}].Length == 0) {
+															item.{{propertySymbol.Name}} = null;
+														} else {
+															throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct sbyte format.");
+														}
+									""");
 								break;
 							case { SpecialType: SpecialType.System_Byte }:
 								deserializeWithProviderBuilder.AppendLine($$"""
-													if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && byte.TryParse(columns[{{col}}].Span[1..^1], NumberStyles.Integer, provider, out byte v{{propertySymbol.Name}})) {
-														item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-													} else if (byte.TryParse(columns[{{col}}].Span, NumberStyles.Integer, provider, out v{{propertySymbol.Name}})) {
-														item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-													} else if (columns[{{col}}].Length == 0) {
-														item.{{propertySymbol.Name}} = null;
-													} else {
-														throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct byte format.");
-													}
-								""");
+														if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && byte.TryParse(columns[{{col}}].Span[1..^1], NumberStyles.Integer, provider, out byte v{{propertySymbol.Name}})) {
+															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+														} else if (byte.TryParse(columns[{{col}}].Span, NumberStyles.Integer, provider, out v{{propertySymbol.Name}})) {
+															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+														} else if (columns[{{col}}].Length == 0) {
+															item.{{propertySymbol.Name}} = null;
+														} else {
+															throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct byte format.");
+														}
+									""");
 								deserializeWithoutProviderBuilder.AppendLine($$"""
-													if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && byte.TryParse(columns[{{col}}].Span[1..^1], out byte v{{propertySymbol.Name}})) {
-														item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-													} else if (byte.TryParse(columns[{{col}}].Span, out v{{propertySymbol.Name}})) {
-														item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-													} else if (columns[{{col}}].Length == 0) {
-														item.{{propertySymbol.Name}} = null;
-													} else {
-														throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct byte format.");
-													}
-								""");
+														if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && byte.TryParse(columns[{{col}}].Span[1..^1], out byte v{{propertySymbol.Name}})) {
+															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+														} else if (byte.TryParse(columns[{{col}}].Span, out v{{propertySymbol.Name}})) {
+															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+														} else if (columns[{{col}}].Length == 0) {
+															item.{{propertySymbol.Name}} = null;
+														} else {
+															throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct byte format.");
+														}
+									""");
 								break;
 							case { SpecialType: SpecialType.System_Int16 }:
 								deserializeWithProviderBuilder.AppendLine($$"""
-													if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && short.TryParse(columns[{{col}}].Span[1..^1], NumberStyles.Integer, provider, out short v{{propertySymbol.Name}})) {
-														item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-													} else if (short.TryParse(columns[{{col}}].Span, NumberStyles.Integer, provider, out v{{propertySymbol.Name}})) {
-														item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-													} else if (columns[{{col}}].Length == 0) {
-														item.{{propertySymbol.Name}} = null;
-													} else {
-														throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct short format.");
-													}
-								""");
+														if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && short.TryParse(columns[{{col}}].Span[1..^1], NumberStyles.Integer, provider, out short v{{propertySymbol.Name}})) {
+															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+														} else if (short.TryParse(columns[{{col}}].Span, NumberStyles.Integer, provider, out v{{propertySymbol.Name}})) {
+															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+														} else if (columns[{{col}}].Length == 0) {
+															item.{{propertySymbol.Name}} = null;
+														} else {
+															throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct short format.");
+														}
+									""");
 								deserializeWithoutProviderBuilder.AppendLine($$"""
-													if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && short.TryParse(columns[{{col}}].Span[1..^1], out short v{{propertySymbol.Name}})) {
-														item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-													} else if (short.TryParse(columns[{{col}}].Span, out v{{propertySymbol.Name}})) {
-														item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-													} else if (columns[{{col}}].Length == 0) {
-														item.{{propertySymbol.Name}} = null;
-													} else {
-														throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct short format.");
-													}
-								""");
+														if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && short.TryParse(columns[{{col}}].Span[1..^1], out short v{{propertySymbol.Name}})) {
+															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+														} else if (short.TryParse(columns[{{col}}].Span, out v{{propertySymbol.Name}})) {
+															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+														} else if (columns[{{col}}].Length == 0) {
+															item.{{propertySymbol.Name}} = null;
+														} else {
+															throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct short format.");
+														}
+									""");
 								break;
 							case { SpecialType: SpecialType.System_UInt16 }:
 								deserializeWithProviderBuilder.AppendLine($$"""
-													if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && ushort.TryParse(columns[{{col}}].Span[1..^1], NumberStyles.Integer, provider, out ushort v{{propertySymbol.Name}})) {
-														item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-													} else if (ushort.TryParse(columns[{{col}}].Span, NumberStyles.Integer, provider, out v{{propertySymbol.Name}})) {
-														item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-													} else if (columns[{{col}}].Length == 0) {
-														item.{{propertySymbol.Name}} = null;
-													} else {
-														throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct ushort format.");
-													}
-								""");
+														if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && ushort.TryParse(columns[{{col}}].Span[1..^1], NumberStyles.Integer, provider, out ushort v{{propertySymbol.Name}})) {
+															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+														} else if (ushort.TryParse(columns[{{col}}].Span, NumberStyles.Integer, provider, out v{{propertySymbol.Name}})) {
+															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+														} else if (columns[{{col}}].Length == 0) {
+															item.{{propertySymbol.Name}} = null;
+														} else {
+															throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct ushort format.");
+														}
+									""");
 								deserializeWithoutProviderBuilder.AppendLine($$"""
-													if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && ushort.TryParse(columns[{{col}}].Span[1..^1], out ushort v{{propertySymbol.Name}})) {
-														item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-													} else if (ushort.TryParse(columns[{{col}}].Span, out v{{propertySymbol.Name}})) {
-														item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-													} else if (columns[{{col}}].Length == 0) {
-														item.{{propertySymbol.Name}} = null;
-													} else {
-														throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct ushort format.");
-													}
-								""");
+														if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && ushort.TryParse(columns[{{col}}].Span[1..^1], out ushort v{{propertySymbol.Name}})) {
+															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+														} else if (ushort.TryParse(columns[{{col}}].Span, out v{{propertySymbol.Name}})) {
+															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+														} else if (columns[{{col}}].Length == 0) {
+															item.{{propertySymbol.Name}} = null;
+														} else {
+															throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct ushort format.");
+														}
+									""");
 								break;
 							case { SpecialType: SpecialType.System_Int32 }:
 								deserializeWithProviderBuilder.AppendLine($$"""
-													if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && int.TryParse(columns[{{col}}].Span[1..^1], NumberStyles.Integer, provider, out int v{{propertySymbol.Name}})) {
-														item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-													} else if (int.TryParse(columns[{{col}}].Span, NumberStyles.Integer, provider, out v{{propertySymbol.Name}})) {
-														item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-													} else if (columns[{{col}}].Length == 0) {
-														item.{{propertySymbol.Name}} = null;
-													} else {
-														throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct int format.");
-													}
-								""");
+														if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && int.TryParse(columns[{{col}}].Span[1..^1], NumberStyles.Integer, provider, out int v{{propertySymbol.Name}})) {
+															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+														} else if (int.TryParse(columns[{{col}}].Span, NumberStyles.Integer, provider, out v{{propertySymbol.Name}})) {
+															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+														} else if (columns[{{col}}].Length == 0) {
+															item.{{propertySymbol.Name}} = null;
+														} else {
+															throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct int format.");
+														}
+									""");
 								deserializeWithoutProviderBuilder.AppendLine($$"""
-													if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && int.TryParse(columns[{{col}}].Span[1..^1], out int v{{propertySymbol.Name}})) {
-														item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-													} else if (int.TryParse(columns[{{col}}].Span, out v{{propertySymbol.Name}})) {
-														item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-													} else if (columns[{{col}}].Length == 0) {
-														item.{{propertySymbol.Name}} = null;
-													} else {
-														throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct int format.");
-													}
-								""");
+														if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && int.TryParse(columns[{{col}}].Span[1..^1], out int v{{propertySymbol.Name}})) {
+															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+														} else if (int.TryParse(columns[{{col}}].Span, out v{{propertySymbol.Name}})) {
+															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+														} else if (columns[{{col}}].Length == 0) {
+															item.{{propertySymbol.Name}} = null;
+														} else {
+															throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct int format.");
+														}
+									""");
 								break;
 							case { SpecialType: SpecialType.System_UInt32 }:
 								deserializeWithProviderBuilder.AppendLine($$"""
-													if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && uint.TryParse(columns[{{col}}].Span[1..^1], NumberStyles.Integer, provider, out uint v{{propertySymbol.Name}})) {
-														item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-													} else if (uint.TryParse(columns[{{col}}].Span, NumberStyles.Integer, provider, out v{{propertySymbol.Name}})) {
-														item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-													} else if (columns[{{col}}].Length == 0) {
-														item.{{propertySymbol.Name}} = null;
-													} else {
-														throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct uint format.");
-													}
-								""");
+														if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && uint.TryParse(columns[{{col}}].Span[1..^1], NumberStyles.Integer, provider, out uint v{{propertySymbol.Name}})) {
+															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+														} else if (uint.TryParse(columns[{{col}}].Span, NumberStyles.Integer, provider, out v{{propertySymbol.Name}})) {
+															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+														} else if (columns[{{col}}].Length == 0) {
+															item.{{propertySymbol.Name}} = null;
+														} else {
+															throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct uint format.");
+														}
+									""");
 								deserializeWithoutProviderBuilder.AppendLine($$"""
-													if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && uint.TryParse(columns[{{col}}].Span[1..^1], out uint v{{propertySymbol.Name}})) {
-														item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-													} else if (uint.TryParse(columns[{{col}}].Span, out v{{propertySymbol.Name}})) {
-														item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-													} else if (columns[{{col}}].Length == 0) {
-														item.{{propertySymbol.Name}} = null;
-													} else {
-														throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct uint format.");
-													}
-								""");
+														if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && uint.TryParse(columns[{{col}}].Span[1..^1], out uint v{{propertySymbol.Name}})) {
+															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+														} else if (uint.TryParse(columns[{{col}}].Span, out v{{propertySymbol.Name}})) {
+															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+														} else if (columns[{{col}}].Length == 0) {
+															item.{{propertySymbol.Name}} = null;
+														} else {
+															throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct uint format.");
+														}
+									""");
 								break;
 							case { SpecialType: SpecialType.System_Int64 }:
 								deserializeWithProviderBuilder.AppendLine($$"""
-													if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && long.TryParse(columns[{{col}}].Span[1..^1], NumberStyles.Integer, provider, out long v{{propertySymbol.Name}})) {
-														item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-													} else if (long.TryParse(columns[{{col}}].Span, NumberStyles.Integer, provider, out v{{propertySymbol.Name}})) {
-														item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-													} else if (columns[{{col}}].Length == 0) {
-														item.{{propertySymbol.Name}} = null;
-													} else {
-														throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct long format.");
-													}
-								""");
+														if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && long.TryParse(columns[{{col}}].Span[1..^1], NumberStyles.Integer, provider, out long v{{propertySymbol.Name}})) {
+															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+														} else if (long.TryParse(columns[{{col}}].Span, NumberStyles.Integer, provider, out v{{propertySymbol.Name}})) {
+															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+														} else if (columns[{{col}}].Length == 0) {
+															item.{{propertySymbol.Name}} = null;
+														} else {
+															throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct long format.");
+														}
+									""");
 								deserializeWithoutProviderBuilder.AppendLine($$"""
-													if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && long.TryParse(columns[{{col}}].Span[1..^1], out long v{{propertySymbol.Name}})) {
-														item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-													} else if (long.TryParse(columns[{{col}}].Span, out v{{propertySymbol.Name}})) {
-														item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-													} else if (columns[{{col}}].Length == 0) {
-														item.{{propertySymbol.Name}} = null;
-													} else {
-														throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct long format.");
-													}
-								""");
+														if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && long.TryParse(columns[{{col}}].Span[1..^1], out long v{{propertySymbol.Name}})) {
+															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+														} else if (long.TryParse(columns[{{col}}].Span, out v{{propertySymbol.Name}})) {
+															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+														} else if (columns[{{col}}].Length == 0) {
+															item.{{propertySymbol.Name}} = null;
+														} else {
+															throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct long format.");
+														}
+									""");
 								break;
 							case { SpecialType: SpecialType.System_UInt64 }:
 								deserializeWithProviderBuilder.AppendLine($$"""
-													if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && ulong.TryParse(columns[{{col}}].Span[1..^1], NumberStyles.Integer, provider, out ulong v{{propertySymbol.Name}})) {
-														item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-													} else if (ulong.TryParse(columns[{{col}}].Span, NumberStyles.Integer, provider, out v{{propertySymbol.Name}})) {
-														item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-													} else if (columns[{{col}}].Length == 0) {
-														item.{{propertySymbol.Name}} = null;
-													} else {
-														throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct ulong format.");
-													}
-								""");
+														if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && ulong.TryParse(columns[{{col}}].Span[1..^1], NumberStyles.Integer, provider, out ulong v{{propertySymbol.Name}})) {
+															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+														} else if (ulong.TryParse(columns[{{col}}].Span, NumberStyles.Integer, provider, out v{{propertySymbol.Name}})) {
+															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+														} else if (columns[{{col}}].Length == 0) {
+															item.{{propertySymbol.Name}} = null;
+														} else {
+															throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct ulong format.");
+														}
+									""");
 								deserializeWithoutProviderBuilder.AppendLine($$"""
-													if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && ulong.TryParse(columns[{{col}}].Span[1..^1], out ulong v{{propertySymbol.Name}})) {
-														item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-													} else if (ulong.TryParse(columns[{{col}}].Span, out v{{propertySymbol.Name}})) {
-														item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-													} else if (columns[{{col}}].Length == 0) {
-														item.{{propertySymbol.Name}} = null;
-													} else {
-														throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct ulong format.");
-													}
-								""");
+														if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && ulong.TryParse(columns[{{col}}].Span[1..^1], out ulong v{{propertySymbol.Name}})) {
+															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+														} else if (ulong.TryParse(columns[{{col}}].Span, out v{{propertySymbol.Name}})) {
+															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+														} else if (columns[{{col}}].Length == 0) {
+															item.{{propertySymbol.Name}} = null;
+														} else {
+															throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct ulong format.");
+														}
+									""");
 								break;
 							case { SpecialType: SpecialType.System_Single }:
 								deserializeWithProviderBuilder.AppendLine($$"""
-													if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && float.TryParse(columns[{{col}}].Span[1..^1], NumberStyles.Float, provider, out float v{{propertySymbol.Name}})) {
-														item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-													} else if (float.TryParse(columns[{{col}}].Span, NumberStyles.Float, provider, out v{{propertySymbol.Name}})) {
-														item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-													} else if (columns[{{col}}].Length == 0) {
-														item.{{propertySymbol.Name}} = null;
-													} else {
-														throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct float format.");
-													}
-								""");
+														if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && float.TryParse(columns[{{col}}].Span[1..^1], NumberStyles.Float, provider, out float v{{propertySymbol.Name}})) {
+															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+														} else if (float.TryParse(columns[{{col}}].Span, NumberStyles.Float, provider, out v{{propertySymbol.Name}})) {
+															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+														} else if (columns[{{col}}].Length == 0) {
+															item.{{propertySymbol.Name}} = null;
+														} else {
+															throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct float format.");
+														}
+									""");
 								deserializeWithoutProviderBuilder.AppendLine($$"""
-													if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && float.TryParse(columns[{{col}}].Span[1..^1], out float v{{propertySymbol.Name}})) {
-														item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-													} else if (float.TryParse(columns[{{col}}].Span, out v{{propertySymbol.Name}})) {
-														item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-													} else if (columns[{{col}}].Length == 0) {
-														item.{{propertySymbol.Name}} = null;
-													} else {
-														throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct float format.");
-													}
-								""");
+														if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && float.TryParse(columns[{{col}}].Span[1..^1], out float v{{propertySymbol.Name}})) {
+															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+														} else if (float.TryParse(columns[{{col}}].Span, out v{{propertySymbol.Name}})) {
+															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+														} else if (columns[{{col}}].Length == 0) {
+															item.{{propertySymbol.Name}} = null;
+														} else {
+															throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct float format.");
+														}
+									""");
 								break;
 							case { SpecialType: SpecialType.System_Double }:
 								deserializeWithProviderBuilder.AppendLine($$"""
-													if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && double.TryParse(columns[{{col}}].Span[1..^1], NumberStyles.Float, provider, out double v{{propertySymbol.Name}})) {
-														item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-													} else if (double.TryParse(columns[{{col}}].Span, NumberStyles.Float, provider, out v{{propertySymbol.Name}})) {
-														item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-													} else if (columns[{{col}}].Length == 0) {
-														item.{{propertySymbol.Name}} = null;
-													} else {
-														throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct double format.");
-													}
-								""");
+														if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && double.TryParse(columns[{{col}}].Span[1..^1], NumberStyles.Float, provider, out double v{{propertySymbol.Name}})) {
+															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+														} else if (double.TryParse(columns[{{col}}].Span, NumberStyles.Float, provider, out v{{propertySymbol.Name}})) {
+															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+														} else if (columns[{{col}}].Length == 0) {
+															item.{{propertySymbol.Name}} = null;
+														} else {
+															throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct double format.");
+														}
+									""");
 								deserializeWithoutProviderBuilder.AppendLine($$"""
-													if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && double.TryParse(columns[{{col}}].Span[1..^1], out double v{{propertySymbol.Name}})) {
-														item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-													} else if (double.TryParse(columns[{{col}}].Span, out v{{propertySymbol.Name}})) {
-														item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-													} else if (columns[{{col}}].Length == 0) {
-														item.{{propertySymbol.Name}} = null;
-													} else {
-														throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct double format.");
-													}
-								""");
+														if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && double.TryParse(columns[{{col}}].Span[1..^1], out double v{{propertySymbol.Name}})) {
+															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+														} else if (double.TryParse(columns[{{col}}].Span, out v{{propertySymbol.Name}})) {
+															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+														} else if (columns[{{col}}].Length == 0) {
+															item.{{propertySymbol.Name}} = null;
+														} else {
+															throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct double format.");
+														}
+									""");
 								break;
 							case { SpecialType: SpecialType.System_Decimal }:
 								deserializeWithProviderBuilder.AppendLine($$"""
-													if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && decimal.TryParse(columns[{{col}}].Span[1..^1], NumberStyles.Number, provider, out decimal v{{propertySymbol.Name}})) {
-														item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-													} else if (decimal.TryParse(columns[{{col}}].Span, NumberStyles.Number, provider, out v{{propertySymbol.Name}})) {
-														item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-													} else if (columns[{{col}}].Length == 0) {
-														item.{{propertySymbol.Name}} = null;
-													} else {
-														throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct decimal format.");
-													}
-								""");
+														if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && decimal.TryParse(columns[{{col}}].Span[1..^1], NumberStyles.Number, provider, out decimal v{{propertySymbol.Name}})) {
+															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+														} else if (decimal.TryParse(columns[{{col}}].Span, NumberStyles.Number, provider, out v{{propertySymbol.Name}})) {
+															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+														} else if (columns[{{col}}].Length == 0) {
+															item.{{propertySymbol.Name}} = null;
+														} else {
+															throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct decimal format.");
+														}
+									""");
 								deserializeWithoutProviderBuilder.AppendLine($$"""
-													if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && decimal.TryParse(columns[{{col}}].Span[1..^1], out decimal v{{propertySymbol.Name}})) {
-														item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-													} else if (decimal.TryParse(columns[{{col}}].Span, out v{{propertySymbol.Name}})) {
-														item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-													} else if (columns[{{col}}].Length == 0) {
-														item.{{propertySymbol.Name}} = null;
-													} else {
-														throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct decimal format.");
-													}
-								""");
+														if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && decimal.TryParse(columns[{{col}}].Span[1..^1], out decimal v{{propertySymbol.Name}})) {
+															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+														} else if (decimal.TryParse(columns[{{col}}].Span, out v{{propertySymbol.Name}})) {
+															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+														} else if (columns[{{col}}].Length == 0) {
+															item.{{propertySymbol.Name}} = null;
+														} else {
+															throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct decimal format.");
+														}
+									""");
 								break;
 							case { SpecialType: SpecialType.System_Boolean }:
 								deserializeWithProviderBuilder.AppendLine($$"""
-													if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && bool.TryParse(columns[{{col}}].Span[1..^1], out bool v{{propertySymbol.Name}})) {
-														item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-													} else if (bool.TryParse(columns[{{col}}].Span, out v{{propertySymbol.Name}})) {
-														item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-													} else if (columns[{{col}}].Length == 0) {
-														item.{{propertySymbol.Name}} = null;
-													} else {
-														throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct Boolean format.");
-													}
-								""");
+														if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && bool.TryParse(columns[{{col}}].Span[1..^1], out bool v{{propertySymbol.Name}})) {
+															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+														} else if (bool.TryParse(columns[{{col}}].Span, out v{{propertySymbol.Name}})) {
+															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+														} else if (columns[{{col}}].Length == 0) {
+															item.{{propertySymbol.Name}} = null;
+														} else {
+															throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct Boolean format.");
+														}
+									""");
 								deserializeWithoutProviderBuilder.AppendLine($$"""
-													if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && bool.TryParse(columns[{{col}}].Span[1..^1], out bool v{{propertySymbol.Name}})) {
-														item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-													} else if (bool.TryParse(columns[{{col}}].Span, out v{{propertySymbol.Name}})) {
-														item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-													} else if (columns[{{col}}].Length == 0) {
-														item.{{propertySymbol.Name}} = null;
-													} else {
-														throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct Boolean format.");
-													}
-								""");
+														if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && bool.TryParse(columns[{{col}}].Span[1..^1], out bool v{{propertySymbol.Name}})) {
+															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+														} else if (bool.TryParse(columns[{{col}}].Span, out v{{propertySymbol.Name}})) {
+															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+														} else if (columns[{{col}}].Length == 0) {
+															item.{{propertySymbol.Name}} = null;
+														} else {
+															throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct Boolean format.");
+														}
+									""");
 								break;
 							case { TypeKind: TypeKind.Enum }: {
 									string fullEnumName = GetFullName(underlyingTypeSymbol);
@@ -1507,63 +1522,64 @@ namespace Csv.Internals {
 							case { SpecialType: SpecialType.System_DateTime }:
 								if (dateFormat is not null) {
 									deserializeWithProviderBuilder.AppendLine($$"""
-														string s{{propertySymbol.Name}} = columns[{{col}}].ToString().Trim();
-														if (s{{propertySymbol.Name}}.StartsWith('"')
-															&& s{{propertySymbol.Name}}.EndsWith('"')) {
-															s{{propertySymbol.Name}} = s{{propertySymbol.Name}}[1..^1];
-														}
-														if (s{{propertySymbol.Name}}.Length == 0) {
-															item.{{propertySymbol.Name}} = null;
-														} else if (DateTime.TryParseExact(s{{propertySymbol.Name}}, "{{dateFormat.Replace("\\", "\\\\")}}", provider, DateTimeStyles.AssumeLocal, out DateTime v{{propertySymbol.Name}})) {
-															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-														} else {
-															throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct DateTime format. Expected format was '{{dateFormat}}'.");
-														}
-									""");
+															string s{{propertySymbol.Name}} = columns[{{col}}].ToString().Trim();
+															if (s{{propertySymbol.Name}}.StartsWith('"')
+																&& s{{propertySymbol.Name}}.EndsWith('"')) {
+																s{{propertySymbol.Name}} = s{{propertySymbol.Name}}[1..^1];
+															}
+															if (s{{propertySymbol.Name}}.Length == 0) {
+																item.{{propertySymbol.Name}} = null;
+															} else if (DateTime.TryParseExact(s{{propertySymbol.Name}}, "{{dateFormat.Replace("\\", "\\\\")}}", provider, DateTimeStyles.AssumeLocal, out DateTime v{{propertySymbol.Name}})) {
+																item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+															} else {
+																throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct DateTime format. Expected format was '{{dateFormat}}'.");
+															}
+										""");
 									deserializeWithoutProviderBuilder.AppendLine($$"""
-														string s{{propertySymbol.Name}} = columns[{{col}}].ToString().Trim();
-														if (s{{propertySymbol.Name}}.StartsWith('"')
-															&& s{{propertySymbol.Name}}.EndsWith('"')) {
-															s{{propertySymbol.Name}} = s{{propertySymbol.Name}}[1..^1];
-														}
-														if (s{{propertySymbol.Name}}.Length == 0) {
-															item.{{propertySymbol.Name}} = null;
-														} else if (DateTime.TryParseExact(s{{propertySymbol.Name}}, "{{dateFormat.Replace("\\", "\\\\")}}", null, DateTimeStyles.AssumeLocal, out DateTime v{{propertySymbol.Name}})) {
-															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-														} else {
-															throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct DateTime format. Expected format was '{{dateFormat}}'.");
-														}
-									""");
+															string s{{propertySymbol.Name}} = columns[{{col}}].ToString().Trim();
+															if (s{{propertySymbol.Name}}.StartsWith('"')
+																&& s{{propertySymbol.Name}}.EndsWith('"')) {
+																s{{propertySymbol.Name}} = s{{propertySymbol.Name}}[1..^1];
+															}
+															if (s{{propertySymbol.Name}}.Length == 0) {
+																item.{{propertySymbol.Name}} = null;
+															} else if (DateTime.TryParseExact(s{{propertySymbol.Name}}, "{{dateFormat.Replace("\\", "\\\\")}}", null, DateTimeStyles.AssumeLocal, out DateTime v{{propertySymbol.Name}})) {
+																item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+															} else {
+																throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct DateTime format. Expected format was '{{dateFormat}}'.");
+															}
+										""");
 								} else {
 									deserializeWithProviderBuilder.AppendLine($$"""
-														string s{{propertySymbol.Name}} = columns[{{col}}].ToString().Trim();
-														if (s{{propertySymbol.Name}}.StartsWith('"')
-															&& s{{propertySymbol.Name}}.EndsWith('"')) {
-															s{{propertySymbol.Name}} = s{{propertySymbol.Name}}[1..^1];
-														}
-														if (s{{propertySymbol.Name}}.Length == 0) {
-															item.{{propertySymbol.Name}} = null;
-														} else if (DateTime.TryParse(s{{propertySymbol.Name}}, provider, DateTimeStyles.AssumeLocal, out DateTime v{{propertySymbol.Name}})) {
-															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-														} else {
-															throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct DateTime format.");
-														}
-									""");
+															string s{{propertySymbol.Name}} = columns[{{col}}].ToString().Trim();
+															if (s{{propertySymbol.Name}}.StartsWith('"')
+																&& s{{propertySymbol.Name}}.EndsWith('"')) {
+																s{{propertySymbol.Name}} = s{{propertySymbol.Name}}[1..^1];
+															}
+															if (s{{propertySymbol.Name}}.Length == 0) {
+																item.{{propertySymbol.Name}} = null;
+															} else if (DateTime.TryParse(s{{propertySymbol.Name}}, provider, DateTimeStyles.AssumeLocal, out DateTime v{{propertySymbol.Name}})) {
+																item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+															} else {
+																throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct DateTime format.");
+															}
+										""");
 									deserializeWithoutProviderBuilder.AppendLine($$"""
-														string s{{propertySymbol.Name}} = columns[{{col}}].ToString().Trim();
-														if (s{{propertySymbol.Name}}.StartsWith('"')
-															&& s{{propertySymbol.Name}}.EndsWith('"')) {
-															s{{propertySymbol.Name}} = s{{propertySymbol.Name}}[1..^1];
-														}
-														if (s{{propertySymbol.Name}}.Length == 0) {
-															item.{{propertySymbol.Name}} = null;
-														} else if (DateTime.TryParse(s{{propertySymbol.Name}}, null, DateTimeStyles.AssumeLocal, out DateTime v{{propertySymbol.Name}})) {
-															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
-														} else {
-															throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct DateTime format.");
-														}
-									""");
+															string s{{propertySymbol.Name}} = columns[{{col}}].ToString().Trim();
+															if (s{{propertySymbol.Name}}.StartsWith('"')
+																&& s{{propertySymbol.Name}}.EndsWith('"')) {
+																s{{propertySymbol.Name}} = s{{propertySymbol.Name}}[1..^1];
+															}
+															if (s{{propertySymbol.Name}}.Length == 0) {
+																item.{{propertySymbol.Name}} = null;
+															} else if (DateTime.TryParse(s{{propertySymbol.Name}}, null, DateTimeStyles.AssumeLocal, out DateTime v{{propertySymbol.Name}})) {
+																item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+															} else {
+																throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct DateTime format.");
+															}
+										""");
 								}
+
 								break;
 #if DEBUG
 							default:
@@ -1583,9 +1599,11 @@ namespace Csv.Internals {
 										)
 									);
 								}
+
 								throw new DiagnosticReportedException();
 #endif
 						}
+
 						break;
 #if DEBUG
 					default:
@@ -1605,9 +1623,11 @@ namespace Csv.Internals {
 								)
 							);
 						}
+
 						throw new DiagnosticReportedException();
 #endif
 				}
+
 				col++;
 			}
 
@@ -1626,13 +1646,13 @@ namespace Csv.Internals {
 								{{serializeHeaderBuilder.ToString().Trim()}}
 								stringBuilder.Append("\r\n");
 							}
-
+					
 							public void SerializeHeader(char delimiter, StreamWriter streamWriter) {
 								{{writeHeaderBuilder.ToString().Trim()}}
 								streamWriter.Write("\r\n");
 								streamWriter.Flush();
 							}
-
+					
 							public void SerializeItem(IFormatProvider? provider, char delimiter, StringBuilder stringBuilder, object item) {
 								{{fullTypeName}} i = ({{fullTypeName}})item;
 								if (provider is null) {
@@ -1642,7 +1662,7 @@ namespace Csv.Internals {
 								}
 								stringBuilder.Append("\r\n");
 							}
-
+					
 							public void SerializeItem(IFormatProvider? provider, char delimiter, StreamWriter streamWriter, object item) {
 								{{fullTypeName}} i = ({{fullTypeName}})item;
 								if (provider is null) {
@@ -1668,6 +1688,7 @@ namespace Csv.Internals {
 					#nullable enable
 					using System;
 					using System.Collections.Generic;
+					using System.Diagnostics.CodeAnalysis;
 					using System.Globalization;
 					using System.IO;
 
@@ -1706,7 +1727,7 @@ namespace Csv.Internals {
 								}
 								return items;
 							}
-
+					
 							public IEnumerable<object> Deserialize(IFormatProvider? provider, char delimiter, bool skipHeader, StreamReader csvReader) {
 								bool firstRow = true;
 								while (!csvReader.EndOfStream) {
@@ -1714,8 +1735,12 @@ namespace Csv.Internals {
 									if (_(line, ref firstRow, out {{fullTypeName}}? item)) {
 										yield return item;
 									}
-
-									bool _(string line, ref bool firstRow, out {{fullTypeName}}? item) {
+					
+									bool _(
+										string line,
+										ref bool firstRow,
+										[NotNullWhen(true)] out {{fullTypeName}}? item
+									) {
 										Span<ReadOnlyMemory<char>> columns = new ReadOnlyMemory<char>[{{propertySymbols.Count}}];
 										ReadOnlyMemory<char> lineMemory = line.AsMemory();
 										try {
