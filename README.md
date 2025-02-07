@@ -34,6 +34,9 @@ class Product {
     
     [CsvColumn("Added", DateFormat = "dd/MM/yyyy")]
     public DateTime Added { get; set; }
+
+    [CsvIgnore]
+    public Category Category { get; set; }
 }
 ```
 

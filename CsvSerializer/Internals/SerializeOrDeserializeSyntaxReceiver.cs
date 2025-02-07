@@ -100,7 +100,7 @@ namespace Csv.Internals {
 
 		private void RegisterInvocation(ITypeSymbol typeSymbol, Location invocationLocation) {
 			if (!InvocationLocationsByTypeSymbol.TryGetValue(typeSymbol, out List<Location>? invocationLocations)) {
-				invocationLocations = new List<Location>();
+				invocationLocations = [];
 				InvocationLocationsByTypeSymbol.Add(typeSymbol, invocationLocations);
 			}
 			invocationLocations.Add(invocationLocation);

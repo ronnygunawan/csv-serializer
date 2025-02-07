@@ -9,7 +9,7 @@ using Tests.Utilities;
 using Xunit;
 
 namespace Tests {
-	public class StreamingTests {
+	public sealed class StreamingTests {
 		private static readonly Encoding UTF8WithoutBOM = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
 
 		[Fact]
@@ -34,7 +34,7 @@ namespace Tests {
 			};
 			using MemoryStream serializeStream1 = new();
 			using StreamWriter streamWriter1 = new(serializeStream1, UTF8WithoutBOM);
-			CsvSerializer.Serialize(streamWriter1, new[] { obj }, withHeaders: true, provider: CultureInfo.GetCultureInfo("en-US"));
+			CsvSerializer.Serialize(streamWriter1, [obj], withHeaders: true, provider: CultureInfo.GetCultureInfo("en-US"));
 			string csv = UTF8WithoutBOM.GetString(serializeStream1.ToArray());
 			csv.Should().BeSimilarTo("""
 				"Bool","Byte","SByte","Short","UShort","Int","UInt","Long","ULong","Float","Double","Decimal","String","DateTime"
@@ -60,7 +60,7 @@ namespace Tests {
 			};
 			using MemoryStream serializeStream2 = new();
 			using StreamWriter streamWriter2 = new(serializeStream2, UTF8WithoutBOM);
-			CsvSerializer.Serialize(streamWriter2, new[] { obj }, withHeaders: true, provider: CultureInfo.GetCultureInfo("en-US"));
+			CsvSerializer.Serialize(streamWriter2, [obj], withHeaders: true, provider: CultureInfo.GetCultureInfo("en-US"));
 			csv = UTF8WithoutBOM.GetString(serializeStream2.ToArray());
 			csv.Should().BeSimilarTo("""
 				"Bool","Byte","SByte","Short","UShort","Int","UInt","Long","ULong","Float","Double","Decimal","String","DateTime"
@@ -126,7 +126,7 @@ namespace Tests {
 			};
 			using MemoryStream serializeStream = new();
 			using StreamWriter streamWriter = new(serializeStream, UTF8WithoutBOM);
-			CsvSerializer.Serialize(streamWriter, new[] { obj });
+			CsvSerializer.Serialize(streamWriter, [obj]);
 			string csv = UTF8WithoutBOM.GetString(serializeStream.ToArray());
 			csv.Should().BeSimilarTo("""
 				"Tony ""Iron Man"" Stark"

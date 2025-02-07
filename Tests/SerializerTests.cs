@@ -8,7 +8,7 @@ using Tests.Utilities;
 using Xunit;
 
 namespace Tests {
-	public class SerializeTests {
+	public sealed class SerializeTests {
 		[Fact]
 		public void AnonymousTypesAreSerializedUsingNaiveSerializer() {
 			var item = new {
@@ -30,7 +30,7 @@ namespace Tests {
 				StatusCode = HttpStatusCode.OK
 			};
 
-			string csv = CsvSerializer.Serialize(new[] { item }, withHeaders: true, provider: CultureInfo.GetCultureInfo("en-US"));
+			string csv = CsvSerializer.Serialize([item], withHeaders: true, provider: CultureInfo.GetCultureInfo("en-US"));
 			csv.Should().BeSimilarTo("""
 				"Bool","Byte","SByte","Short","UShort","Int","UInt","Long","ULong","Float","Double","Decimal","String","DateTime","Uri","StatusCode"
 				True,102,-100,-200,200,-3000,3000,-40000,40000,1E+14,1.7837193718273812E+19,989898989898,"CSV Serializer","8/23/2019 12:00:00 AM","http://localhost:5000/",OK
@@ -57,7 +57,7 @@ namespace Tests {
 				Uri = new Uri("http://localhost:5000/"),
 				StatusCode = HttpStatusCode.OK
 			};
-			string csv = CsvSerializer.Serialize(new[] { item }, withHeaders: true, provider: CultureInfo.GetCultureInfo("en-US"));
+			string csv = CsvSerializer.Serialize([item], withHeaders: true, provider: CultureInfo.GetCultureInfo("en-US"));
 			csv.Should().BeSimilarTo("""
 				"Bool","Byte","SByte","Short","UShort","Int","UInt","Long","ULong","Float","Double","Decimal","String","DateTime","Uri","StatusCode"
 				True,102,-100,-200,200,-3000,3000,-40000,40000,1E+14,1.7837193718273812E+19,989898989898,"CSV Serializer","8/23/2019 12:00:00 AM","http://localhost:5000/",OK
@@ -69,7 +69,7 @@ namespace Tests {
 			PrivateModel item = new() {
 				Name = "CSV Serializer"
 			};
-			string csv = CsvSerializer.Serialize(new[] { item }, withHeaders: true);
+			string csv = CsvSerializer.Serialize([item], withHeaders: true);
 			csv.Should().BeSimilarTo("""
 				"Name"
 				"CSV Serializer"
@@ -181,10 +181,10 @@ namespace Tests {
 
 		[Fact]
 		public void HeaderNameCanBeRenamedUsingAttribute() {
-			ModelWithColumnNames[] items = {
+			ModelWithColumnNames[] items = [
 				new() { ItemName = "Coconut", WeightInGrams = 900 },
 				new() { ItemName = "Jackfruit", WeightInGrams = 1200 }
-			};
+			];
 			string csv = CsvSerializer.Serialize(items, withHeaders: true);
 			string[] lines = csv.Split("\r\n");
 			lines.Length.Should().Be(3);
@@ -200,14 +200,12 @@ namespace Tests {
 				13;"Deflector; Tire; Filter";150000;15,5;20/11/2019;TRUE
 				""";
 			ExcelModel[] models = CsvSerializer.Deserialize<ExcelModel>(csv, hasHeaders: true, delimiter: ';', provider: CultureInfo.GetCultureInfo("id-ID"));
-			models.Count().Should().Be(2);
+			models.Length.Should().Be(2);
 		}
 
 		[Fact]
 		public void TypeArgumentsAreSerializedUsingNaiveSerializer() {
-			string Serialize<T>(T item) where T : notnull {
-				return CsvSerializer.Serialize(new[] { item }, withHeaders: true, provider: CultureInfo.GetCultureInfo("en-US"));
-			}
+			static string Serialize<T>(T item) where T : notnull => CsvSerializer.Serialize([item], withHeaders: true, provider: CultureInfo.GetCultureInfo("en-US"));
 			Model item = new() {
 				Bool = true,
 				Byte = 0x66,

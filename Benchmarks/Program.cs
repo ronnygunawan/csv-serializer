@@ -15,7 +15,7 @@ using RecordParser.Extensions;
 
 namespace Benchmarks {
 	public static class Program {
-		public static void Main(string[] args) {
+		public static void Main() {
 			// BenchmarkRunner.Run<Serialize>();
 			BenchmarkRunner.Run<Deserialize>();
 		}
@@ -24,7 +24,7 @@ namespace Benchmarks {
 	[RPlotExporter, RankColumn, MemoryDiagnoser]
 	[SimpleJob(launchCount: 1, warmupCount: 3, iterationCount: 10)]
 	public class Serialize {
-		private static readonly Csv.ISerializer V1Serializer = new Csv.Internal.NaiveImpl.NaiveSerializer<Model>();
+		private static readonly Csv.Internal.NaiveImpl.NaiveSerializer<Model> V1Serializer = new();
 
 		private static readonly RecordParser.Parsers.IVariableLengthWriter<Model> RecordParserWriter = new RecordParser.Builders.Writer.VariableLengthWriterSequentialBuilder<Model>()
 			.Map(x => x.Bool)
@@ -46,6 +46,7 @@ namespace Benchmarks {
 		private Model[] _data;
 
 		[Params(1000, 10000, 100000)]
+		// ReSharper disable once UnassignedField.Global
 		public int N;
 
 		[GlobalSetup]
@@ -195,7 +196,7 @@ namespace Benchmarks {
 	[RPlotExporter, RankColumn, MemoryDiagnoser]
 	[SimpleJob(launchCount: 1, warmupCount: 3, iterationCount: 10)]
 	public class Deserialize {
-		private static readonly Csv.IDeserializer V1Deserializer = new Csv.Internal.NaiveImpl.NaiveDeserializer<Model>();
+		private static readonly Csv.Internal.NaiveImpl.NaiveDeserializer<Model> V1Deserializer = new();
 
 		private static readonly RecordParser.Parsers.IVariableLengthReader<Model> RecordParserReader = new RecordParser.Builders.Reader.VariableLengthReaderBuilder<Model>()
 			.Map(x => x.Bool, 0)
@@ -217,6 +218,7 @@ namespace Benchmarks {
 		private string _csv;
 
 		[Params(1000, 10000, 100000)]
+		// ReSharper disable once UnassignedField.Global
 		public int N;
 
 		[GlobalSetup]

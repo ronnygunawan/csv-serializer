@@ -12,13 +12,12 @@ namespace Csv.Internals {
 						#nullable enable
 						using System;
 						using System.Collections.Generic;
-						using System.Globalization;
 						using System.IO;
 						using System.Linq;
 						using System.Text;
 
 						namespace Csv {
-							public static class CsvSerializer {
+							internal static class CsvSerializer {
 								public static string Serialize<T>(
 									IEnumerable<T> items,
 									bool withHeaders = false,
@@ -80,7 +79,7 @@ namespace Csv.Internals {
 
 						namespace Csv {
 							[AttributeUsage(AttributeTargets.Property)]
-							public sealed class CsvColumnAttribute : Attribute {
+							internal sealed class CsvColumnAttribute : Attribute {
 								public string Name { get; }
 								public string? DateFormat { get; set; }
 
@@ -88,6 +87,9 @@ namespace Csv.Internals {
 									Name = name;
 								}
 							}
+
+							[AttributeUsage(AttributeTargets.Property)]
+							internal sealed class CsvIgnoreAttribute : Attribute { }
 						}
 						
 						""",
@@ -105,18 +107,13 @@ namespace Csv.Internals {
 						using System;
 
 						namespace Csv {
-							public abstract class CsvException : Exception {
-								public CsvException() {
-								}
-
-								public CsvException(string? message) : base(message) {
-								}
-
-								public CsvException(string? message, Exception? innerException) : base(message, innerException) {
-								}
+							internal abstract class CsvException : Exception {
+								public CsvException() { }
+								public CsvException(string? message) : base(message) { }
+								public CsvException(string? message, Exception? innerException) : base(message, innerException) { }
 							}
 
-							public sealed class CsvTypeException : CsvException {
+							internal sealed class CsvTypeException : CsvException {
 								public Type Type { get; }
 								public string? PropertyName { get; }
 
@@ -139,7 +136,7 @@ namespace Csv.Internals {
 								}
 							}
 
-							public sealed class CsvPropertyTypeException : CsvException {
+							internal sealed class CsvPropertyTypeException : CsvException {
 								public Type PropertyType { get; }
 
 								public CsvPropertyTypeException(Type propertyType) : base($"Property of type {propertyType.Name} cannot be used in serialization or deserialization.") {
@@ -155,7 +152,7 @@ namespace Csv.Internals {
 								}
 							}
 
-							public sealed class CsvFormatException : CsvException {
+							internal sealed class CsvFormatException : CsvException {
 								public Type? Type { get; }
 								public string? PropertyName { get; }
 								public string? Value { get; }
