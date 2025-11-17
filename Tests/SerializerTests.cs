@@ -252,6 +252,91 @@ namespace Tests {
 		}
 	}
 
+	public sealed class NewTypesTests {
+		[Fact]
+		public void CharTypeCanBeSerializedAndDeserialized() {
+			NewTypesModel item = new() {
+				Char = 'A',
+				NullableChar = 'B',
+				Guid = Guid.Parse("12345678-1234-1234-1234-123456789abc"),
+				NullableGuid = Guid.Parse("abcdef12-3456-7890-abcd-ef1234567890"),
+				DateTimeOffset = new DateTimeOffset(2024, 1, 15, 10, 30, 0, TimeSpan.FromHours(5)),
+				NullableDateTimeOffset = new DateTimeOffset(2024, 2, 20, 14, 45, 0, TimeSpan.FromHours(-8)),
+				TimeSpan = TimeSpan.FromHours(2.5),
+				NullableTimeSpan = TimeSpan.FromMinutes(90)
+			};
+
+			string csv = CsvSerializer.Serialize([item], withHeaders: true, provider: CultureInfo.InvariantCulture);
+			NewTypesModel[] items = CsvSerializer.Deserialize<NewTypesModel>(csv, hasHeaders: true, provider: CultureInfo.InvariantCulture);
+
+			items.Length.Should().Be(1);
+			NewTypesModel deserialized = items[0];
+			deserialized.Char.Should().Be('A');
+			deserialized.NullableChar.Should().Be('B');
+			deserialized.Guid.Should().Be(Guid.Parse("12345678-1234-1234-1234-123456789abc"));
+			deserialized.NullableGuid.Should().Be(Guid.Parse("abcdef12-3456-7890-abcd-ef1234567890"));
+			deserialized.DateTimeOffset.Should().Be(new DateTimeOffset(2024, 1, 15, 10, 30, 0, TimeSpan.FromHours(5)));
+			deserialized.NullableDateTimeOffset.Should().Be(new DateTimeOffset(2024, 2, 20, 14, 45, 0, TimeSpan.FromHours(-8)));
+			deserialized.TimeSpan.Should().Be(TimeSpan.FromHours(2.5));
+			deserialized.NullableTimeSpan.Should().Be(TimeSpan.FromMinutes(90));
+		}
+
+		[Fact]
+		public void NullableTypesCanBeNull() {
+			NewTypesModel item = new() {
+				Char = 'X',
+				NullableChar = null,
+				Guid = Guid.Parse("00000000-0000-0000-0000-000000000000"),
+				NullableGuid = null,
+				DateTimeOffset = DateTimeOffset.UtcNow,
+				NullableDateTimeOffset = null,
+				TimeSpan = TimeSpan.Zero,
+				NullableTimeSpan = null
+			};
+
+			string csv = CsvSerializer.Serialize([item], withHeaders: true, provider: CultureInfo.InvariantCulture);
+			NewTypesModel[] items = CsvSerializer.Deserialize<NewTypesModel>(csv, hasHeaders: true, provider: CultureInfo.InvariantCulture);
+
+			items.Length.Should().Be(1);
+			NewTypesModel deserialized = items[0];
+			deserialized.Char.Should().Be('X');
+			deserialized.NullableChar.Should().BeNull();
+			deserialized.Guid.Should().Be(Guid.Parse("00000000-0000-0000-0000-000000000000"));
+			deserialized.NullableGuid.Should().BeNull();
+			deserialized.NullableDateTimeOffset.Should().BeNull();
+			deserialized.NullableTimeSpan.Should().BeNull();
+		}
+
+		[Fact]
+		public void CharWithQuoteIsEscaped() {
+			NewTypesModel item = new() {
+				Char = '"',
+				NullableChar = '"',
+				Guid = Guid.NewGuid(),
+				DateTimeOffset = DateTimeOffset.UtcNow,
+				TimeSpan = TimeSpan.Zero
+			};
+
+			string csv = CsvSerializer.Serialize([item], withHeaders: true);
+			csv.Should().Contain("\"\"\"\""); // Quoted quote character
+			
+			NewTypesModel[] items = CsvSerializer.Deserialize<NewTypesModel>(csv, hasHeaders: true);
+			items[0].Char.Should().Be('"');
+			items[0].NullableChar.Should().Be('"');
+		}
+	}
+
+	public class NewTypesModel {
+		public char Char { get; set; }
+		public char? NullableChar { get; set; }
+		public Guid Guid { get; set; }
+		public Guid? NullableGuid { get; set; }
+		public DateTimeOffset DateTimeOffset { get; set; }
+		public DateTimeOffset? NullableDateTimeOffset { get; set; }
+		public TimeSpan TimeSpan { get; set; }
+		public TimeSpan? NullableTimeSpan { get; set; }
+	}
+
 	public class ExcelModel {
 		public int No { get; set; }
 		public required string Name { get; set; }
