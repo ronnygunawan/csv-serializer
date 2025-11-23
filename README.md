@@ -77,25 +77,17 @@ double?
 decimal
 decimal?
 string
+char // serialized as quoted string
+char? // serialized as quoted string
 DateTime
 DateTime?
+DateTimeOffset // serialized as quoted string
+DateTimeOffset? // serialized as quoted string
+TimeSpan // serialized as quoted string
+TimeSpan? // serialized as quoted string
+Guid // serialized as quoted string
+Guid? // serialized as quoted string
 Uri // serialized as quoted string
 Enum // serialized as unquoted string
 Enum? // serialized as unquoted string
-```
-
-Not yet supported:
-```csharp
-char
-char?
-DateTimeOffset
-DateTimeOffset?
-TimeSpan
-TimeSpan?
-Guid
-Guid?
-any Object to string (serialize only)
-any Object to JSON
-any Object to MessagePack Base64
-any Object to MessagePack Hex string
 ```
