@@ -1,5 +1,5 @@
 ﻿using Csv;
-using FluentAssertions;
+using Shouldly;
 using System;
 using System.Globalization;
 using Xunit;
@@ -15,10 +15,10 @@ namespace Tests {
 			};
 			string csv = CsvSerializer.Serialize([model], provider: provider);
 			DecimalAndDouble[] deserialized = CsvSerializer.Deserialize<DecimalAndDouble>(csv, provider: provider);
-			deserialized.Length.Should().Be(1);
+			deserialized.Length.ShouldBe(1);
 			model = deserialized[0];
-			model.Decimal.Should().Be(123_456.789m);
-			model.Double.Should().Be(123_456.789);
+			model.Decimal.ShouldBe(123_456.789m);
+			model.Double.ShouldBe(123_456.789);
 		}
 
 		[Fact]
@@ -30,10 +30,10 @@ namespace Tests {
 			};
 			string csv = CsvSerializer.Serialize([model], provider: provider);
 			DecimalAndDouble[] deserialized = CsvSerializer.Deserialize<DecimalAndDouble>(csv, provider: provider);
-			deserialized.Length.Should().Be(1);
+			deserialized.Length.ShouldBe(1);
 			model = deserialized[0];
-			model.Decimal.Should().Be(123_456.789m);
-			model.Double.Should().Be(123_456.789);
+			model.Decimal.ShouldBe(123_456.789m);
+			model.Double.ShouldBe(123_456.789);
 		}
 
 		[Fact]
@@ -47,10 +47,10 @@ namespace Tests {
 				};
 				string csv = CsvSerializer.Serialize([model]);
 				DecimalAndDouble[] deserialized = CsvSerializer.Deserialize<DecimalAndDouble>(csv);
-				deserialized.Length.Should().Be(1);
+				deserialized.Length.ShouldBe(1);
 				model = deserialized[0];
-				model.Decimal.Should().Be(123_456.789m);
-				model.Double.Should().Be(123_456.789);
+				model.Decimal.ShouldBe(123_456.789m);
+				model.Double.ShouldBe(123_456.789);
 			} finally {
 				CultureInfo.CurrentCulture = temp;
 			}
@@ -65,10 +65,10 @@ namespace Tests {
 			};
 			string csv = CsvSerializer.Serialize([model], provider: provider);
 			DecimalAndDouble[] deserialized = CsvSerializer.Deserialize<DecimalAndDouble>(csv, provider: provider);
-			deserialized.Length.Should().Be(1);
+			deserialized.Length.ShouldBe(1);
 			model = deserialized[0];
-			model.Decimal.Should().Be(123_456.789m);
-			model.Double.Should().Be(123_456.789);
+			model.Decimal.ShouldBe(123_456.789m);
+			model.Double.ShouldBe(123_456.789);
 		}
 
 		[Fact]
@@ -80,10 +80,10 @@ namespace Tests {
 			};
 			string csv = CsvSerializer.Serialize([model], provider: provider);
 			DecimalAndDouble[] deserialized = CsvSerializer.Deserialize<DecimalAndDouble>(csv, provider: provider);
-			deserialized.Length.Should().Be(1);
+			deserialized.Length.ShouldBe(1);
 			model = deserialized[0];
-			model.Decimal.Should().Be(123_456.789m);
-			model.Double.Should().Be(123_456.789);
+			model.Decimal.ShouldBe(123_456.789m);
+			model.Double.ShouldBe(123_456.789);
 		}
 
 		[Fact]
@@ -95,10 +95,10 @@ namespace Tests {
 			};
 			string csv = CsvSerializer.Serialize([model], provider: provider);
 			DecimalAndDouble[] deserialized = CsvSerializer.Deserialize<DecimalAndDouble>(csv, provider: provider);
-			deserialized.Length.Should().Be(1);
+			deserialized.Length.ShouldBe(1);
 			model = deserialized[0];
-			model.Decimal.Should().Be(123_456.789m);
-			model.Double.Should().Be(123_456.789);
+			model.Decimal.ShouldBe(123_456.789m);
+			model.Double.ShouldBe(123_456.789);
 		}
 
 		[Fact]
@@ -110,10 +110,10 @@ namespace Tests {
 			};
 			string csv = CsvSerializer.Serialize([model], provider: provider);
 			DecimalAndDouble[] deserialized = CsvSerializer.Deserialize<DecimalAndDouble>(csv, provider: provider);
-			deserialized.Length.Should().Be(1);
+			deserialized.Length.ShouldBe(1);
 			model = deserialized[0];
-			model.Decimal.Should().Be(123_456.789m);
-			model.Double.Should().Be(123_456.789);
+			model.Decimal.ShouldBe(123_456.789m);
+			model.Double.ShouldBe(123_456.789);
 		}
 
 		[Fact]
@@ -125,10 +125,10 @@ namespace Tests {
 			};
 			string csv = CsvSerializer.Serialize([model], provider: provider);
 			DecimalAndDouble[] deserialized = CsvSerializer.Deserialize<DecimalAndDouble>(csv, provider: provider);
-			deserialized.Length.Should().Be(1);
+			deserialized.Length.ShouldBe(1);
 			model = deserialized[0];
-			model.Decimal.Should().Be(123_456.789m);
-			model.Double.Should().Be(123_456.789);
+			model.Decimal.ShouldBe(123_456.789m);
+			model.Double.ShouldBe(123_456.789);
 		}
 
 		[Fact]
@@ -140,10 +140,10 @@ namespace Tests {
 			};
 			string csv = CsvSerializer.Serialize([model], provider: provider);
 			DecimalAndDouble[] deserialized = CsvSerializer.Deserialize<DecimalAndDouble>(csv, provider: provider);
-			deserialized.Length.Should().Be(1);
+			deserialized.Length.ShouldBe(1);
 			model = deserialized[0];
-			model.Decimal.Should().Be(123_456.789m);
-			model.Double.Should().Be(123_456.789);
+			model.Decimal.ShouldBe(123_456.789m);
+			model.Double.ShouldBe(123_456.789);
 		}
 	}
 

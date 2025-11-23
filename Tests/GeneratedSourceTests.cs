@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Csv;
-using FluentAssertions;
+using Shouldly;
 using Xunit;
 
 namespace Tests {
@@ -16,7 +16,7 @@ namespace Tests {
 			).ToList();
 
 			foreach (Type generatedType in generatedTypes) {
-				generatedType.IsVisible.Should().BeFalse();
+				generatedType.IsVisible.ShouldBeFalse();
 			}
 		}
 	}

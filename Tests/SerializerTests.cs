@@ -1,5 +1,5 @@
 using Csv;
-using FluentAssertions;
+using Shouldly;
 using System;
 using System.Globalization;
 using System.Linq;
@@ -31,7 +31,7 @@ namespace Tests {
 			};
 
 			string csv = CsvSerializer.Serialize([item], withHeaders: true, provider: CultureInfo.GetCultureInfo("en-US"));
-			csv.Should().BeSimilarTo("""
+			csv.ShouldBeSimilarTo("""
 				"Bool","Byte","SByte","Short","UShort","Int","UInt","Long","ULong","Float","Double","Decimal","String","DateTime","Uri","StatusCode"
 				True,102,-100,-200,200,-3000,3000,-40000,40000,1E+14,1.7837193718273812E+19,989898989898,"CSV Serializer","8/23/2019 12:00:00 AM","http://localhost:5000/",OK
 				""");
@@ -58,7 +58,7 @@ namespace Tests {
 				StatusCode = HttpStatusCode.OK
 			};
 			string csv = CsvSerializer.Serialize([item], withHeaders: true, provider: CultureInfo.GetCultureInfo("en-US"));
-			csv.Should().BeSimilarTo("""
+			csv.ShouldBeSimilarTo("""
 				"Bool","Byte","SByte","Short","UShort","Int","UInt","Long","ULong","Float","Double","Decimal","String","DateTime","Uri","StatusCode"
 				True,102,-100,-200,200,-3000,3000,-40000,40000,1E+14,1.7837193718273812E+19,989898989898,"CSV Serializer","8/23/2019 12:00:00 AM","http://localhost:5000/",OK
 				""");
@@ -70,7 +70,7 @@ namespace Tests {
 				Name = "CSV Serializer"
 			};
 			string csv = CsvSerializer.Serialize([item], withHeaders: true);
-			csv.Should().BeSimilarTo("""
+			csv.ShouldBeSimilarTo("""
 				"Name"
 				"CSV Serializer"
 				""");
@@ -95,7 +95,7 @@ namespace Tests {
 				DateTime = new DateTime(2019, 8, 23),
 				Uri = new Uri("http://localhost:5000/")
 			};
-			new Action(() => CsvSerializer.Serialize(Enumerable.Repeat(item, 1_000_000))).ExecutionTime().Should().BeLessThan(TimeSpan.FromSeconds(10));
+			new Action(() => CsvSerializer.Serialize(Enumerable.Repeat(item, 1_000_000))).ExecutionTime().ShouldBeLessThan(TimeSpan.FromSeconds(10));
 		}
 
 		[Fact]
@@ -117,7 +117,7 @@ namespace Tests {
 				DateTime = new DateTime(2019, 8, 23),
 				Uri = new Uri("http://localhost:5000/")
 			};
-			new Action(() => CsvSerializer.Serialize(Enumerable.Repeat(item, 1_000_000))).ExecutionTime().Should().BeLessThan(TimeSpan.FromSeconds(10));
+			new Action(() => CsvSerializer.Serialize(Enumerable.Repeat(item, 1_000_000))).ExecutionTime().ShouldBeLessThan(TimeSpan.FromSeconds(10));
 		}
 
 		[Fact]
@@ -141,7 +141,7 @@ namespace Tests {
 				StatusCode = HttpStatusCode.OK
 			};
 			string csv = CsvSerializer.Serialize(Enumerable.Repeat(item, 1_000_000));
-			new Action(() => CsvSerializer.Deserialize<Model>(csv)).ExecutionTime().Should().BeLessThan(TimeSpan.FromSeconds(20));
+			new Action(() => CsvSerializer.Deserialize<Model>(csv)).ExecutionTime().ShouldBeLessThan(TimeSpan.FromSeconds(20));
 		}
 
 		[Fact]
@@ -151,32 +151,32 @@ namespace Tests {
 				True,102,-100,-200,200,-3000,3000,-40000,40000,1E+14,1.7837193718273812E+19,989898989898,"CSV Serializer","08/23/2019 00:00:00","http://localhost:5000/",OK
 				""";
 			Model[] items = CsvSerializer.Deserialize<Model>(csv, hasHeaders: true, provider: CultureInfo.InvariantCulture);
-			items.Length.Should().Be(1);
+			items.Length.ShouldBe(1);
 			Model item = items.Single();
-			item.Bool.Should().BeTrue();
-			item.Byte.Should().Be(0x66);
-			item.SByte.Should().Be(-100);
-			item.Short.Should().Be(-200);
-			item.UShort.Should().Be(200);
-			item.Int.Should().Be(-3000);
-			item.UInt.Should().Be(3000);
-			item.Long.Should().Be(-40000L);
-			item.ULong.Should().Be(40000UL);
-			item.Float.Should().Be(100000000000000.0f);
-			item.Double.Should().Be(17837193718273812973.0);
-			item.Decimal.Should().Be(989898989898m);
-			item.String.Should().Be("CSV Serializer");
-			item.DateTime.Should().Be(new DateTime(2019, 8, 23));
-			item.Uri.Should().Be(new Uri("http://localhost:5000/"));
+			item.Bool.ShouldBeTrue();
+			item.Byte.ShouldBe((byte)0x66);
+			item.SByte.ShouldBe((sbyte)-100);
+			item.Short.ShouldBe((short)-200);
+			item.UShort.ShouldBe((ushort)200);
+			item.Int.ShouldBe(-3000);
+			item.UInt.ShouldBe((uint)3000);
+			item.Long.ShouldBe(-40000L);
+			item.ULong.ShouldBe((ulong)40000UL);
+			item.Float.ShouldBe(100000000000000.0f);
+			item.Double.ShouldBe(17837193718273812973.0);
+			item.Decimal.ShouldBe(989898989898m);
+			item.String.ShouldBe("CSV Serializer");
+			item.DateTime.ShouldBe(new DateTime(2019, 8, 23));
+			item.Uri.ShouldBe(new Uri("http://localhost:5000/"));
 		}
 
 		[Fact]
 		public void CsvCanBeDeserializedToPrivateType() {
 			string csv = "\"Name\"\r\n\"CSV Serializer\"";
 			PrivateModel[] items = CsvSerializer.Deserialize<PrivateModel>(csv, hasHeaders: true);
-			items.Length.Should().Be(1);
+			items.Length.ShouldBe(1);
 			PrivateModel item = items.Single();
-			item.Name.Should().Be("CSV Serializer");
+			item.Name.ShouldBe("CSV Serializer");
 		}
 
 		[Fact]
@@ -187,9 +187,9 @@ namespace Tests {
 			];
 			string csv = CsvSerializer.Serialize(items, withHeaders: true);
 			string[] lines = csv.Split("\r\n");
-			lines.Length.Should().Be(3);
+			lines.Length.ShouldBe(3);
 			string header = lines[0];
-			header.Should().Be("\"Name\",\"Weight\"");
+			header.ShouldBe("\"Name\",\"Weight\"");
 		}
 
 		[Fact]
@@ -200,7 +200,7 @@ namespace Tests {
 				13;"Deflector; Tire; Filter";150000;15,5;20/11/2019;TRUE
 				""";
 			ExcelModel[] models = CsvSerializer.Deserialize<ExcelModel>(csv, hasHeaders: true, delimiter: ';', provider: CultureInfo.GetCultureInfo("id-ID"));
-			models.Length.Should().Be(2);
+			models.Length.ShouldBe(2);
 		}
 
 		[Fact]
@@ -225,7 +225,7 @@ namespace Tests {
 				StatusCode = HttpStatusCode.OK
 			};
 			string csv = Serialize(item);
-			csv.Should().BeSimilarTo("""
+			csv.ShouldBeSimilarTo("""
 				"Bool","Byte","SByte","Short","UShort","Int","UInt","Long","ULong","Float","Double","Decimal","String","DateTime","Uri","StatusCode"
 				True,102,-100,-200,200,-3000,3000,-40000,40000,1E+14,1.7837193718273812E+19,989898989898,"CSV Serializer","8/23/2019 12:00:00 AM","http://localhost:5000/",OK
 				""");
@@ -237,8 +237,7 @@ namespace Tests {
 				"Bool","Byte","SByte","Short","UShort","Int","UInt","Long","ULong","Float","Double","Decimal","String","DateTime","Uri","StatusCode"
 				True,102,-100,-200,200,-3000,3000,-40000,40000,1E+14,1.7837193718273812E+19,989898989898,"CSV Serializer","08/23/2019 00:00:00","http://localhost:5000/",OK,foo,bar
 				""";
-			new Action(() => CsvSerializer.Deserialize<Model>(csv, hasHeaders: true, provider: CultureInfo.InvariantCulture))
-				.Should().Throw<CsvFormatException>("Row must consists of 16 columns.");
+			Should.Throw<CsvFormatException>(() => CsvSerializer.Deserialize<Model>(csv, hasHeaders: true, provider: CultureInfo.InvariantCulture));
 		}
 
 		[Fact]
@@ -247,8 +246,7 @@ namespace Tests {
 				"Bool","Byte","SByte","Short","UShort","Int","UInt","Long","ULong","Float","Double","Decimal","String","DateTime","Uri","StatusCode"
 				True,102,-100,-200,200,-3000,3000,-40000,40000,1E+14,1.7837193718273812E+19,989898989898,"CSV Serializer","08/23/2019 00:00:00","http://localhost:5000/"
 				""";
-			new Action(() => CsvSerializer.Deserialize<Model>(csv, hasHeaders: true, provider: CultureInfo.InvariantCulture))
-				.Should().Throw<CsvFormatException>("Row must consists of 16 columns.");
+			Should.Throw<CsvFormatException>(() => CsvSerializer.Deserialize<Model>(csv, hasHeaders: true, provider: CultureInfo.InvariantCulture));
 		}
 	}
 
@@ -269,16 +267,16 @@ namespace Tests {
 			string csv = CsvSerializer.Serialize([item], withHeaders: true, provider: CultureInfo.InvariantCulture);
 			NewTypesModel[] items = CsvSerializer.Deserialize<NewTypesModel>(csv, hasHeaders: true, provider: CultureInfo.InvariantCulture);
 
-			items.Length.Should().Be(1);
+			items.Length.ShouldBe(1);
 			NewTypesModel deserialized = items[0];
-			deserialized.Char.Should().Be('A');
-			deserialized.NullableChar.Should().Be('B');
-			deserialized.Guid.Should().Be(Guid.Parse("12345678-1234-1234-1234-123456789abc"));
-			deserialized.NullableGuid.Should().Be(Guid.Parse("abcdef12-3456-7890-abcd-ef1234567890"));
-			deserialized.DateTimeOffset.Should().Be(new DateTimeOffset(2024, 1, 15, 10, 30, 0, TimeSpan.FromHours(5)));
-			deserialized.NullableDateTimeOffset.Should().Be(new DateTimeOffset(2024, 2, 20, 14, 45, 0, TimeSpan.FromHours(-8)));
-			deserialized.TimeSpan.Should().Be(TimeSpan.FromHours(2.5));
-			deserialized.NullableTimeSpan.Should().Be(TimeSpan.FromMinutes(90));
+			deserialized.Char.ShouldBe('A');
+			deserialized.NullableChar.ShouldBe('B');
+			deserialized.Guid.ShouldBe(Guid.Parse("12345678-1234-1234-1234-123456789abc"));
+			deserialized.NullableGuid.ShouldBe(Guid.Parse("abcdef12-3456-7890-abcd-ef1234567890"));
+			deserialized.DateTimeOffset.ShouldBe(new DateTimeOffset(2024, 1, 15, 10, 30, 0, TimeSpan.FromHours(5)));
+			deserialized.NullableDateTimeOffset.ShouldBe(new DateTimeOffset(2024, 2, 20, 14, 45, 0, TimeSpan.FromHours(-8)));
+			deserialized.TimeSpan.ShouldBe(TimeSpan.FromHours(2.5));
+			deserialized.NullableTimeSpan.ShouldBe(TimeSpan.FromMinutes(90));
 		}
 
 		[Fact]
@@ -297,14 +295,14 @@ namespace Tests {
 			string csv = CsvSerializer.Serialize([item], withHeaders: true, provider: CultureInfo.InvariantCulture);
 			NewTypesModel[] items = CsvSerializer.Deserialize<NewTypesModel>(csv, hasHeaders: true, provider: CultureInfo.InvariantCulture);
 
-			items.Length.Should().Be(1);
+			items.Length.ShouldBe(1);
 			NewTypesModel deserialized = items[0];
-			deserialized.Char.Should().Be('X');
-			deserialized.NullableChar.Should().BeNull();
-			deserialized.Guid.Should().Be(Guid.Parse("00000000-0000-0000-0000-000000000000"));
-			deserialized.NullableGuid.Should().BeNull();
-			deserialized.NullableDateTimeOffset.Should().BeNull();
-			deserialized.NullableTimeSpan.Should().BeNull();
+			deserialized.Char.ShouldBe('X');
+			deserialized.NullableChar.ShouldBeNull();
+			deserialized.Guid.ShouldBe(Guid.Parse("00000000-0000-0000-0000-000000000000"));
+			deserialized.NullableGuid.ShouldBeNull();
+			deserialized.NullableDateTimeOffset.ShouldBeNull();
+			deserialized.NullableTimeSpan.ShouldBeNull();
 		}
 
 		[Fact]
@@ -318,11 +316,11 @@ namespace Tests {
 			};
 
 			string csv = CsvSerializer.Serialize([item], withHeaders: true);
-			csv.Should().Contain("\"\"\"\""); // Quoted quote character
+			csv.ShouldContain("\"\"\"\""); // Quoted quote character
 			
 			NewTypesModel[] items = CsvSerializer.Deserialize<NewTypesModel>(csv, hasHeaders: true);
-			items[0].Char.Should().Be('"');
-			items[0].NullableChar.Should().Be('"');
+			items[0].Char.ShouldBe('"');
+			items[0].NullableChar.ShouldBe('"');
 		}
 	}
 
