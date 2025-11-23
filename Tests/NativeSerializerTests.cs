@@ -1,5 +1,5 @@
 ﻿using Csv;
-using FluentAssertions;
+using Shouldly;
 using System;
 using System.Globalization;
 using System.Linq;
@@ -10,7 +10,7 @@ namespace Tests {
 	public sealed class NativeSerializerTests {
 		[Fact]
 		public void NullValuesAreSerializedToEmptyColumn() {
-			typeof(ModelWithNullableValues).IsPublic.Should().BeTrue();
+			typeof(ModelWithNullableValues).IsPublic.ShouldBeTrue();
 
 			ModelWithNullableValues obj = new() {
 				Bool = null,
@@ -29,7 +29,7 @@ namespace Tests {
 				DateTime = null
 			};
 			string csv = CsvSerializer.Serialize([obj], withHeaders: true, provider: CultureInfo.GetCultureInfo("en-US"));
-			csv.Should().BeSimilarTo("""
+			csv.ShouldBeSimilarTo("""
 				"Bool","Byte","SByte","Short","UShort","Int","UInt","Long","ULong","Float","Double","Decimal","String","DateTime"
 				,,,,,,,,,,,,,
 				""");
@@ -51,7 +51,7 @@ namespace Tests {
 				DateTime = new DateTime(2019, 8, 23)
 			};
 			csv = CsvSerializer.Serialize([obj], withHeaders: true, provider: CultureInfo.GetCultureInfo("en-US"));
-			csv.Should().BeSimilarTo("""
+			csv.ShouldBeSimilarTo("""
 				"Bool","Byte","SByte","Short","UShort","Int","UInt","Long","ULong","Float","Double","Decimal","String","DateTime"
 				True,102,-100,-200,200,-3000,3000,-40000,40000,1E+14,1.7837193718273812E+19,989898989898,"CSV Serializer","8/23/2019 12:00:00 AM"
 				""");
@@ -59,136 +59,136 @@ namespace Tests {
 
 		[Fact]
 		public void EmptyColumnsAreDeserializedToNull() {
-			typeof(ModelWithNullableValues).IsPublic.Should().BeTrue();
+			typeof(ModelWithNullableValues).IsPublic.ShouldBeTrue();
 
 			string csv = ",,,,,,,,,,,,,";
 			ModelWithNullableValues[] items = CsvSerializer.Deserialize<ModelWithNullableValues>(csv, provider: CultureInfo.GetCultureInfo("en-US"));
-			items.Length.Should().Be(1);
+			items.Length.ShouldBe(1);
 			ModelWithNullableValues item = items[0];
-			item.Bool.Should().BeNull();
-			item.Byte.Should().BeNull();
-			item.SByte.Should().BeNull();
-			item.Short.Should().BeNull();
-			item.UShort.Should().BeNull();
-			item.Int.Should().BeNull();
-			item.UInt.Should().BeNull();
-			item.Long.Should().BeNull();
-			item.ULong.Should().BeNull();
-			item.Float.Should().BeNull();
-			item.Double.Should().BeNull();
-			item.Decimal.Should().BeNull();
-			item.String.Should().BeEmpty();
-			item.DateTime.Should().BeNull();
+			item.Bool.ShouldBeNull();
+			item.Byte.ShouldBeNull();
+			item.SByte.ShouldBeNull();
+			item.Short.ShouldBeNull();
+			item.UShort.ShouldBeNull();
+			item.Int.ShouldBeNull();
+			item.UInt.ShouldBeNull();
+			item.Long.ShouldBeNull();
+			item.ULong.ShouldBeNull();
+			item.Float.ShouldBeNull();
+			item.Double.ShouldBeNull();
+			item.Decimal.ShouldBeNull();
+			item.String.ShouldBeEmpty();
+			item.DateTime.ShouldBeNull();
 
 			csv = """
 				"Bool","Byte","SByte","Short","UShort","Int","UInt","Long","ULong","Float","Double","Decimal","String","DateTime"
 				True,102,-100,-200,200,-3000,3000,-40000,40000,1E+14,1.7837193718273812E+19,989898989898,"CSV Serializer","08/23/2019 00:00:00"
 				""";
 			items = CsvSerializer.Deserialize<ModelWithNullableValues>(csv, hasHeaders: true, provider: CultureInfo.GetCultureInfo("en-US"));
-			items.Length.Should().Be(1);
+			items.Length.ShouldBe(1);
 			item = items.Single();
-			item.Bool.Should().BeTrue();
-			item.Byte.Should().Be(0x66);
-			item.SByte.Should().Be(-100);
-			item.Short.Should().Be(-200);
-			item.UShort.Should().Be(200);
-			item.Int.Should().Be(-3000);
-			item.UInt.Should().Be(3000);
-			item.Long.Should().Be(-40000L);
-			item.ULong.Should().Be(40000UL);
-			item.Float.Should().Be(100000000000000.0f);
-			item.Double.Should().Be(17837193718273812973.0);
-			item.Decimal.Should().Be(989898989898m);
-			item.String.Should().Be("CSV Serializer");
-			item.DateTime.Should().Be(new DateTime(2019, 8, 23));
+			item.Bool.ShouldBe(true);
+			item.Byte.ShouldBe((byte?)0x66);
+			item.SByte.ShouldBe((sbyte?)-100);
+			item.Short.ShouldBe((short?)-200);
+			item.UShort.ShouldBe((ushort?)200);
+			item.Int.ShouldBe((int?)-3000);
+			item.UInt.ShouldBe((uint?)3000);
+			item.Long.ShouldBe((long?)-40000L);
+			item.ULong.ShouldBe((ulong?)40000UL);
+			item.Float.ShouldBe((float?)100000000000000.0f);
+			item.Double.ShouldBe((double?)17837193718273812973.0);
+			item.Decimal.ShouldBe((decimal?)989898989898m);
+			item.String.ShouldBe("CSV Serializer");
+			item.DateTime.ShouldBe((DateTime?)new DateTime(2019, 8, 23));
 		}
 
 		[Fact]
 		public void DoubleQuotesAreEscapedOnSerializing() {
-			typeof(EscapeTest).IsPublic.Should().BeTrue();
+			typeof(EscapeTest).IsPublic.ShouldBeTrue();
 			EscapeTest obj = new() {
 				Name = "Tony \"Iron Man\" Stark"
 			};
 			string csv = CsvSerializer.Serialize([obj]);
-			csv.Should().Be("""
+			csv.ShouldBe("""
 				"Tony ""Iron Man"" Stark"
 				""");
 		}
 
 		[Fact]
 		public void DoubleQuotesAreUnescapedOnDeserializing() {
-			typeof(EscapeTest).IsPublic.Should().BeTrue();
+			typeof(EscapeTest).IsPublic.ShouldBeTrue();
 			string csv = """
 				"Tony ""Iron Man"" Stark"
 				""";
 			EscapeTest[] items = CsvSerializer.Deserialize<EscapeTest>(csv);
-			items.Length.Should().Be(1);
+			items.Length.ShouldBe(1);
 			EscapeTest item = items[0];
-			item.Name.Should().Be("Tony \"Iron Man\" Stark");
+			item.Name.ShouldBe("Tony \"Iron Man\" Stark");
 		}
 
 		[Fact]
 		public void CommasInStringDontSplitString() {
-			typeof(CommaTest).IsPublic.Should().BeTrue();
+			typeof(CommaTest).IsPublic.ShouldBeTrue();
 			string csv = """
 				"Stark, Tony","Stark"
 				"Banner, Bruce","Banner"
 				""";
 			CommaTest[] items = CsvSerializer.Deserialize<CommaTest>(csv);
-			items.Length.Should().Be(2);
-			items[0].Name.Should().Be("Stark, Tony");
-			items[0].LastName.Should().Be("Stark");
-			items[1].Name.Should().Be("Banner, Bruce");
-			items[1].LastName.Should().Be("Banner");
+			items.Length.ShouldBe(2);
+			items[0].Name.ShouldBe("Stark, Tony");
+			items[0].LastName.ShouldBe("Stark");
+			items[1].Name.ShouldBe("Banner, Bruce");
+			items[1].LastName.ShouldBe("Banner");
 		}
 
 		[Fact]
 		public void CanIgnoreProperties() {
-			typeof(ModelWithIgnoredProperties).IsPublic.Should().BeTrue();
+			typeof(ModelWithIgnoredProperties).IsPublic.ShouldBeTrue();
 
 			string csv = ",,,,,,,,,,,,";
 
 			ModelWithIgnoredProperties[] items = CsvSerializer.Deserialize<ModelWithIgnoredProperties>(csv, provider: CultureInfo.GetCultureInfo("en-US"));
-			items.Length.Should().Be(1);
+			items.Length.ShouldBe(1);
 			ModelWithIgnoredProperties item = items[0];
-			item.Id.Should().Be(0);
-			item.Bool.Should().BeNull();
-			item.Byte.Should().BeNull();
-			item.SByte.Should().BeNull();
-			item.Short.Should().BeNull();
-			item.UShort.Should().BeNull();
-			item.Int.Should().BeNull();
-			item.UInt.Should().BeNull();
-			item.Long.Should().BeNull();
-			item.ULong.Should().BeNull();
-			item.Float.Should().BeNull();
-			item.Double.Should().BeNull();
-			item.Decimal.Should().BeNull();
-			item.String.Should().BeNull();
-			item.DateTime.Should().BeNull();
+			item.Id.ShouldBe(0);
+			item.Bool.ShouldBeNull();
+			item.Byte.ShouldBeNull();
+			item.SByte.ShouldBeNull();
+			item.Short.ShouldBeNull();
+			item.UShort.ShouldBeNull();
+			item.Int.ShouldBeNull();
+			item.UInt.ShouldBeNull();
+			item.Long.ShouldBeNull();
+			item.ULong.ShouldBeNull();
+			item.Float.ShouldBeNull();
+			item.Double.ShouldBeNull();
+			item.Decimal.ShouldBeNull();
+			item.String.ShouldBeNull();
+			item.DateTime.ShouldBeNull();
 
 			csv = """
 				"Bool","Byte","SByte","Short","UShort","Int","UInt","Long","ULong","Float","Double","Decimal","DateTime"
 				True,102,-100,-200,200,-3000,3000,-40000,40000,1E+14,1.7837193718273812E+19,989898989898,"08/23/2019 00:00:00"
 				""";
 			items = CsvSerializer.Deserialize<ModelWithIgnoredProperties>(csv, hasHeaders: true, provider: CultureInfo.GetCultureInfo("en-US"));
-			items.Length.Should().Be(1);
+			items.Length.ShouldBe(1);
 			item = items.Single();
-			item.Id.Should().Be(0);
-			item.Bool.Should().BeTrue();
-			item.Byte.Should().Be(0x66);
-			item.SByte.Should().Be(-100);
-			item.Short.Should().Be(-200);
-			item.UShort.Should().Be(200);
-			item.Int.Should().Be(-3000);
-			item.UInt.Should().Be(3000);
-			item.Long.Should().Be(-40000L);
-			item.ULong.Should().Be(40000UL);
-			item.Float.Should().Be(100000000000000.0f);
-			item.Double.Should().Be(17837193718273812973.0);
-			item.Decimal.Should().Be(989898989898m);
-			item.String.Should().BeNull();
-			item.DateTime.Should().Be(new DateTime(2019, 8, 23));
+			item.Id.ShouldBe(0);
+			item.Bool.ShouldBe(true);
+			item.Byte.ShouldBe((byte?)0x66);
+			item.SByte.ShouldBe((sbyte?)-100);
+			item.Short.ShouldBe((short?)-200);
+			item.UShort.ShouldBe((ushort?)200);
+			item.Int.ShouldBe((int?)-3000);
+			item.UInt.ShouldBe((uint?)3000);
+			item.Long.ShouldBe((long?)-40000L);
+			item.ULong.ShouldBe((ulong?)40000UL);
+			item.Float.ShouldBe((float?)100000000000000.0f);
+			item.Double.ShouldBe((double?)17837193718273812973.0);
+			item.Decimal.ShouldBe((decimal?)989898989898m);
+			item.String.ShouldBeNull();
+			item.DateTime.ShouldBe((DateTime?)new DateTime(2019, 8, 23));
 		}
 	}
 

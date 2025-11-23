@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using Csv;
-using FluentAssertions;
+using Shouldly;
 using Tests.Utilities;
 using Xunit;
 
@@ -14,7 +14,7 @@ namespace Tests {
 
 		[Fact]
 		public void NullValuesAreSerializedIntoEmptyColumn() {
-			typeof(ModelWithNullableValues).IsPublic.Should().BeFalse();
+			typeof(ModelWithNullableValues).IsPublic.ShouldBeFalse();
 
 			ModelWithNullableValues obj = new() {
 				Bool = null,
@@ -36,7 +36,7 @@ namespace Tests {
 			using StreamWriter streamWriter1 = new(serializeStream1, UTF8WithoutBOM);
 			CsvSerializer.Serialize(streamWriter1, [obj], withHeaders: true, provider: CultureInfo.GetCultureInfo("en-US"));
 			string csv = UTF8WithoutBOM.GetString(serializeStream1.ToArray());
-			csv.Should().BeSimilarTo("""
+			csv.ShouldBeSimilarTo("""
 				"Bool","Byte","SByte","Short","UShort","Int","UInt","Long","ULong","Float","Double","Decimal","String","DateTime"
 				,,,,,,,,,,,,,
 
@@ -62,7 +62,7 @@ namespace Tests {
 			using StreamWriter streamWriter2 = new(serializeStream2, UTF8WithoutBOM);
 			CsvSerializer.Serialize(streamWriter2, [obj], withHeaders: true, provider: CultureInfo.GetCultureInfo("en-US"));
 			csv = UTF8WithoutBOM.GetString(serializeStream2.ToArray());
-			csv.Should().BeSimilarTo("""
+			csv.ShouldBeSimilarTo("""
 				"Bool","Byte","SByte","Short","UShort","Int","UInt","Long","ULong","Float","Double","Decimal","String","DateTime"
 				True,102,-100,-200,200,-3000,3000,-40000,40000,1E+14,1.7837193718273812E+19,989898989898,"CSV Serializer","8/23/2019 12:00:00 AM"
 
@@ -71,28 +71,28 @@ namespace Tests {
 
 		[Fact]
 		public void EmptyColumnsAreDeserializedIntoNull() {
-			typeof(ModelWithNullableValues).IsPublic.Should().BeFalse();
+			typeof(ModelWithNullableValues).IsPublic.ShouldBeFalse();
 
 			string csv = ",,,,,,,,,,,,,";
 			using MemoryStream deserializeStream1 = new(UTF8WithoutBOM.GetBytes(csv));
 			using StreamReader streamReader1 = new(deserializeStream1, UTF8WithoutBOM);
 			ModelWithNullableValues[] items = CsvSerializer.Deserialize<ModelWithNullableValues>(streamReader1, provider: CultureInfo.GetCultureInfo("en-US")).ToArray();
-			items.Length.Should().Be(1);
+			items.Length.ShouldBe(1);
 			ModelWithNullableValues item = items[0];
-			item.Bool.Should().BeNull();
-			item.Byte.Should().BeNull();
-			item.SByte.Should().BeNull();
-			item.Short.Should().BeNull();
-			item.UShort.Should().BeNull();
-			item.Int.Should().BeNull();
-			item.UInt.Should().BeNull();
-			item.Long.Should().BeNull();
-			item.ULong.Should().BeNull();
-			item.Float.Should().BeNull();
-			item.Double.Should().BeNull();
-			item.Decimal.Should().BeNull();
-			item.String.Should().BeEmpty();
-			item.DateTime.Should().BeNull();
+			item.Bool.ShouldBeNull();
+			item.Byte.ShouldBeNull();
+			item.SByte.ShouldBeNull();
+			item.Short.ShouldBeNull();
+			item.UShort.ShouldBeNull();
+			item.Int.ShouldBeNull();
+			item.UInt.ShouldBeNull();
+			item.Long.ShouldBeNull();
+			item.ULong.ShouldBeNull();
+			item.Float.ShouldBeNull();
+			item.Double.ShouldBeNull();
+			item.Decimal.ShouldBeNull();
+			item.String.ShouldBeEmpty();
+			item.DateTime.ShouldBeNull();
 
 			csv = """
 				"Bool","Byte","SByte","Short","UShort","Int","UInt","Long","ULong","Float","Double","Decimal","String","DateTime"
@@ -101,22 +101,22 @@ namespace Tests {
 			using MemoryStream deserializeStream2 = new(UTF8WithoutBOM.GetBytes(csv));
 			using StreamReader streamReader2 = new(deserializeStream2, UTF8WithoutBOM);
 			items = CsvSerializer.Deserialize<ModelWithNullableValues>(streamReader2, hasHeaders: true, provider: CultureInfo.GetCultureInfo("en-US")).ToArray();
-			items.Length.Should().Be(1);
+			items.Length.ShouldBe(1);
 			item = items.Single();
-			item.Bool.Should().BeTrue();
-			item.Byte.Should().Be(0x66);
-			item.SByte.Should().Be(-100);
-			item.Short.Should().Be(-200);
-			item.UShort.Should().Be(200);
-			item.Int.Should().Be(-3000);
-			item.UInt.Should().Be(3000);
-			item.Long.Should().Be(-40000L);
-			item.ULong.Should().Be(40000UL);
-			item.Float.Should().Be(100000000000000.0f);
-			item.Double.Should().Be(17837193718273812973.0);
-			item.Decimal.Should().Be(989898989898m);
-			item.String.Should().Be("CSV Serializer");
-			item.DateTime.Should().Be(new DateTime(2019, 8, 23));
+			item.Bool.ShouldBe(true);
+			item.Byte.ShouldBe((byte?)0x66);
+			item.SByte.ShouldBe((sbyte?)-100);
+			item.Short.ShouldBe((short?)-200);
+			item.UShort.ShouldBe((ushort?)200);
+			item.Int.ShouldBe((int?)-3000);
+			item.UInt.ShouldBe((uint?)3000);
+			item.Long.ShouldBe((long?)-40000L);
+			item.ULong.ShouldBe((ulong?)40000UL);
+			item.Float.ShouldBe((float?)100000000000000.0f);
+			item.Double.ShouldBe((double?)17837193718273812973.0);
+			item.Decimal.ShouldBe((decimal?)989898989898m);
+			item.String.ShouldBe("CSV Serializer");
+			item.DateTime.ShouldBe((DateTime?)new DateTime(2019, 8, 23));
 		}
 
 		[Fact]
@@ -128,7 +128,7 @@ namespace Tests {
 			using StreamWriter streamWriter = new(serializeStream, UTF8WithoutBOM);
 			CsvSerializer.Serialize(streamWriter, [obj]);
 			string csv = UTF8WithoutBOM.GetString(serializeStream.ToArray());
-			csv.Should().BeSimilarTo("""
+			csv.ShouldBeSimilarTo("""
 				"Tony ""Iron Man"" Stark"
 
 				""");
@@ -139,16 +139,16 @@ namespace Tests {
 		}
 		[Fact]
 		public void DoubleQuotesAreUnescapedOnDeserializing() {
-			typeof(EscapeTest).IsPublic.Should().BeFalse();
+			typeof(EscapeTest).IsPublic.ShouldBeFalse();
 			string csv = """
 				"Tony ""Iron Man"" Stark"
 				""";
 			using MemoryStream deserializeStream = new(UTF8WithoutBOM.GetBytes(csv));
 			using StreamReader streamReader = new(deserializeStream, UTF8WithoutBOM);
 			EscapeTest[] items = CsvSerializer.Deserialize<EscapeTest>(streamReader, provider: CultureInfo.GetCultureInfo("en-US")).ToArray();
-			items.Length.Should().Be(1);
+			items.Length.ShouldBe(1);
 			EscapeTest item = items[0];
-			item.Name.Should().Be("Tony \"Iron Man\" Stark");
+			item.Name.ShouldBe("Tony \"Iron Man\" Stark");
 		}
 
 		public sealed record CommaTest {
@@ -157,7 +157,7 @@ namespace Tests {
 		}
 		[Fact]
 		public void CommasInStringDontSplitString() {
-			typeof(CommaTest).IsPublic.Should().BeFalse();
+			typeof(CommaTest).IsPublic.ShouldBeFalse();
 			string csv = """
 				"Stark, Tony","Stark"
 				"Banner, Bruce","Banner"
@@ -165,11 +165,11 @@ namespace Tests {
 			using MemoryStream deserializeStream = new(UTF8WithoutBOM.GetBytes(csv));
 			using StreamReader streamReader = new(deserializeStream, UTF8WithoutBOM);
 			CommaTest[] items = CsvSerializer.Deserialize<CommaTest>(streamReader, provider: CultureInfo.GetCultureInfo("en-US")).ToArray();
-			items.Length.Should().Be(2);
-			items[0].Name.Should().Be("Stark, Tony");
-			items[0].LastName.Should().Be("Stark");
-			items[1].Name.Should().Be("Banner, Bruce");
-			items[1].LastName.Should().Be("Banner");
+			items.Length.ShouldBe(2);
+			items[0].Name.ShouldBe("Stark, Tony");
+			items[0].LastName.ShouldBe("Stark");
+			items[1].Name.ShouldBe("Banner, Bruce");
+			items[1].LastName.ShouldBe("Banner");
 		}
 
 		public sealed record ModelWithNullableValues {
