@@ -641,12 +641,47 @@ namespace Csv.Internals {
 								private readonly CsvColumnAttribute?[] _columnAttributes;
 								private readonly DeserializeAs[] _deserializeAs;
 								private readonly bool[] _isNullable;
+								private readonly ConstructorInfo? _constructor;
+								private readonly int[]? _constructorParamToPropertyIndex;
 
 								public NaiveDeserializer() {
 									_properties = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance);
 									_columnAttributes = new CsvColumnAttribute?[_properties.Length];
 									_deserializeAs = new DeserializeAs[_properties.Length];
 									_isNullable = new bool[_properties.Length];
+									
+									// Check for constructor - prefer parameterless, otherwise find one matching properties
+									ConstructorInfo[] constructors = typeof(T).GetConstructors(BindingFlags.Public | BindingFlags.Instance);
+									foreach (ConstructorInfo ctor in constructors) {
+										if (ctor.GetParameters().Length == 0) {
+											_constructor = null;
+											_constructorParamToPropertyIndex = null;
+											break;
+										}
+										ParameterInfo[] parameters = ctor.GetParameters();
+										if (parameters.Length == _properties.Length) {
+											int[] mapping = new int[parameters.Length];
+											bool allMatch = true;
+											for (int p = 0; p < parameters.Length; p++) {
+												bool found = false;
+												for (int prop = 0; prop < _properties.Length; prop++) {
+													if (string.Equals(_properties[prop].Name, parameters[p].Name, StringComparison.OrdinalIgnoreCase)
+														&& _properties[prop].PropertyType == parameters[p].ParameterType) {
+														mapping[p] = prop;
+														found = true;
+														break;
+													}
+												}
+												if (!found) { allMatch = false; break; }
+											}
+											if (allMatch) {
+												_constructor = ctor;
+												_constructorParamToPropertyIndex = mapping;
+												break;
+											}
+										}
+									}
+									
 									for (int i = 0; i < _properties.Length; i++) {
 										_columnAttributes[i] = _properties[i].GetCustomAttribute<CsvColumnAttribute>();
 										switch (_properties[i].PropertyType) {

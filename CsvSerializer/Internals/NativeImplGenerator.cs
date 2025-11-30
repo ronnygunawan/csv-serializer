@@ -218,6 +218,43 @@ namespace Csv.Internals {
 					&& !prop.GetAttributes().Any(attr => attr.AttributeClass?.Name == "CsvIgnoreAttribute"))
 				.ToList();
 
+			// Check if type has a parameterless constructor
+			bool hasParameterlessConstructor = false;
+			IMethodSymbol? matchingConstructor = null;
+			List<string>? constructorParameterOrder = null;
+
+			if (typeSymbol is INamedTypeSymbol namedTypeSymbol) {
+				foreach (IMethodSymbol constructor in namedTypeSymbol.InstanceConstructors) {
+					if (constructor.DeclaredAccessibility != Accessibility.Public) continue;
+
+					if (constructor.Parameters.Length == 0) {
+						hasParameterlessConstructor = true;
+						break;
+					}
+
+					// Check if constructor parameters match properties (by name, case-insensitive)
+					if (constructor.Parameters.Length == propertySymbols.Count) {
+						bool allMatch = true;
+						constructorParameterOrder = new List<string>();
+						foreach (IParameterSymbol param in constructor.Parameters) {
+							IPropertySymbol? matchingProperty = propertySymbols
+								.FirstOrDefault(p => string.Equals(p.Name, param.Name, System.StringComparison.OrdinalIgnoreCase));
+							if (matchingProperty == null || !SymbolEqualityComparer.Default.Equals(matchingProperty.Type, param.Type)) {
+								allMatch = false;
+								break;
+							}
+							constructorParameterOrder.Add(matchingProperty.Name);
+						}
+						if (allMatch) {
+							matchingConstructor = constructor;
+							break;
+						}
+					}
+				}
+			}
+
+			bool useConstructorDeserialization = !hasParameterlessConstructor && matchingConstructor != null;
+
 			StringBuilder serializeHeaderBuilder = new();
 			StringBuilder writeHeaderBuilder = new();
 			StringBuilder serializeItemWithProviderBuilder = new();
@@ -227,9 +264,52 @@ namespace Csv.Internals {
 			StringBuilder deserializeWithProviderBuilder = new();
 			StringBuilder deserializeWithoutProviderBuilder = new();
 
+			// For constructor-based deserialization, we need to conditionally include property assignment
+			// When useConstructorDeserialization is true, we don't assign to item.PropertyName
+			// but instead use the parsed values to call the constructor
+			string itemAssignmentPrefix = useConstructorDeserialization ? "// " : "";
+			
+			// For non-streaming Deserialize method (item is a local variable)
+			string itemCreation;
+			
+			// For streaming Deserialize method (item is an out parameter)
+			string streamItemCreation;
+			
+			// Constructor call to add at the end of parsing (inside each if/else block)
+			string constructorCallInBlock;
+			
+			if (useConstructorDeserialization && constructorParameterOrder != null) {
+				// Build the constructor call string
+				string args = string.Join(", ", constructorParameterOrder.Select(p => $"v{p}"));
+				
+				// For non-streaming: declare item variable first (but don't initialize)
+				itemCreation = $"{fullTypeName}? item;";
+				
+				// For streaming: item is out param, no declaration needed
+				streamItemCreation = "";
+				
+				// Constructor call to add at the end of each if/else block
+				constructorCallInBlock = $"item = new {fullTypeName}({args});";
+			} else {
+				// For default constructor, create item before parsing
+				itemCreation = $"{fullTypeName} item = Activator.CreateInstance<{fullTypeName}>();";
+				
+				streamItemCreation = $"item = Activator.CreateInstance<{fullTypeName}>();";
+				
+				// No constructor call needed after parsing
+				constructorCallInBlock = "";
+			}
+
 			int col = 0;
 			bool strDeclared = false;
 			foreach (IPropertySymbol propertySymbol in propertySymbols) {
+				// Check if this property should have assignment generated
+				// For constructor-based deserialization, we check if property has a constructor parameter match
+				bool skipAssignment = useConstructorDeserialization && 
+					constructorParameterOrder != null && 
+					constructorParameterOrder.Contains(propertySymbol.Name);
+				string propertyAssignment = skipAssignment ? "" : $"item.{propertySymbol.Name} = v{propertySymbol.Name};";
+
 				// Delimiters
 				if (col > 0) {
 					serializeHeaderBuilder.AppendLine("""
@@ -1139,18 +1219,18 @@ namespace Csv.Internals {
 					case { SpecialType: SpecialType.System_SByte }:
 						deserializeWithProviderBuilder.AppendLine($$"""
 												if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && sbyte.TryParse(columns[{{col}}].Span[1..^1], NumberStyles.Integer, provider, out sbyte v{{propertySymbol.Name}})) {
-													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+													{{propertyAssignment}}
 												} else if (sbyte.TryParse(columns[{{col}}].Span, NumberStyles.Integer, provider, out v{{propertySymbol.Name}})) {
-													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+													{{propertyAssignment}}
 												} else {
 													throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct sbyte format.");
 												}
 							""");
 						deserializeWithoutProviderBuilder.AppendLine($$"""
 												if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && sbyte.TryParse(columns[{{col}}].Span[1..^1], out sbyte v{{propertySymbol.Name}})) {
-													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+													{{propertyAssignment}}
 												} else if (sbyte.TryParse(columns[{{col}}].Span, out v{{propertySymbol.Name}})) {
-													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+													{{propertyAssignment}}
 												} else {
 													throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct sbyte format.");
 												}
@@ -1159,18 +1239,18 @@ namespace Csv.Internals {
 					case { SpecialType: SpecialType.System_Byte }:
 						deserializeWithProviderBuilder.AppendLine($$"""
 												if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && byte.TryParse(columns[{{col}}].Span[1..^1], NumberStyles.Integer, provider, out byte v{{propertySymbol.Name}})) {
-													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+													{{propertyAssignment}}
 												} else if (byte.TryParse(columns[{{col}}].Span, NumberStyles.Integer, provider, out v{{propertySymbol.Name}})) {
-													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+													{{propertyAssignment}}
 												} else {
 													throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct byte format.");
 												}
 							""");
 						deserializeWithoutProviderBuilder.AppendLine($$"""
 												if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && byte.TryParse(columns[{{col}}].Span[1..^1], out byte v{{propertySymbol.Name}})) {
-													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+													{{propertyAssignment}}
 												} else if (byte.TryParse(columns[{{col}}].Span, out v{{propertySymbol.Name}})) {
-													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+													{{propertyAssignment}}
 												} else {
 													throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct byte format.");
 												}
@@ -1179,18 +1259,18 @@ namespace Csv.Internals {
 					case { SpecialType: SpecialType.System_Int16 }:
 						deserializeWithProviderBuilder.AppendLine($$"""
 												if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && short.TryParse(columns[{{col}}].Span[1..^1], NumberStyles.Integer, provider, out short v{{propertySymbol.Name}})) {
-													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+													{{propertyAssignment}}
 												} else if (short.TryParse(columns[{{col}}].Span, NumberStyles.Integer, provider, out v{{propertySymbol.Name}})) {
-													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+													{{propertyAssignment}}
 												} else {
 													throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct short format.");
 												}
 							""");
 						deserializeWithoutProviderBuilder.AppendLine($$"""
 												if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && short.TryParse(columns[{{col}}].Span[1..^1], out short v{{propertySymbol.Name}})) {
-													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+													{{propertyAssignment}}
 												} else if (short.TryParse(columns[{{col}}].Span, out v{{propertySymbol.Name}})) {
-													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+													{{propertyAssignment}}
 												} else {
 													throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct short format.");
 												}
@@ -1199,18 +1279,18 @@ namespace Csv.Internals {
 					case { SpecialType: SpecialType.System_UInt16 }:
 						deserializeWithProviderBuilder.AppendLine($$"""
 												if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && ushort.TryParse(columns[{{col}}].Span[1..^1], NumberStyles.Integer, provider, out ushort v{{propertySymbol.Name}})) {
-													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+													{{propertyAssignment}}
 												} else if (ushort.TryParse(columns[{{col}}].Span, NumberStyles.Integer, provider, out v{{propertySymbol.Name}})) {
-													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+													{{propertyAssignment}}
 												} else {
 													throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct ushort format.");
 												}
 							""");
 						deserializeWithoutProviderBuilder.AppendLine($$"""
 												if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && ushort.TryParse(columns[{{col}}].Span[1..^1], out ushort v{{propertySymbol.Name}})) {
-													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+													{{propertyAssignment}}
 												} else if (ushort.TryParse(columns[{{col}}].Span, out v{{propertySymbol.Name}})) {
-													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+													{{propertyAssignment}}
 												} else {
 													throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct ushort format.");
 												}
@@ -1219,18 +1299,18 @@ namespace Csv.Internals {
 					case { SpecialType: SpecialType.System_Int32 }:
 						deserializeWithProviderBuilder.AppendLine($$"""
 												if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && int.TryParse(columns[{{col}}].Span[1..^1], NumberStyles.Integer, provider, out int v{{propertySymbol.Name}})) {
-													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+													{{propertyAssignment}}
 												} else if (int.TryParse(columns[{{col}}].Span, NumberStyles.Integer, provider, out v{{propertySymbol.Name}})) {
-													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+													{{propertyAssignment}}
 												} else {
 													throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct int format.");
 												}
 							""");
 						deserializeWithoutProviderBuilder.AppendLine($$"""
 												if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && int.TryParse(columns[{{col}}].Span[1..^1], out int v{{propertySymbol.Name}})) {
-													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+													{{propertyAssignment}}
 												} else if (int.TryParse(columns[{{col}}].Span, out v{{propertySymbol.Name}})) {
-													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+													{{propertyAssignment}}
 												} else {
 													throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct int format.");
 												}
@@ -1239,18 +1319,18 @@ namespace Csv.Internals {
 					case { SpecialType: SpecialType.System_UInt32 }:
 						deserializeWithProviderBuilder.AppendLine($$"""
 												if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && uint.TryParse(columns[{{col}}].Span[1..^1], NumberStyles.Integer, provider, out uint v{{propertySymbol.Name}})) {
-													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+													{{propertyAssignment}}
 												} else if (uint.TryParse(columns[{{col}}].Span, NumberStyles.Integer, provider, out v{{propertySymbol.Name}})) {
-													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+													{{propertyAssignment}}
 												} else {
 													throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct uint format.");
 												}
 							""");
 						deserializeWithoutProviderBuilder.AppendLine($$"""
 												if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && uint.TryParse(columns[{{col}}].Span[1..^1], out uint v{{propertySymbol.Name}})) {
-													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+													{{propertyAssignment}}
 												} else if (uint.TryParse(columns[{{col}}].Span, out v{{propertySymbol.Name}})) {
-													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+													{{propertyAssignment}}
 												} else {
 													throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct uint format.");
 												}
@@ -1259,18 +1339,18 @@ namespace Csv.Internals {
 					case { SpecialType: SpecialType.System_Int64 }:
 						deserializeWithProviderBuilder.AppendLine($$"""
 												if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && long.TryParse(columns[{{col}}].Span[1..^1], NumberStyles.Integer, provider, out long v{{propertySymbol.Name}})) {
-													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+													{{propertyAssignment}}
 												} else if (long.TryParse(columns[{{col}}].Span, NumberStyles.Integer, provider, out v{{propertySymbol.Name}})) {
-													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+													{{propertyAssignment}}
 												} else {
 													throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct long format.");
 												}
 							""");
 						deserializeWithoutProviderBuilder.AppendLine($$"""
 												if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && long.TryParse(columns[{{col}}].Span[1..^1], out long v{{propertySymbol.Name}})) {
-													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+													{{propertyAssignment}}
 												} else if (long.TryParse(columns[{{col}}].Span, out v{{propertySymbol.Name}})) {
-													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+													{{propertyAssignment}}
 												} else {
 													throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct long format.");
 												}
@@ -1279,18 +1359,18 @@ namespace Csv.Internals {
 					case { SpecialType: SpecialType.System_UInt64 }:
 						deserializeWithProviderBuilder.AppendLine($$"""
 												if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && ulong.TryParse(columns[{{col}}].Span[1..^1], NumberStyles.Integer, provider, out ulong v{{propertySymbol.Name}})) {
-													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+													{{propertyAssignment}}
 												} else if (ulong.TryParse(columns[{{col}}].Span, NumberStyles.Integer, provider, out v{{propertySymbol.Name}})) {
-													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+													{{propertyAssignment}}
 												} else {
 													throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct ulong format.");
 												}
 							""");
 						deserializeWithoutProviderBuilder.AppendLine($$"""
 												if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && ulong.TryParse(columns[{{col}}].Span[1..^1], out ulong v{{propertySymbol.Name}})) {
-													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+													{{propertyAssignment}}
 												} else if (ulong.TryParse(columns[{{col}}].Span, out v{{propertySymbol.Name}})) {
-													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+													{{propertyAssignment}}
 												} else {
 													throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct ulong format.");
 												}
@@ -1299,18 +1379,18 @@ namespace Csv.Internals {
 					case { SpecialType: SpecialType.System_Single }:
 						deserializeWithProviderBuilder.AppendLine($$"""
 												if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && float.TryParse(columns[{{col}}].Span[1..^1], NumberStyles.Float, provider, out float v{{propertySymbol.Name}})) {
-													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+													{{propertyAssignment}}
 												} else if (float.TryParse(columns[{{col}}].Span, NumberStyles.Float, provider, out v{{propertySymbol.Name}})) {
-													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+													{{propertyAssignment}}
 												} else {
 													throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct float format.");
 												}
 							""");
 						deserializeWithoutProviderBuilder.AppendLine($$"""
 												if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && float.TryParse(columns[{{col}}].Span[1..^1], out float v{{propertySymbol.Name}})) {
-													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+													{{propertyAssignment}}
 												} else if (float.TryParse(columns[{{col}}].Span, out v{{propertySymbol.Name}})) {
-													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+													{{propertyAssignment}}
 												} else {
 													throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct float format.");
 												}
@@ -1319,18 +1399,18 @@ namespace Csv.Internals {
 					case { SpecialType: SpecialType.System_Double }:
 						deserializeWithProviderBuilder.AppendLine($$"""
 												if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && double.TryParse(columns[{{col}}].Span[1..^1], NumberStyles.Float, provider, out double v{{propertySymbol.Name}})) {
-													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+													{{propertyAssignment}}
 												} else if (double.TryParse(columns[{{col}}].Span, NumberStyles.Float, provider, out v{{propertySymbol.Name}})) {
-													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+													{{propertyAssignment}}
 												} else {
 													throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct double format.");
 												}
 							""");
 						deserializeWithoutProviderBuilder.AppendLine($$"""
 												if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && double.TryParse(columns[{{col}}].Span[1..^1], out double v{{propertySymbol.Name}})) {
-													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+													{{propertyAssignment}}
 												} else if (double.TryParse(columns[{{col}}].Span, out v{{propertySymbol.Name}})) {
-													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+													{{propertyAssignment}}
 												} else {
 													throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct double format.");
 												}
@@ -1339,18 +1419,18 @@ namespace Csv.Internals {
 					case { SpecialType: SpecialType.System_Decimal }:
 						deserializeWithProviderBuilder.AppendLine($$"""
 												if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && decimal.TryParse(columns[{{col}}].Span[1..^1], NumberStyles.Number, provider, out decimal v{{propertySymbol.Name}})) {
-													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+													{{propertyAssignment}}
 												} else if (decimal.TryParse(columns[{{col}}].Span, NumberStyles.Number, provider, out v{{propertySymbol.Name}})) {
-													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+													{{propertyAssignment}}
 												} else {
 													throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct decimal format.");
 												}
 							""");
 						deserializeWithoutProviderBuilder.AppendLine($$"""
 												if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && decimal.TryParse(columns[{{col}}].Span[1..^1], out decimal v{{propertySymbol.Name}})) {
-													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+													{{propertyAssignment}}
 												} else if (decimal.TryParse(columns[{{col}}].Span, out v{{propertySymbol.Name}})) {
-													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+													{{propertyAssignment}}
 												} else {
 													throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct decimal format.");
 												}
@@ -1359,18 +1439,18 @@ namespace Csv.Internals {
 					case { SpecialType: SpecialType.System_Boolean }:
 						deserializeWithProviderBuilder.AppendLine($$"""
 												if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && bool.TryParse(columns[{{col}}].Span[1..^1], out bool v{{propertySymbol.Name}})) {
-													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+													{{propertyAssignment}}
 												} else if (bool.TryParse(columns[{{col}}].Span, out v{{propertySymbol.Name}})) {
-													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+													{{propertyAssignment}}
 												} else {
 													throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct Boolean format.");
 												}
 							""");
 						deserializeWithoutProviderBuilder.AppendLine($$"""
 												if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && bool.TryParse(columns[{{col}}].Span[1..^1], out bool v{{propertySymbol.Name}})) {
-													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+													{{propertyAssignment}}
 												} else if (bool.TryParse(columns[{{col}}].Span, out v{{propertySymbol.Name}})) {
-													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+													{{propertyAssignment}}
 												} else {
 													throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct Boolean format.");
 												}
@@ -1384,7 +1464,7 @@ namespace Csv.Internals {
 													v{{propertySymbol.Name}} = v{{propertySymbol.Name}}[1..^1];
 												}
 												v{{propertySymbol.Name}} = v{{propertySymbol.Name}}.Replace("\"\"", "\"").TrimEnd('\r');
-												item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+												{{propertyAssignment}}
 							""");
 						deserializeWithoutProviderBuilder.AppendLine($$"""
 												string v{{propertySymbol.Name}} = columns[{{col}}].ToString().Trim();
@@ -1393,7 +1473,7 @@ namespace Csv.Internals {
 													v{{propertySymbol.Name}} = v{{propertySymbol.Name}}[1..^1];
 												}
 												v{{propertySymbol.Name}} = v{{propertySymbol.Name}}.Replace("\"\"", "\"").TrimEnd('\r');
-												item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+												{{propertyAssignment}}
 							""");
 						break;
 					case { SpecialType: SpecialType.System_Char }:
@@ -1404,8 +1484,10 @@ namespace Csv.Internals {
 													s{{propertySymbol.Name}} = s{{propertySymbol.Name}}[1..^1];
 												}
 												s{{propertySymbol.Name}} = s{{propertySymbol.Name}}.Replace("\"\"", "\"").TrimEnd('\r');
+												char v{{propertySymbol.Name}} = default;
 												if (s{{propertySymbol.Name}}.Length == 1) {
-													item.{{propertySymbol.Name}} = s{{propertySymbol.Name}}[0];
+													v{{propertySymbol.Name}} = s{{propertySymbol.Name}}[0];
+													{{propertyAssignment}}
 												} else {
 													throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct char format.");
 												}
@@ -1417,8 +1499,10 @@ namespace Csv.Internals {
 													s{{propertySymbol.Name}} = s{{propertySymbol.Name}}[1..^1];
 												}
 												s{{propertySymbol.Name}} = s{{propertySymbol.Name}}.Replace("\"\"", "\"").TrimEnd('\r');
+												char v{{propertySymbol.Name}} = default;
 												if (s{{propertySymbol.Name}}.Length == 1) {
-													item.{{propertySymbol.Name}} = s{{propertySymbol.Name}}[0];
+													v{{propertySymbol.Name}} = s{{propertySymbol.Name}}[0];
+													{{propertyAssignment}}
 												} else {
 													throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct char format.");
 												}
@@ -1428,14 +1512,14 @@ namespace Csv.Internals {
 							string fullEnumName = GetFullName(propertyTypeSymbol);
 							deserializeWithProviderBuilder.AppendLine($$"""
 												if (Enum.TryParse(columns[{{col}}].ToString(), out {{fullEnumName}} v{{propertySymbol.Name}})) {
-													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+													{{propertyAssignment}}
 												} else {
 													throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not a valid {{fullEnumName}} value.");
 												}
 							""");
 							deserializeWithoutProviderBuilder.AppendLine($$"""
 												if (Enum.TryParse(columns[{{col}}].ToString(), out {{fullEnumName}} v{{propertySymbol.Name}})) {
-													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+													{{propertyAssignment}}
 												} else {
 													throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not a valid {{fullEnumName}} value.");
 												}
@@ -1451,7 +1535,7 @@ namespace Csv.Internals {
 														s{{propertySymbol.Name}} = s{{propertySymbol.Name}}[1..^1];
 													}
 													if (DateTime.TryParseExact(s{{propertySymbol.Name}}, "{{dateFormat.Replace("\\", "\\\\")}}", provider, DateTimeStyles.AssumeLocal, out DateTime v{{propertySymbol.Name}})) {
-														item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+														{{propertyAssignment}}
 													} else {
 														throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct DateTime format. Expected format was '{{dateFormat}}'.");
 													}
@@ -1463,7 +1547,7 @@ namespace Csv.Internals {
 														s{{propertySymbol.Name}} = s{{propertySymbol.Name}}[1..^1];
 													}
 													if (DateTime.TryParseExact(s{{propertySymbol.Name}}, "{{dateFormat.Replace("\\", "\\\\")}}", null, DateTimeStyles.AssumeLocal, out DateTime v{{propertySymbol.Name}})) {
-														item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+														{{propertyAssignment}}
 													} else {
 														throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct DateTime format. Expected format was '{{dateFormat}}'.");
 													}
@@ -1476,7 +1560,7 @@ namespace Csv.Internals {
 														s{{propertySymbol.Name}} = s{{propertySymbol.Name}}[1..^1];
 													}
 													if (DateTime.TryParse(s{{propertySymbol.Name}}, provider, DateTimeStyles.AssumeLocal, out DateTime v{{propertySymbol.Name}})) {
-														item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+														{{propertyAssignment}}
 													} else {
 														throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct DateTime format.");
 													}
@@ -1488,7 +1572,7 @@ namespace Csv.Internals {
 														s{{propertySymbol.Name}} = s{{propertySymbol.Name}}[1..^1];
 													}
 													if (DateTime.TryParse(s{{propertySymbol.Name}}, null, DateTimeStyles.AssumeLocal, out DateTime v{{propertySymbol.Name}})) {
-														item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+														{{propertyAssignment}}
 													} else {
 														throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct DateTime format.");
 													}
@@ -1498,29 +1582,33 @@ namespace Csv.Internals {
 						break;
 					case { Name: "Uri", ContainingNamespace.Name: "System" }:
 						deserializeWithProviderBuilder.AppendLine($$"""
-												string v{{propertySymbol.Name}} = columns[{{col}}].ToString().Trim();
-												if (v{{propertySymbol.Name}}.StartsWith('"')
-													&& v{{propertySymbol.Name}}.EndsWith('"')) {
-													v{{propertySymbol.Name}} = v{{propertySymbol.Name}}[1..^1];
+												string sv{{propertySymbol.Name}} = columns[{{col}}].ToString().Trim();
+												if (sv{{propertySymbol.Name}}.StartsWith('"')
+													&& sv{{propertySymbol.Name}}.EndsWith('"')) {
+													sv{{propertySymbol.Name}} = sv{{propertySymbol.Name}}[1..^1];
 												}
-												v{{propertySymbol.Name}} = v{{propertySymbol.Name}}.Replace("\"\"", "\"").TrimEnd('\r');
-												if (string.IsNullOrWhiteSpace(v{{propertySymbol.Name}})) {
-													item.{{propertySymbol.Name}} = null;
+												sv{{propertySymbol.Name}} = sv{{propertySymbol.Name}}.Replace("\"\"", "\"").TrimEnd('\r');
+												Uri? v{{propertySymbol.Name}} = null;
+												if (string.IsNullOrWhiteSpace(sv{{propertySymbol.Name}})) {
+													{{propertyAssignment}}
 												} else {
-													item.{{propertySymbol.Name}} = new Uri(v{{propertySymbol.Name}});
+													v{{propertySymbol.Name}} = new Uri(sv{{propertySymbol.Name}});
+													{{propertyAssignment}}
 												}
 							""");
 						deserializeWithoutProviderBuilder.AppendLine($$"""
-												string v{{propertySymbol.Name}} = columns[{{col}}].ToString().Trim();
-												if (v{{propertySymbol.Name}}.StartsWith('"')
-													&& v{{propertySymbol.Name}}.EndsWith('"')) {
-													v{{propertySymbol.Name}} = v{{propertySymbol.Name}}[1..^1];
+												string sv{{propertySymbol.Name}} = columns[{{col}}].ToString().Trim();
+												if (sv{{propertySymbol.Name}}.StartsWith('"')
+													&& sv{{propertySymbol.Name}}.EndsWith('"')) {
+													sv{{propertySymbol.Name}} = sv{{propertySymbol.Name}}[1..^1];
 												}
-												v{{propertySymbol.Name}} = v{{propertySymbol.Name}}.Replace("\"\"", "\"").TrimEnd('\r');
-												if (string.IsNullOrWhiteSpace(v{{propertySymbol.Name}})) {
-													item.{{propertySymbol.Name}} = null;
+												sv{{propertySymbol.Name}} = sv{{propertySymbol.Name}}.Replace("\"\"", "\"").TrimEnd('\r');
+												Uri? v{{propertySymbol.Name}} = null;
+												if (string.IsNullOrWhiteSpace(sv{{propertySymbol.Name}})) {
+													{{propertyAssignment}}
 												} else {
-													item.{{propertySymbol.Name}} = new Uri(v{{propertySymbol.Name}});
+													v{{propertySymbol.Name}} = new Uri(sv{{propertySymbol.Name}});
+													{{propertyAssignment}}
 												}
 							""");
 						break;
@@ -1532,7 +1620,7 @@ namespace Csv.Internals {
 													s{{propertySymbol.Name}} = s{{propertySymbol.Name}}[1..^1];
 												}
 												if (Guid.TryParse(s{{propertySymbol.Name}}, out Guid v{{propertySymbol.Name}})) {
-													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+													{{propertyAssignment}}
 												} else {
 													throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct Guid format.");
 												}
@@ -1544,7 +1632,7 @@ namespace Csv.Internals {
 													s{{propertySymbol.Name}} = s{{propertySymbol.Name}}[1..^1];
 												}
 												if (Guid.TryParse(s{{propertySymbol.Name}}, out Guid v{{propertySymbol.Name}})) {
-													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+													{{propertyAssignment}}
 												} else {
 													throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct Guid format.");
 												}
@@ -1559,7 +1647,7 @@ namespace Csv.Internals {
 														s{{propertySymbol.Name}} = s{{propertySymbol.Name}}[1..^1];
 													}
 													if (DateTimeOffset.TryParseExact(s{{propertySymbol.Name}}, "{{dateFormat.Replace("\\", "\\\\")}}", provider, DateTimeStyles.AssumeLocal, out DateTimeOffset v{{propertySymbol.Name}})) {
-														item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+														{{propertyAssignment}}
 													} else {
 														throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct DateTimeOffset format. Expected format was '{{dateFormat}}'.");
 													}
@@ -1571,7 +1659,7 @@ namespace Csv.Internals {
 														s{{propertySymbol.Name}} = s{{propertySymbol.Name}}[1..^1];
 													}
 													if (DateTimeOffset.TryParseExact(s{{propertySymbol.Name}}, "{{dateFormat.Replace("\\", "\\\\")}}", null, DateTimeStyles.AssumeLocal, out DateTimeOffset v{{propertySymbol.Name}})) {
-														item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+														{{propertyAssignment}}
 													} else {
 														throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct DateTimeOffset format. Expected format was '{{dateFormat}}'.");
 													}
@@ -1584,7 +1672,7 @@ namespace Csv.Internals {
 														s{{propertySymbol.Name}} = s{{propertySymbol.Name}}[1..^1];
 													}
 													if (DateTimeOffset.TryParse(s{{propertySymbol.Name}}, provider, DateTimeStyles.AssumeLocal, out DateTimeOffset v{{propertySymbol.Name}})) {
-														item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+														{{propertyAssignment}}
 													} else {
 														throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct DateTimeOffset format.");
 													}
@@ -1596,7 +1684,7 @@ namespace Csv.Internals {
 														s{{propertySymbol.Name}} = s{{propertySymbol.Name}}[1..^1];
 													}
 													if (DateTimeOffset.TryParse(s{{propertySymbol.Name}}, null, DateTimeStyles.AssumeLocal, out DateTimeOffset v{{propertySymbol.Name}})) {
-														item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+														{{propertyAssignment}}
 													} else {
 														throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct DateTimeOffset format.");
 													}
@@ -1611,7 +1699,7 @@ namespace Csv.Internals {
 													s{{propertySymbol.Name}} = s{{propertySymbol.Name}}[1..^1];
 												}
 												if (TimeSpan.TryParse(s{{propertySymbol.Name}}, out TimeSpan v{{propertySymbol.Name}})) {
-													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+													{{propertyAssignment}}
 												} else {
 													throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct TimeSpan format.");
 												}
@@ -1623,7 +1711,7 @@ namespace Csv.Internals {
 													s{{propertySymbol.Name}} = s{{propertySymbol.Name}}[1..^1];
 												}
 												if (TimeSpan.TryParse(s{{propertySymbol.Name}}, out TimeSpan v{{propertySymbol.Name}})) {
-													item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+													{{propertyAssignment}}
 												} else {
 													throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct TimeSpan format.");
 												}
@@ -1639,9 +1727,9 @@ namespace Csv.Internals {
 							case { SpecialType: SpecialType.System_SByte }:
 								deserializeWithProviderBuilder.AppendLine($$"""
 														if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && sbyte.TryParse(columns[{{col}}].Span[1..^1], NumberStyles.Integer, provider, out sbyte v{{propertySymbol.Name}})) {
-															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+															{{propertyAssignment}}
 														} else if (sbyte.TryParse(columns[{{col}}].Span, NumberStyles.Integer, provider, out v{{propertySymbol.Name}})) {
-															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+															{{propertyAssignment}}
 														} else if (columns[{{col}}].Length == 0) {
 															item.{{propertySymbol.Name}} = null;
 														} else {
@@ -1650,9 +1738,9 @@ namespace Csv.Internals {
 									""");
 								deserializeWithoutProviderBuilder.AppendLine($$"""
 														if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && sbyte.TryParse(columns[{{col}}].Span[1..^1], out sbyte v{{propertySymbol.Name}})) {
-															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+															{{propertyAssignment}}
 														} else if (sbyte.TryParse(columns[{{col}}].Span, out v{{propertySymbol.Name}})) {
-															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+															{{propertyAssignment}}
 														} else if (columns[{{col}}].Length == 0) {
 															item.{{propertySymbol.Name}} = null;
 														} else {
@@ -1663,9 +1751,9 @@ namespace Csv.Internals {
 							case { SpecialType: SpecialType.System_Byte }:
 								deserializeWithProviderBuilder.AppendLine($$"""
 														if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && byte.TryParse(columns[{{col}}].Span[1..^1], NumberStyles.Integer, provider, out byte v{{propertySymbol.Name}})) {
-															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+															{{propertyAssignment}}
 														} else if (byte.TryParse(columns[{{col}}].Span, NumberStyles.Integer, provider, out v{{propertySymbol.Name}})) {
-															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+															{{propertyAssignment}}
 														} else if (columns[{{col}}].Length == 0) {
 															item.{{propertySymbol.Name}} = null;
 														} else {
@@ -1674,9 +1762,9 @@ namespace Csv.Internals {
 									""");
 								deserializeWithoutProviderBuilder.AppendLine($$"""
 														if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && byte.TryParse(columns[{{col}}].Span[1..^1], out byte v{{propertySymbol.Name}})) {
-															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+															{{propertyAssignment}}
 														} else if (byte.TryParse(columns[{{col}}].Span, out v{{propertySymbol.Name}})) {
-															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+															{{propertyAssignment}}
 														} else if (columns[{{col}}].Length == 0) {
 															item.{{propertySymbol.Name}} = null;
 														} else {
@@ -1687,9 +1775,9 @@ namespace Csv.Internals {
 							case { SpecialType: SpecialType.System_Int16 }:
 								deserializeWithProviderBuilder.AppendLine($$"""
 														if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && short.TryParse(columns[{{col}}].Span[1..^1], NumberStyles.Integer, provider, out short v{{propertySymbol.Name}})) {
-															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+															{{propertyAssignment}}
 														} else if (short.TryParse(columns[{{col}}].Span, NumberStyles.Integer, provider, out v{{propertySymbol.Name}})) {
-															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+															{{propertyAssignment}}
 														} else if (columns[{{col}}].Length == 0) {
 															item.{{propertySymbol.Name}} = null;
 														} else {
@@ -1698,9 +1786,9 @@ namespace Csv.Internals {
 									""");
 								deserializeWithoutProviderBuilder.AppendLine($$"""
 														if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && short.TryParse(columns[{{col}}].Span[1..^1], out short v{{propertySymbol.Name}})) {
-															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+															{{propertyAssignment}}
 														} else if (short.TryParse(columns[{{col}}].Span, out v{{propertySymbol.Name}})) {
-															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+															{{propertyAssignment}}
 														} else if (columns[{{col}}].Length == 0) {
 															item.{{propertySymbol.Name}} = null;
 														} else {
@@ -1711,9 +1799,9 @@ namespace Csv.Internals {
 							case { SpecialType: SpecialType.System_UInt16 }:
 								deserializeWithProviderBuilder.AppendLine($$"""
 														if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && ushort.TryParse(columns[{{col}}].Span[1..^1], NumberStyles.Integer, provider, out ushort v{{propertySymbol.Name}})) {
-															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+															{{propertyAssignment}}
 														} else if (ushort.TryParse(columns[{{col}}].Span, NumberStyles.Integer, provider, out v{{propertySymbol.Name}})) {
-															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+															{{propertyAssignment}}
 														} else if (columns[{{col}}].Length == 0) {
 															item.{{propertySymbol.Name}} = null;
 														} else {
@@ -1722,9 +1810,9 @@ namespace Csv.Internals {
 									""");
 								deserializeWithoutProviderBuilder.AppendLine($$"""
 														if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && ushort.TryParse(columns[{{col}}].Span[1..^1], out ushort v{{propertySymbol.Name}})) {
-															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+															{{propertyAssignment}}
 														} else if (ushort.TryParse(columns[{{col}}].Span, out v{{propertySymbol.Name}})) {
-															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+															{{propertyAssignment}}
 														} else if (columns[{{col}}].Length == 0) {
 															item.{{propertySymbol.Name}} = null;
 														} else {
@@ -1735,9 +1823,9 @@ namespace Csv.Internals {
 							case { SpecialType: SpecialType.System_Int32 }:
 								deserializeWithProviderBuilder.AppendLine($$"""
 														if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && int.TryParse(columns[{{col}}].Span[1..^1], NumberStyles.Integer, provider, out int v{{propertySymbol.Name}})) {
-															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+															{{propertyAssignment}}
 														} else if (int.TryParse(columns[{{col}}].Span, NumberStyles.Integer, provider, out v{{propertySymbol.Name}})) {
-															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+															{{propertyAssignment}}
 														} else if (columns[{{col}}].Length == 0) {
 															item.{{propertySymbol.Name}} = null;
 														} else {
@@ -1746,9 +1834,9 @@ namespace Csv.Internals {
 									""");
 								deserializeWithoutProviderBuilder.AppendLine($$"""
 														if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && int.TryParse(columns[{{col}}].Span[1..^1], out int v{{propertySymbol.Name}})) {
-															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+															{{propertyAssignment}}
 														} else if (int.TryParse(columns[{{col}}].Span, out v{{propertySymbol.Name}})) {
-															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+															{{propertyAssignment}}
 														} else if (columns[{{col}}].Length == 0) {
 															item.{{propertySymbol.Name}} = null;
 														} else {
@@ -1759,9 +1847,9 @@ namespace Csv.Internals {
 							case { SpecialType: SpecialType.System_UInt32 }:
 								deserializeWithProviderBuilder.AppendLine($$"""
 														if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && uint.TryParse(columns[{{col}}].Span[1..^1], NumberStyles.Integer, provider, out uint v{{propertySymbol.Name}})) {
-															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+															{{propertyAssignment}}
 														} else if (uint.TryParse(columns[{{col}}].Span, NumberStyles.Integer, provider, out v{{propertySymbol.Name}})) {
-															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+															{{propertyAssignment}}
 														} else if (columns[{{col}}].Length == 0) {
 															item.{{propertySymbol.Name}} = null;
 														} else {
@@ -1770,9 +1858,9 @@ namespace Csv.Internals {
 									""");
 								deserializeWithoutProviderBuilder.AppendLine($$"""
 														if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && uint.TryParse(columns[{{col}}].Span[1..^1], out uint v{{propertySymbol.Name}})) {
-															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+															{{propertyAssignment}}
 														} else if (uint.TryParse(columns[{{col}}].Span, out v{{propertySymbol.Name}})) {
-															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+															{{propertyAssignment}}
 														} else if (columns[{{col}}].Length == 0) {
 															item.{{propertySymbol.Name}} = null;
 														} else {
@@ -1783,9 +1871,9 @@ namespace Csv.Internals {
 							case { SpecialType: SpecialType.System_Int64 }:
 								deserializeWithProviderBuilder.AppendLine($$"""
 														if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && long.TryParse(columns[{{col}}].Span[1..^1], NumberStyles.Integer, provider, out long v{{propertySymbol.Name}})) {
-															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+															{{propertyAssignment}}
 														} else if (long.TryParse(columns[{{col}}].Span, NumberStyles.Integer, provider, out v{{propertySymbol.Name}})) {
-															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+															{{propertyAssignment}}
 														} else if (columns[{{col}}].Length == 0) {
 															item.{{propertySymbol.Name}} = null;
 														} else {
@@ -1794,9 +1882,9 @@ namespace Csv.Internals {
 									""");
 								deserializeWithoutProviderBuilder.AppendLine($$"""
 														if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && long.TryParse(columns[{{col}}].Span[1..^1], out long v{{propertySymbol.Name}})) {
-															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+															{{propertyAssignment}}
 														} else if (long.TryParse(columns[{{col}}].Span, out v{{propertySymbol.Name}})) {
-															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+															{{propertyAssignment}}
 														} else if (columns[{{col}}].Length == 0) {
 															item.{{propertySymbol.Name}} = null;
 														} else {
@@ -1807,9 +1895,9 @@ namespace Csv.Internals {
 							case { SpecialType: SpecialType.System_UInt64 }:
 								deserializeWithProviderBuilder.AppendLine($$"""
 														if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && ulong.TryParse(columns[{{col}}].Span[1..^1], NumberStyles.Integer, provider, out ulong v{{propertySymbol.Name}})) {
-															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+															{{propertyAssignment}}
 														} else if (ulong.TryParse(columns[{{col}}].Span, NumberStyles.Integer, provider, out v{{propertySymbol.Name}})) {
-															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+															{{propertyAssignment}}
 														} else if (columns[{{col}}].Length == 0) {
 															item.{{propertySymbol.Name}} = null;
 														} else {
@@ -1818,9 +1906,9 @@ namespace Csv.Internals {
 									""");
 								deserializeWithoutProviderBuilder.AppendLine($$"""
 														if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && ulong.TryParse(columns[{{col}}].Span[1..^1], out ulong v{{propertySymbol.Name}})) {
-															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+															{{propertyAssignment}}
 														} else if (ulong.TryParse(columns[{{col}}].Span, out v{{propertySymbol.Name}})) {
-															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+															{{propertyAssignment}}
 														} else if (columns[{{col}}].Length == 0) {
 															item.{{propertySymbol.Name}} = null;
 														} else {
@@ -1831,9 +1919,9 @@ namespace Csv.Internals {
 							case { SpecialType: SpecialType.System_Single }:
 								deserializeWithProviderBuilder.AppendLine($$"""
 														if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && float.TryParse(columns[{{col}}].Span[1..^1], NumberStyles.Float, provider, out float v{{propertySymbol.Name}})) {
-															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+															{{propertyAssignment}}
 														} else if (float.TryParse(columns[{{col}}].Span, NumberStyles.Float, provider, out v{{propertySymbol.Name}})) {
-															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+															{{propertyAssignment}}
 														} else if (columns[{{col}}].Length == 0) {
 															item.{{propertySymbol.Name}} = null;
 														} else {
@@ -1842,9 +1930,9 @@ namespace Csv.Internals {
 									""");
 								deserializeWithoutProviderBuilder.AppendLine($$"""
 														if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && float.TryParse(columns[{{col}}].Span[1..^1], out float v{{propertySymbol.Name}})) {
-															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+															{{propertyAssignment}}
 														} else if (float.TryParse(columns[{{col}}].Span, out v{{propertySymbol.Name}})) {
-															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+															{{propertyAssignment}}
 														} else if (columns[{{col}}].Length == 0) {
 															item.{{propertySymbol.Name}} = null;
 														} else {
@@ -1855,9 +1943,9 @@ namespace Csv.Internals {
 							case { SpecialType: SpecialType.System_Double }:
 								deserializeWithProviderBuilder.AppendLine($$"""
 														if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && double.TryParse(columns[{{col}}].Span[1..^1], NumberStyles.Float, provider, out double v{{propertySymbol.Name}})) {
-															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+															{{propertyAssignment}}
 														} else if (double.TryParse(columns[{{col}}].Span, NumberStyles.Float, provider, out v{{propertySymbol.Name}})) {
-															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+															{{propertyAssignment}}
 														} else if (columns[{{col}}].Length == 0) {
 															item.{{propertySymbol.Name}} = null;
 														} else {
@@ -1866,9 +1954,9 @@ namespace Csv.Internals {
 									""");
 								deserializeWithoutProviderBuilder.AppendLine($$"""
 														if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && double.TryParse(columns[{{col}}].Span[1..^1], out double v{{propertySymbol.Name}})) {
-															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+															{{propertyAssignment}}
 														} else if (double.TryParse(columns[{{col}}].Span, out v{{propertySymbol.Name}})) {
-															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+															{{propertyAssignment}}
 														} else if (columns[{{col}}].Length == 0) {
 															item.{{propertySymbol.Name}} = null;
 														} else {
@@ -1879,9 +1967,9 @@ namespace Csv.Internals {
 							case { SpecialType: SpecialType.System_Decimal }:
 								deserializeWithProviderBuilder.AppendLine($$"""
 														if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && decimal.TryParse(columns[{{col}}].Span[1..^1], NumberStyles.Number, provider, out decimal v{{propertySymbol.Name}})) {
-															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+															{{propertyAssignment}}
 														} else if (decimal.TryParse(columns[{{col}}].Span, NumberStyles.Number, provider, out v{{propertySymbol.Name}})) {
-															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+															{{propertyAssignment}}
 														} else if (columns[{{col}}].Length == 0) {
 															item.{{propertySymbol.Name}} = null;
 														} else {
@@ -1890,9 +1978,9 @@ namespace Csv.Internals {
 									""");
 								deserializeWithoutProviderBuilder.AppendLine($$"""
 														if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && decimal.TryParse(columns[{{col}}].Span[1..^1], out decimal v{{propertySymbol.Name}})) {
-															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+															{{propertyAssignment}}
 														} else if (decimal.TryParse(columns[{{col}}].Span, out v{{propertySymbol.Name}})) {
-															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+															{{propertyAssignment}}
 														} else if (columns[{{col}}].Length == 0) {
 															item.{{propertySymbol.Name}} = null;
 														} else {
@@ -1903,9 +1991,9 @@ namespace Csv.Internals {
 							case { SpecialType: SpecialType.System_Boolean }:
 								deserializeWithProviderBuilder.AppendLine($$"""
 														if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && bool.TryParse(columns[{{col}}].Span[1..^1], out bool v{{propertySymbol.Name}})) {
-															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+															{{propertyAssignment}}
 														} else if (bool.TryParse(columns[{{col}}].Span, out v{{propertySymbol.Name}})) {
-															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+															{{propertyAssignment}}
 														} else if (columns[{{col}}].Length == 0) {
 															item.{{propertySymbol.Name}} = null;
 														} else {
@@ -1914,9 +2002,9 @@ namespace Csv.Internals {
 									""");
 								deserializeWithoutProviderBuilder.AppendLine($$"""
 														if (columns[{{col}}].Length >= 2 && columns[{{col}}].Span[0] == '"' && bool.TryParse(columns[{{col}}].Span[1..^1], out bool v{{propertySymbol.Name}})) {
-															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+															{{propertyAssignment}}
 														} else if (bool.TryParse(columns[{{col}}].Span, out v{{propertySymbol.Name}})) {
-															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+															{{propertyAssignment}}
 														} else if (columns[{{col}}].Length == 0) {
 															item.{{propertySymbol.Name}} = null;
 														} else {
@@ -1930,7 +2018,7 @@ namespace Csv.Internals {
 														if (columns[{{col}}].ToString() is not { Length: > 0 } s{{propertySymbol.Name}}) {
 															item.{{propertySymbol.Name}} = null;
 														} else if (Enum.TryParse(s{{propertySymbol.Name}}, out {{fullEnumName}} v{{propertySymbol.Name}})) {
-															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+															{{propertyAssignment}}
 														} else {
 															throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", s{{propertySymbol.Name}}, "Input string was not a valid {{fullEnumName}} value.");
 														}
@@ -1939,7 +2027,7 @@ namespace Csv.Internals {
 														if (columns[{{col}}].ToString() is not { Length: > 0 } s{{propertySymbol.Name}}) {
 															item.{{propertySymbol.Name}} = null;
 														} else if (Enum.TryParse(s{{propertySymbol.Name}}, out {{fullEnumName}} v{{propertySymbol.Name}})) {
-															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+															{{propertyAssignment}}
 														} else {
 															throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", s{{propertySymbol.Name}}, "Input string was not a valid {{fullEnumName}} value.");
 														}
@@ -1957,7 +2045,7 @@ namespace Csv.Internals {
 															if (s{{propertySymbol.Name}}.Length == 0) {
 																item.{{propertySymbol.Name}} = null;
 															} else if (DateTime.TryParseExact(s{{propertySymbol.Name}}, "{{dateFormat.Replace("\\", "\\\\")}}", provider, DateTimeStyles.AssumeLocal, out DateTime v{{propertySymbol.Name}})) {
-																item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+																{{propertyAssignment}}
 															} else {
 																throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct DateTime format. Expected format was '{{dateFormat}}'.");
 															}
@@ -1971,7 +2059,7 @@ namespace Csv.Internals {
 															if (s{{propertySymbol.Name}}.Length == 0) {
 																item.{{propertySymbol.Name}} = null;
 															} else if (DateTime.TryParseExact(s{{propertySymbol.Name}}, "{{dateFormat.Replace("\\", "\\\\")}}", null, DateTimeStyles.AssumeLocal, out DateTime v{{propertySymbol.Name}})) {
-																item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+																{{propertyAssignment}}
 															} else {
 																throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct DateTime format. Expected format was '{{dateFormat}}'.");
 															}
@@ -1986,7 +2074,7 @@ namespace Csv.Internals {
 															if (s{{propertySymbol.Name}}.Length == 0) {
 																item.{{propertySymbol.Name}} = null;
 															} else if (DateTime.TryParse(s{{propertySymbol.Name}}, provider, DateTimeStyles.AssumeLocal, out DateTime v{{propertySymbol.Name}})) {
-																item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+																{{propertyAssignment}}
 															} else {
 																throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct DateTime format.");
 															}
@@ -2000,7 +2088,7 @@ namespace Csv.Internals {
 															if (s{{propertySymbol.Name}}.Length == 0) {
 																item.{{propertySymbol.Name}} = null;
 															} else if (DateTime.TryParse(s{{propertySymbol.Name}}, null, DateTimeStyles.AssumeLocal, out DateTime v{{propertySymbol.Name}})) {
-																item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+																{{propertyAssignment}}
 															} else {
 																throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct DateTime format.");
 															}
@@ -2050,7 +2138,7 @@ namespace Csv.Internals {
 														if (s{{propertySymbol.Name}}.Length == 0) {
 															item.{{propertySymbol.Name}} = null;
 														} else if (Guid.TryParse(s{{propertySymbol.Name}}, out Guid v{{propertySymbol.Name}})) {
-															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+															{{propertyAssignment}}
 														} else {
 															throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct Guid format.");
 														}
@@ -2064,7 +2152,7 @@ namespace Csv.Internals {
 														if (s{{propertySymbol.Name}}.Length == 0) {
 															item.{{propertySymbol.Name}} = null;
 														} else if (Guid.TryParse(s{{propertySymbol.Name}}, out Guid v{{propertySymbol.Name}})) {
-															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+															{{propertyAssignment}}
 														} else {
 															throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct Guid format.");
 														}
@@ -2081,7 +2169,7 @@ namespace Csv.Internals {
 															if (s{{propertySymbol.Name}}.Length == 0) {
 																item.{{propertySymbol.Name}} = null;
 															} else if (DateTimeOffset.TryParseExact(s{{propertySymbol.Name}}, "{{dateFormat.Replace("\\", "\\\\")}}", provider, DateTimeStyles.AssumeLocal, out DateTimeOffset v{{propertySymbol.Name}})) {
-																item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+																{{propertyAssignment}}
 															} else {
 																throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct DateTimeOffset format. Expected format was '{{dateFormat}}'.");
 															}
@@ -2095,7 +2183,7 @@ namespace Csv.Internals {
 															if (s{{propertySymbol.Name}}.Length == 0) {
 																item.{{propertySymbol.Name}} = null;
 															} else if (DateTimeOffset.TryParseExact(s{{propertySymbol.Name}}, "{{dateFormat.Replace("\\", "\\\\")}}", null, DateTimeStyles.AssumeLocal, out DateTimeOffset v{{propertySymbol.Name}})) {
-																item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+																{{propertyAssignment}}
 															} else {
 																throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct DateTimeOffset format. Expected format was '{{dateFormat}}'.");
 															}
@@ -2110,7 +2198,7 @@ namespace Csv.Internals {
 															if (s{{propertySymbol.Name}}.Length == 0) {
 																item.{{propertySymbol.Name}} = null;
 															} else if (DateTimeOffset.TryParse(s{{propertySymbol.Name}}, provider, DateTimeStyles.AssumeLocal, out DateTimeOffset v{{propertySymbol.Name}})) {
-																item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+																{{propertyAssignment}}
 															} else {
 																throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct DateTimeOffset format.");
 															}
@@ -2124,7 +2212,7 @@ namespace Csv.Internals {
 															if (s{{propertySymbol.Name}}.Length == 0) {
 																item.{{propertySymbol.Name}} = null;
 															} else if (DateTimeOffset.TryParse(s{{propertySymbol.Name}}, null, DateTimeStyles.AssumeLocal, out DateTimeOffset v{{propertySymbol.Name}})) {
-																item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+																{{propertyAssignment}}
 															} else {
 																throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct DateTimeOffset format.");
 															}
@@ -2141,7 +2229,7 @@ namespace Csv.Internals {
 														if (s{{propertySymbol.Name}}.Length == 0) {
 															item.{{propertySymbol.Name}} = null;
 														} else if (TimeSpan.TryParse(s{{propertySymbol.Name}}, out TimeSpan v{{propertySymbol.Name}})) {
-															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+															{{propertyAssignment}}
 														} else {
 															throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct TimeSpan format.");
 														}
@@ -2155,7 +2243,7 @@ namespace Csv.Internals {
 														if (s{{propertySymbol.Name}}.Length == 0) {
 															item.{{propertySymbol.Name}} = null;
 														} else if (TimeSpan.TryParse(s{{propertySymbol.Name}}, out TimeSpan v{{propertySymbol.Name}})) {
-															item.{{propertySymbol.Name}} = v{{propertySymbol.Name}};
+															{{propertyAssignment}}
 														} else {
 															throw new CsvFormatException(typeof({{fullTypeName}}), "{{propertySymbol.Name}}", columns[{{col}}].ToString(), "Input string was not in correct TimeSpan format.");
 														}
@@ -2297,11 +2385,13 @@ namespace Csv.Internals {
 											continue;
 										}
 									}
-									{{fullTypeName}} item = Activator.CreateInstance<{{fullTypeName}}>();
+									{{itemCreation}}
 									if (provider is null) {
 										{{deserializeWithoutProviderBuilder.ToString().Trim()}}
+										{{constructorCallInBlock}}
 									} else {
 										{{deserializeWithProviderBuilder.ToString().Trim()}}
+										{{constructorCallInBlock}}
 									}
 									items.Add(item);
 								}
@@ -2338,11 +2428,13 @@ namespace Csv.Internals {
 												return false;
 											}
 										}
-										item = Activator.CreateInstance<{{fullTypeName}}>();
+										{{streamItemCreation}}
 										if (provider is null) {
 											{{deserializeWithoutProviderBuilder.ToString().Trim()}}
+											{{constructorCallInBlock}}
 										} else {
 											{{deserializeWithProviderBuilder.ToString().Trim()}}
+											{{constructorCallInBlock}}
 										}
 										return true;
 									}
