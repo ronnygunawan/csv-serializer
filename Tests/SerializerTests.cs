@@ -374,4 +374,61 @@ namespace Tests {
 		[CsvColumn("Weight")]
 		public int WeightInGrams { get; set; }
 	}
+
+	// Model with non-default constructor (read-only properties)
+	public class Item {
+		public string Name { get; }
+		public decimal Price { get; }
+
+		public Item(string name, decimal price) {
+			Name = name;
+			Price = price;
+		}
+	}
+
+	public class NonDefaultConstructorTests {
+		[Fact]
+		public void CanDeserializeToTypeWithNonDefaultConstructor() {
+			string csv = """
+				"Name","Price"
+				"Apple",1.50
+				"Banana",0.75
+				""";
+			Item[] items = CsvSerializer.Deserialize<Item>(csv, hasHeaders: true, provider: CultureInfo.InvariantCulture);
+			items.Length.ShouldBe(2);
+			
+			items[0].Name.ShouldBe("Apple");
+			items[0].Price.ShouldBe(1.50m);
+			
+			items[1].Name.ShouldBe("Banana");
+			items[1].Price.ShouldBe(0.75m);
+		}
+
+		[Fact]
+		public void CanSerializeTypeWithNonDefaultConstructor() {
+			Item[] items = [
+				new Item("Apple", 1.50m),
+				new Item("Banana", 0.75m)
+			];
+			string csv = CsvSerializer.Serialize(items, withHeaders: true, provider: CultureInfo.InvariantCulture);
+			csv.ShouldBeSimilarTo("""
+				"Name","Price"
+				"Apple",1.50
+				"Banana",0.75
+				""");
+		}
+
+		[Fact]
+		public void CanRoundTripTypeWithNonDefaultConstructor() {
+			Item[] original = [
+				new Item("Test Item", 99.99m),
+			];
+			string csv = CsvSerializer.Serialize(original, withHeaders: true, provider: CultureInfo.InvariantCulture);
+			Item[] deserialized = CsvSerializer.Deserialize<Item>(csv, hasHeaders: true, provider: CultureInfo.InvariantCulture);
+			
+			deserialized.Length.ShouldBe(1);
+			deserialized[0].Name.ShouldBe("Test Item");
+			deserialized[0].Price.ShouldBe(99.99m);
+		}
+	}
 }
