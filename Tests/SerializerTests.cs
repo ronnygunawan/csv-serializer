@@ -232,6 +232,31 @@ namespace Tests {
 		}
 
 		[Fact]
+		public void TypeArgumentsGetNativeImplementation() {
+			// This test verifies that when CsvSerializer is called inside a generic method,
+			// the concrete type arguments are detected and native implementations are generated.
+			// TypeArgumentTestModel is a public type, and when passed through a generic method, should still use native serializer.
+			static string SerializeGeneric<T>(T item) where T : notnull => CsvSerializer.Serialize([item], withHeaders: true, provider: CultureInfo.GetCultureInfo("en-US"));
+			static T[] DeserializeGeneric<T>(string csv) where T : notnull => CsvSerializer.Deserialize<T>(csv, hasHeaders: true, provider: CultureInfo.InvariantCulture);
+
+			TypeArgumentTestModel original = new() {
+				Id = 42,
+				Name = "Test"
+			};
+
+			string csv = SerializeGeneric(original);
+			csv.ShouldBeSimilarTo("""
+				"Id","Name"
+				42,"Test"
+				""");
+
+			TypeArgumentTestModel[] deserialized = DeserializeGeneric<TypeArgumentTestModel>(csv);
+			deserialized.Length.ShouldBe(1);
+			deserialized[0].Id.ShouldBe(42);
+			deserialized[0].Name.ShouldBe("Test");
+		}
+
+		[Fact]
 		public void CannotDeserializeRowWithExtraColumns() {
 			string csv = """
 				"Bool","Byte","SByte","Short","UShort","Int","UInt","Long","ULong","Float","Double","Decimal","String","DateTime","Uri","StatusCode"
@@ -373,5 +398,10 @@ namespace Tests {
 		public string? ItemName { get; set; }
 		[CsvColumn("Weight")]
 		public int WeightInGrams { get; set; }
+	}
+
+	public class TypeArgumentTestModel {
+		public int Id { get; set; }
+		public string? Name { get; set; }
 	}
 }

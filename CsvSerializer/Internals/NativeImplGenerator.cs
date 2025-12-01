@@ -7,11 +7,14 @@ using Microsoft.CodeAnalysis.Text;
 namespace Csv.Internals {
 	internal static class NativeImplGenerator {
 		public static void AddNativeImplementations(this GeneratorExecutionContext context) {
-			if (context.SyntaxContextReceiver is not SerializeOrDeserializeSyntaxReceiver {
-				InvocationLocationsByTypeSymbol: { } invocationLocationsByTypeSymbol
-			}) {
+			if (context.SyntaxContextReceiver is not SerializeOrDeserializeSyntaxReceiver receiver) {
 				return;
 			}
+
+			Dictionary<ITypeSymbol, List<Location>> invocationLocationsByTypeSymbol = receiver.InvocationLocationsByTypeSymbol;
+
+			// Resolve type parameters to concrete types
+			ResolveTypeParameters(receiver, invocationLocationsByTypeSymbol);
 
 			StringBuilder nativeImplRegistration = new();
 
@@ -196,6 +199,48 @@ namespace Csv.Internals {
 					encoding: Encoding.UTF8
 				)
 			);
+		}
+
+		private static void ResolveTypeParameters(
+			SerializeOrDeserializeSyntaxReceiver receiver,
+			Dictionary<ITypeSymbol, List<Location>> invocationLocationsByTypeSymbol
+		) {
+			// For each method that uses CsvSerializer with a type parameter,
+			// find all call sites of that method and resolve the concrete type
+			foreach (KeyValuePair<IMethodSymbol, List<(int TypeParameterIndex, Location InvocationLocation)>> kvp
+				in receiver.MethodsWithTypeParameterUsage) {
+				IMethodSymbol methodWithTypeParam = kvp.Key;
+				List<(int TypeParameterIndex, Location InvocationLocation)> usages = kvp.Value;
+
+				// Check if this method is invoked with concrete types
+				if (!receiver.GenericMethodInvocations.TryGetValue(methodWithTypeParam, out var methodInvocations)) {
+					continue;
+				}
+
+				// For each concrete invocation of the method
+				foreach ((ITypeSymbol[] typeArguments, Location callSiteLocation) in methodInvocations) {
+					// For each usage of CsvSerializer within the method
+					foreach ((int typeParameterIndex, Location csvSerializerLocation) in usages) {
+						if (typeParameterIndex >= 0 && typeParameterIndex < typeArguments.Length) {
+							ITypeSymbol concreteType = typeArguments[typeParameterIndex];
+
+							// Verify the concrete type is valid for native implementation
+							if (concreteType is {
+								Name.Length: > 0,
+								DeclaringSyntaxReferences.Length: > 0,
+								TypeKind: TypeKind.Class or TypeKind.Struct
+							}) {
+								// Register the concrete type
+								if (!invocationLocationsByTypeSymbol.TryGetValue(concreteType, out List<Location>? locations)) {
+									locations = [];
+									invocationLocationsByTypeSymbol.Add(concreteType, locations);
+								}
+								locations.Add(callSiteLocation);
+							}
+						}
+					}
+				}
+			}
 		}
 
 		private static (
